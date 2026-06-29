@@ -906,7 +906,7 @@ export default function Home() {
                     : "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]/30"
                 }`}
               >
-                Painel Maker (UBER)
+                Painel do Maker
               </button>
               <button
                 onClick={() => setActiveTab("admin")}
@@ -1285,7 +1285,7 @@ export default function Home() {
                         : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
                     }`}
                   >
-                    Despachar para Fabricação Local (UBER Flow)
+                    Despachar para Fabricação Local
                   </button>
                   {clientZip && nearbyMakers.length > 0 && nearbyMakers.filter(m => {
                     const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
@@ -2119,7 +2119,7 @@ export default function Home() {
                               onClick={acceptJob}
                               className="flex-1 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center"
                             >
-                              Aceitar Job (UBER)
+                              Aceitar Ordem de Serviço
                             </button>
                             <button
                               onClick={rejectJob}
@@ -2445,11 +2445,11 @@ export default function Home() {
             </ul>
           </div>
           <div>
-            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text mb-3">Termos & Regras</h4>
+            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text mb-3">Políticas da Rede</h4>
             <ul className="space-y-2 text-[11px] text-[#71717a]">
-              <li><span className="text-[#a1a1aa]">Regra UBER: Aceite em 30s</span></li>
-              <li><span className="text-[#a1a1aa]">Desistência: Perda de Reputação</span></li>
-              <li><span className="text-[#a1a1aa]">Tolerância Mínima: ±0.05mm</span></li>
+              <li><span className="text-[#a1a1aa]">SLA de Resposta: Aceite em 30s</span></li>
+              <li><span className="text-[#a1a1aa]">Desistência: Penalidade de Nível</span></li>
+              <li><span className="text-[#a1a1aa]">Tolerância Dimensional: ±0.05mm</span></li>
             </ul>
           </div>
           <div className="space-y-2">
