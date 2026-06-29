@@ -2,6 +2,11 @@ import { PrismaClient } from '@prisma/client'
 import { createClient } from '@libsql/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 
+// Injeta fallback de variável de ambiente exigida pelo validador interno do Prisma v7
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = "file:./dev.db"
+}
+
 // Conexão unificada do Banco de Dados FAB MAKERS (Local via dev.db ou Nuvem via Turso)
 
 const libsql = createClient({
