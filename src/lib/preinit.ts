@@ -5,5 +5,14 @@ const dbUrl = (rawTursoUrl && rawTursoUrl !== "undefined" && rawTursoUrl !== "")
   : "file:./dev.db";
 
 if (!process.env.DATABASE_URL || process.env.DATABASE_URL === "undefined" || process.env.DATABASE_URL === "") {
-  process.env.DATABASE_URL = dbUrl;
+  try {
+    Object.defineProperty(process.env, 'DATABASE_URL', {
+      value: dbUrl,
+      writable: true,
+      configurable: true,
+      enumerable: true
+    });
+  } catch (e) {
+    process.env.DATABASE_URL = dbUrl;
+  }
 }
