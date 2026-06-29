@@ -1233,7 +1233,7 @@ export default function Home() {
             {/* Perfil do usuário logado (exibido em vez das abas de navegação globais) */}
             {currentUser && (
               <div className="hidden md:flex items-center gap-2.5">
-                <span className="text-[9px] px-2 py-0.5 bg-[#18181b] border border-[#27272a] text-[#a1a1aa] rounded uppercase font-bold tracking-wider mono-text">
+                <span className="text-xs px-2 py-0.5 bg-[#18181b] border border-[#27272a] text-[#a1a1aa] rounded uppercase font-bold tracking-wider mono-text">
                   {currentUser.role === "ADMIN" ? "ADMIN" : currentUser.role === "MAKER" ? "MAKER PARTNER" : "CLIENTE"}
                 </span>
                 <span className="text-xs text-[#27272a]">|</span>
@@ -1329,13 +1329,13 @@ export default function Home() {
                   <div className="lg:col-span-7 space-y-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d44d00]/10 border border-[#d44d00]/20 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#d44d00] mono-text">Impressão 3D Despachada Localmente</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Impressão 3D Despachada Localmente</span>
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-none">
+                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-white leading-none">
                       Não tem impressora? <br />
                       <span className="text-[#d44d00]">Nós fabricamos e entregamos para você.</span>
                     </h1>
-                    <p className="text-xs text-[#a1a1aa] leading-relaxed max-w-xl">
+                    <p className="text-sm md:text-base text-[#a1a1aa] leading-relaxed max-w-xl">
                       Cote seu modelo 3D em segundos. Roteamos sua peça para a rede de makers locais (hobbistas e bureaus industriais). O primeiro fabricante disponível aceita a cotação e inicia a produção imediatamente. Intermediação digital segura sob demanda!
                     </p>
                     <div className="flex flex-wrap gap-4 pt-2">
@@ -1377,21 +1377,21 @@ export default function Home() {
                           <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">1</span>
                           <div>
                             <h4 className="font-bold text-white">Escolha ou Envie o Arquivo</h4>
-                            <p className="text-[10px] text-[#71717a] mt-0.5">Importe do MakerWorld ou envie seu arquivo de engenharia STL.</p>
+                            <p className="text-xs text-[#71717a] mt-0.5">Importe do MakerWorld ou envie seu arquivo de engenharia STL.</p>
                           </div>
                         </div>
                         <div className="flex gap-3">
                           <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">2</span>
                           <div>
                             <h4 className="font-bold text-white">Orçamento Fatiado na Hora</h4>
-                            <p className="text-[10px] text-[#71717a] mt-0.5">Calculamos peso, tempo de máquina e custo exato em 0.12 segundos.</p>
+                            <p className="text-xs text-[#71717a] mt-0.5">Calculamos peso, tempo de máquina e custo exato em 0.12 segundos.</p>
                           </div>
                         </div>
                         <div className="flex gap-3">
                           <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">3</span>
                           <div>
                             <h4 className="font-bold text-white">Despacho sob Demanda</h4>
-                            <p className="text-[10px] text-[#71717a] mt-0.5">Ao confirmar o pedido logado, a ordem vai para o radar geral e o primeiro maker local aceita e inicia a manufatura.</p>
+                            <p className="text-xs text-[#71717a] mt-0.5">Ao confirmar o pedido logado, a ordem vai para o radar geral e o primeiro maker local aceita e inicia a manufatura.</p>
                           </div>
                         </div>
                       </div>
@@ -1423,7 +1423,7 @@ export default function Home() {
                         <div className="p-4 flex-grow flex flex-col justify-between space-y-4">
                           <div>
                             <h4 className="font-bold text-white text-xs leading-snug truncate">{item.title}</h4>
-                            <p className="text-[9px] text-[#71717a] mt-0.5">Criado por: {item.author}</p>
+                            <p className="text-xs text-[#71717a] mt-0.5">Criado por: {item.author}</p>
                           </div>
                           <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
                             <span className="text-xs font-bold text-[#d44d00] mono-text">Est. R$ {item.price.toFixed(2)}</span>
@@ -1466,7 +1466,7 @@ export default function Home() {
                                   setShowLoginModal(true);
                                 }
                               }}
-                              className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-[9px] font-bold text-white uppercase rounded transition cursor-pointer"
+                              className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-xs font-bold text-white uppercase rounded transition cursor-pointer"
                             >
                               Imprimir Peça
                             </button>
@@ -1487,13 +1487,13 @@ export default function Home() {
                   <div className="lg:col-span-7 space-y-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d44d00]/10 border border-[#d44d00]/20 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#d44d00] mono-text">Adesão Gratuita & 5% de Comissão</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Adesão Gratuita & 5% de Comissão</span>
                     </div>
-                    <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-none">
+                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-white leading-none">
                       Sua impressora 3D está ociosa? <br />
                       <span className="text-[#d44d00]">Ganhe dinheiro produzindo na nossa rede.</span>
                     </h1>
-                    <p className="text-xs text-[#a1a1aa] leading-relaxed max-w-xl">
+                    <p className="text-sm md:text-base text-[#a1a1aa] leading-relaxed max-w-xl">
                       Seja você uma pessoa física com uma máquina no quarto ou uma empresa/bureau com dezenas de equipamentos. A FabMakers conecta você a clientes locais de forma inteligente. Sem taxas fixas: cobramos apenas 5% de intermediação sobre os pedidos que você produzir!
                     </p>
                     <div className="flex flex-wrap gap-4 pt-2">
@@ -1555,14 +1555,14 @@ export default function Home() {
                           <div>
                             <span className="text-[8px] bg-[#18181b] text-[#d44d00] border border-[#d44d00]/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider mono-text inline-block">Dropshipping Parceiro</span>
                             <h4 className="font-bold text-white text-xs leading-snug mt-1.5">{prod.title}</h4>
-                            <p className="text-[10px] text-[#71717a] mt-0.5">Prazo: {prod.deliveryTime}</p>
+                            <p className="text-xs text-[#71717a] mt-0.5">Prazo: {prod.deliveryTime}</p>
                           </div>
                         </div>
 
                         <div className="space-y-3 pt-2 border-t border-[#18181b]/50">
                           <div className="flex justify-between items-center">
                             <span className="text-sm font-extrabold text-white mono-text">R$ {prod.price.toFixed(2)}</span>
-                            <span className="text-[9px] text-[#10b981] font-bold">Comissão: {prod.affiliateCommissionPercent}%</span>
+                            <span className="text-xs text-[#10b981] font-bold">Comissão: {prod.affiliateCommissionPercent}%</span>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2">
@@ -1570,7 +1570,7 @@ export default function Home() {
                               href={prod.link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="py-1.5 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-center text-[9px] font-bold text-white uppercase rounded transition"
+                              className="py-1.5 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-center text-xs font-bold text-white uppercase rounded transition"
                             >
                               🛒 Comprar
                             </a>
@@ -1584,7 +1584,7 @@ export default function Home() {
                                   alert("Apenas makers cadastrados e logados podem gerar links de afiliados para revenda. Faça o login de Maker!");
                                 }
                               }}
-                              className="py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-[9px] font-bold text-white uppercase rounded transition cursor-pointer"
+                              className="py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-xs font-bold text-white uppercase rounded transition cursor-pointer"
                             >
                               🔗 Revender
                             </button>
@@ -1690,9 +1690,9 @@ export default function Home() {
                             <button onClick={handleBrowseFiles} className="text-[#d44d00] hover:text-[#b04000] font-semibold text-xs cursor-pointer">
                               Selecione seu arquivo STL
                             </button>
-                            <p className="text-[10px] text-[#71717a] mt-1">Arraste o arquivo geométrico</p>
+                            <p className="text-xs text-[#71717a] mt-1">Arraste o arquivo geométrico</p>
                           </div>
-                          <button onClick={handleSimulateExample} className="text-[9px] mono-text text-[#a1a1aa] hover:text-white bg-[#18181b] px-3 py-1.5 rounded border border-[#27272a] transition cursor-pointer">
+                          <button onClick={handleSimulateExample} className="text-xs mono-text text-[#a1a1aa] hover:text-white bg-[#18181b] px-3 py-1.5 rounded border border-[#27272a] transition cursor-pointer">
                             💡 Usar Engrenagem de Exemplo
                           </button>
                         </div>
@@ -1706,7 +1706,7 @@ export default function Home() {
                             </div>
                             <div>
                               <h4 className="font-semibold text-white text-xs truncate max-w-[200px] mono-text">{file.name}</h4>
-                              <p className="text-[9px] text-[#71717a]">Arquivo de engenharia carregado</p>
+                              <p className="text-xs text-[#71717a]">Arquivo de engenharia carregado</p>
                             </div>
                           </div>
                           <button onClick={handleClear} className="text-[#71717a] hover:text-red-400 p-1.5 hover:bg-[#18181b] rounded transition">
@@ -1721,7 +1721,7 @@ export default function Home() {
                       <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">Configurações Físicas</h3>
                       
                       <div className="space-y-3">
-                        <label className="text-[10px] font-semibold text-[#a1a1aa] uppercase tracking-wider mono-text">Material do Filamento</label>
+                        <label className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mono-text">Material do Filamento</label>
                         <div className="grid grid-cols-4 gap-2">
                           {["PLA", "ABS", "PETG", "Resina"].map((mat) => (
                             <button
@@ -1738,7 +1738,7 @@ export default function Home() {
                       </div>
 
                       <div className="space-y-3">
-                        <div className="flex justify-between items-center text-[10px] text-[#a1a1aa] uppercase tracking-wider mono-text">
+                        <div className="flex justify-between items-center text-xs text-[#a1a1aa] uppercase tracking-wider mono-text">
                           <label>Densidade Interna (Infill)</label>
                           <span className="text-[#d44d00]">{infill}%</span>
                         </div>
@@ -1772,12 +1772,12 @@ export default function Home() {
                         <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
                           <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
                             <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                            <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">Royalty Zero</span>
+                            <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">Royalty Zero</span>
                           </div>
                           <div className="p-4 space-y-4 flex-grow flex flex-col justify-between">
                             <div>
                               <h4 className="font-bold text-white text-sm leading-tight">{item.title}</h4>
-                              <p className="text-[10px] text-[#71717a] mt-1">Material sugerido: <span className="text-[#a1a1aa] font-bold">{item.material}</span> | Peso: {item.weightG}g</p>
+                              <p className="text-xs text-[#71717a] mt-1">Material sugerido: <span className="text-[#a1a1aa] font-bold">{item.material}</span> | Peso: {item.weightG}g</p>
                             </div>
                             <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
                               <span className="text-sm font-extrabold text-white mono-text">R$ {item.totalPrice.toFixed(2)}</span>
@@ -1812,7 +1812,7 @@ export default function Home() {
                                   alert(`Modelo "${item.title}" importado e cotado com sucesso! Agora configure o CEP para fechar o pedido.`);
                                   setClientSubTab("upload"); // Joga para a cotação fatiador
                                 }}
-                                className="px-3 py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-white text-[10px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                className="px-3 py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold rounded uppercase tracking-wider transition cursor-pointer"
                               >
                                 Selecionar
                               </button>
@@ -1854,7 +1854,7 @@ export default function Home() {
                     {webSearchLoading && (
                       <div className="py-12 text-center">
                         <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin mx-auto"></div>
-                        <p className="text-[10px] text-[#71717a] mt-3">Agregando resultados das APIs globais 3D...</p>
+                        <p className="text-xs text-[#71717a] mt-3">Agregando resultados das APIs globais 3D...</p>
                       </div>
                     )}
 
@@ -1868,7 +1868,7 @@ export default function Home() {
                             <div className="flex-grow space-y-1.5 min-w-0">
                               <span className="text-[8px] bg-[#18181b] text-[#a1a1aa] px-1.5 py-0.5 rounded border border-[#27272a] uppercase font-bold tracking-wider mono-text inline-block">{item.source}</span>
                               <h4 className="font-bold text-white text-xs truncate leading-tight">{item.title}</h4>
-                              <p className="text-[9px] text-[#71717a] truncate">Por: {item.author} | {item.likes} likes</p>
+                              <p className="text-xs text-[#71717a] truncate">Por: {item.author} | {item.likes} likes</p>
                               <button
                                 onClick={() => {
                                   // Injeta os dados da busca no Quote
@@ -1900,7 +1900,7 @@ export default function Home() {
                                   alert(`Modelo "${item.title}" importado com sucesso da ${item.source}! Agora informe o CEP para fechar o pedido.`);
                                   setClientSubTab("upload"); // Joga para a cotação fatiador
                                 }}
-                                className="text-[10px] text-[#d44d00] hover:text-[#b04000] font-bold uppercase tracking-wider block cursor-pointer"
+                                className="text-xs text-[#d44d00] hover:text-[#b04000] font-bold uppercase tracking-wider block cursor-pointer"
                               >
                                 Importar e Cotar →
                               </button>
@@ -1936,8 +1936,8 @@ export default function Home() {
                             {/* Proposta Paramétrica se houver */}
                             {msg.recommendedParams && (
                               <div className="bg-[#050506] border border-[#18181b] p-3 rounded space-y-2 mt-2">
-                                <span className="text-[9px] uppercase tracking-wider font-bold text-[#d44d00] block mono-text">Parâmetros de Fabricação Sugeridos</span>
-                                <div className="grid grid-cols-2 gap-2 text-[10px] text-[#71717a] border-b border-[#18181b] pb-2">
+                                <span className="text-xs uppercase tracking-wider font-bold text-[#d44d00] block mono-text">Parâmetros de Fabricação Sugeridos</span>
+                                <div className="grid grid-cols-2 gap-2 text-xs text-[#71717a] border-b border-[#18181b] pb-2">
                                   <div>Arquivo: <span className="text-white font-bold">{msg.recommendedParams.filename}</span></div>
                                   <div>Material: <span className="text-white font-bold">{msg.recommendedParams.material}</span></div>
                                   <div>Preenchimento (Infill): <span className="text-white font-bold">{msg.recommendedParams.infill}%</span></div>
@@ -1976,7 +1976,7 @@ export default function Home() {
                                       alert(`Orçamento da IA "${msg.recommendedParams!.filename}" aceito e carregado! Informe o CEP para rotear para o fabricante.`);
                                       setClientSubTab("upload"); // Joga para a cotação fatiador
                                     }}
-                                    className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-white text-[9px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                    className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold rounded uppercase tracking-wider transition cursor-pointer"
                                   >
                                     Aceitar Proposta & Cotar
                                   </button>
@@ -2026,7 +2026,7 @@ export default function Home() {
               {quote ? (
                 <div className="technical-panel rounded p-6 space-y-5">
                   <div className="text-center pb-4 border-b border-[#18181b]">
-                    <span className="text-[9px] font-semibold text-[#71717a] uppercase tracking-wider mono-text">Valor da Peça</span>
+                    <span className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mono-text">Valor da Peça</span>
                     <div className="text-3xl font-extrabold text-[#d44d00] mt-1 mono-text">
                       R$ {quote.pricing.totalPrice.toFixed(2).replace(".", ",")}
                     </div>
@@ -2041,21 +2041,21 @@ export default function Home() {
 
                   {/* Campo de CEP do Cliente (ViaCEP) */}
                   <div className="space-y-1.5 border-t border-[#18181b] pt-4">
-                    <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">CEP de Entrega para Cotação Logística</label>
+                    <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">CEP de Entrega para Cotação Logística</label>
                     <input 
                       type="text" value={clientZip} 
                       onChange={(e) => handleClientZipChange(e.target.value)} 
                       placeholder="Ex: 13083-970" 
                       className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
                     />
-                    {clientZipLoading && <p className="text-[9px] text-yellow-500 mono-text animate-pulse">Buscando localidade e calculando frete...</p>}
-                    {clientAddress && <p className="text-[10px] text-[#10b981] font-semibold mono-text mt-0.5">📍 {clientAddress}</p>}
+                    {clientZipLoading && <p className="text-xs text-yellow-500 mono-text animate-pulse">Buscando localidade e calculando frete...</p>}
+                    {clientAddress && <p className="text-xs text-[#10b981] font-semibold mono-text mt-0.5">📍 {clientAddress}</p>}
                   </div>
 
                   {/* Sonar / Radar de Proximidade */}
                   {clientZip && (
                     <div className="border border-[#18181b] rounded p-4 bg-[#050506] space-y-3">
-                      <div className="flex justify-between items-center text-[9px] text-[#71717a] uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">
+                      <div className="flex justify-between items-center text-xs text-[#71717a] uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">
                         <span>Radar de Proximidade</span>
                         <span className={isScanningRadar ? "text-yellow-500 animate-pulse" : "text-[#10b981]"}>
                           {isScanningRadar ? "Escaneando Rede..." : "Rede Pronta"}
@@ -2072,13 +2072,13 @@ export default function Home() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          <span className="text-[9px] text-[#71717a] mono-text">Escaneando e avaliando compatibilidades de mesa/câmara...</span>
+                          <span className="text-xs text-[#71717a] mono-text">Escaneando e avaliando compatibilidades de mesa/câmara...</span>
                         </div>
                       ) : (
                         <div className="space-y-3">
                           {nearbyMakers.length > 0 ? (
                             <div className="space-y-2">
-                              <p className="text-[9px] text-[#71717a] uppercase tracking-wider mono-text">Makers locais avaliados pela rede:</p>
+                              <p className="text-xs text-[#71717a] uppercase tracking-wider mono-text">Makers locais avaliados pela rede:</p>
                               {nearbyMakers.map((maker, idx) => {
                                 const presetMatch = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === maker.machine);
                                 
@@ -2098,18 +2098,18 @@ export default function Home() {
                                 const isCompatible = fitsVolume && meetsEnclosure;
 
                                 return (
-                                  <div key={idx} className={`p-2.5 rounded border text-[10px] space-y-1.5 ${
+                                  <div key={idx} className={`p-2.5 rounded border text-xs space-y-1.5 ${
                                     isCompatible ? "border-[#10b981]/20 bg-[#10b981]/2" : "border-red-500/20 bg-red-500/2"
                                   }`}>
                                     <div className="flex justify-between items-center">
-                                      <span className="font-bold text-white">{maker.name} <span className="text-[#a1a1aa] font-normal text-[9px]">({maker.distanceKm} km)</span></span>
+                                      <span className="font-bold text-white">{maker.name} <span className="text-[#a1a1aa] font-normal text-xs">({maker.distanceKm} km)</span></span>
                                       <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded mono-text ${
                                         isCompatible ? "bg-[#10b981]/15 text-[#10b981]" : "bg-red-500/15 text-red-500"
                                       }`}>
                                         {isCompatible ? `Disponível (ETA: ${maker.etaMinutes} min)` : "Incompatível"}
                                       </span>
                                     </div>
-                                    <div className="flex justify-between items-center text-[9px] text-[#71717a]">
+                                    <div className="flex justify-between items-center text-xs text-[#71717a]">
                                       <span>Máquina: {maker.machine}</span>
                                       <span>Nota: ★{maker.rating.toFixed(1)}</span>
                                     </div>
@@ -2125,7 +2125,7 @@ export default function Home() {
                               })}
                             </div>
                           ) : (
-                            <p className="text-[9px] text-[#71717a] text-center py-2">Nenhum maker retornado.</p>
+                            <p className="text-xs text-[#71717a] text-center py-2">Nenhum maker retornado.</p>
                           )}
                         </div>
                       )}
@@ -2159,7 +2159,7 @@ export default function Home() {
                     const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
                     return fitsVol && meetsEnc;
                   }).length === 0 && (
-                    <p className="text-[9px] text-red-400 text-center font-semibold mt-1">
+                    <p className="text-xs text-red-400 text-center font-semibold mt-1">
                       ⚠️ Nenhum Maker no raio atende aos requisitos físicos/térmicos desta peça/material.
                     </p>
                   )}
@@ -2193,7 +2193,7 @@ export default function Home() {
                         </span>
                       </div>
                       
-                      <div className="text-[11px] text-[#71717a] space-y-1">
+                      <div className="text-xs text-[#71717a] space-y-1">
                         <p className="truncate">Peça: <span className="text-white">{ord.filename}</span></p>
                         <p>Fabricado por: <span className="text-white">{ord.makerName || "Procurando parceiro..."}</span></p>
                         <p>Total: <span className="text-[#d44d00] font-bold">R$ {ord.totalPrice.toFixed(2).replace(".", ",")}</span></p>
@@ -2252,7 +2252,7 @@ export default function Home() {
                   <h2 className="text-xl font-bold text-white uppercase tracking-tight mono-text">Formulário de Entrada - Maker</h2>
                   {/* Indicador de passos */}
                 </div>
-                <div className="flex justify-between text-[9px] text-[#71717a] font-semibold uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">
+                <div className="flex justify-between text-xs text-[#71717a] font-semibold uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">
                   <span className={wizardStep === 1 ? "text-[#d44d00]" : ""}>1. Conta & E-mail</span>
                   <span className={wizardStep === 2 ? "text-[#d44d00]" : ""}>2. Contrato SLA</span>
                   <span className={wizardStep === 3 ? "text-[#d44d00]" : ""}>3. Máquinas</span>
@@ -2267,14 +2267,14 @@ export default function Home() {
                       <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Criação de Credenciais & Confirmação de E-mail</h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">E-mail Corporativo</label>
+                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">E-mail Corporativo</label>
                           <input 
                             type="email" value={wizardEmail} onChange={(e) => setWizardEmail(e.target.value)} placeholder="maker@dominio.com" 
                             className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Senha de Acesso</label>
+                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Senha de Acesso</label>
                           <input 
                             type="password" value={wizardPassword} onChange={(e) => setWizardPassword(e.target.value)} placeholder="••••••••" 
                             className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
@@ -2284,7 +2284,7 @@ export default function Home() {
 
                       {/* Simulação do Envio de E-mail via Zoho SMTP */}
                       <div className="border border-[#18181b] rounded p-4 bg-[#050506] space-y-4">
-                        <div className="flex justify-between items-center text-[10px] mono-text">
+                        <div className="flex justify-between items-center text-xs mono-text">
                           <span className="text-[#a1a1aa] uppercase font-bold">Status do E-mail</span>
                           <span className={emailVerified ? "text-[#10b981]" : "text-yellow-500 animate-pulse"}>
                             {emailVerified ? "📧 Verificado com sucesso!" : "Aguardando Verificação"}
@@ -2307,7 +2307,7 @@ export default function Home() {
                           </button>
                         ) : (
                           <div className="space-y-3">
-                            <p className="text-[10px] text-[#71717a] text-center">
+                            <p className="text-xs text-[#71717a] text-center">
                               Enviamos um e-mail com token de segurança para <strong className="text-white">{wizardEmail}</strong>. 
                               Use o botão abaixo para simular que você clicou no link de validação no seu e-mail:
                             </p>
@@ -2353,7 +2353,7 @@ export default function Home() {
                       <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Contrato de Credenciamento, Parceria & Isenção Tributária (Taxa 5%)</h3>
                       
                       {/* Corpo do Contrato */}
-                      <div className="h-64 overflow-y-auto border border-[#18181b] p-4 bg-[#050506] rounded space-y-4 text-[10px] text-[#a1a1aa] leading-relaxed">
+                      <div className="h-64 overflow-y-auto border border-[#18181b] p-4 bg-[#050506] rounded space-y-4 text-xs text-[#a1a1aa] leading-relaxed">
                         <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">1. DA NATUREZA DA INTERMEDIAÇÃO DIGITAL P2P</h4>
                         <p>
                           A FAB MAKERS atua exclusivamente como provedora de infraestrutura tecnológica e de intermediação comercial. A plataforma conecta de forma algorítmica a lei da oferta e da procura: de um lado, clientes demandantes de peças customizadas; de outro, Makers (Pessoas Físicas operando hardware ocioso doméstico ou Empresas/Bureaus corporativos de manufatura). O Maker declara estar ciente de que não há qualquer vínculo empregatício ou societário com a FAB MAKERS.
@@ -2387,7 +2387,7 @@ export default function Home() {
                           onChange={(e) => setContractAccepted(e.target.checked)} 
                           className="mt-0.5 accent-[#d44d00]" 
                         />
-                        <span className="text-[10px] text-[#71717a] leading-tight">
+                        <span className="text-xs text-[#71717a] leading-tight">
                           Declaro que li, compreendi e concordo com todos os termos do Contrato de Credenciamento de 5% da FAB MAKERS, assumindo total responsabilidade pelo sigilo das peças 3D e calibração dimensional.
                         </span>
                       </label>
@@ -2417,30 +2417,30 @@ export default function Home() {
                       <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Informações Pessoais & Cadastro de Equipamentos</h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
-                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Nome Completo</label>
+                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Nome Completo</label>
                           <input 
                             type="text" value={wizardName} onChange={(e) => setWizardName(e.target.value)} placeholder="Ex: Maria Souza" 
                             className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">CEP de Atuação</label>
+                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">CEP de Atuação</label>
                           <input 
                             type="text" value={wizardZip} 
                             onChange={(e) => handleMakerZipChange(e.target.value)} 
                             placeholder="Ex: 13083-970" 
                             className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
                           />
-                          {makerZipLoading && <p className="text-[9px] text-yellow-500 mono-text animate-pulse">Buscando localidade...</p>}
-                          {makerZipFeedback && <p className="text-[10px] text-[#10b981] font-semibold mono-text mt-0.5">📍 {makerZipFeedback}</p>}
+                          {makerZipLoading && <p className="text-xs text-yellow-500 mono-text animate-pulse">Buscando localidade...</p>}
+                          {makerZipFeedback && <p className="text-xs text-[#10b981] font-semibold mono-text mt-0.5">📍 {makerZipFeedback}</p>}
                         </div>
                       </div>
 
                       {/* Lista de Máquinas */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Suas Impressoras 3D</label>
-                          <button onClick={addMachine} className="text-[10px] text-[#d44d00] hover:underline font-bold">+ Adicionar Máquina</button>
+                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Suas Impressoras 3D</label>
+                          <button onClick={addMachine} className="text-xs text-[#d44d00] hover:underline font-bold">+ Adicionar Máquina</button>
                         </div>
                         
                         {wizardMachines.map((mach, index) => {
@@ -2450,11 +2450,11 @@ export default function Home() {
                           return (
                             <div key={mach.id} className="border border-[#18181b] p-4 rounded bg-[#050506] space-y-4">
                               <div className="flex justify-between items-center text-xs font-bold text-[#a1a1aa] border-b border-[#18181b] pb-2">
-                                <span className="mono-text text-[9px] tracking-wider text-[#71717a]">MÁQUINA #{index + 1}</span>
+                                <span className="mono-text text-xs tracking-wider text-[#71717a]">MÁQUINA #{index + 1}</span>
                                 {wizardMachines.length > 1 && (
                                   <button 
                                     onClick={() => setWizardMachines(wizardMachines.filter(m => m.id !== mach.id))}
-                                    className="text-red-500 hover:text-red-400 font-normal hover:underline text-[10px]"
+                                    className="text-red-500 hover:text-red-400 font-normal hover:underline text-xs"
                                   >
                                     Remover
                                   </button>
@@ -2576,7 +2576,7 @@ export default function Home() {
                                 </div>
                               ) : (
                                 mach.model && (
-                                  <div className="bg-[#09090b] border border-[#18181b] p-3 rounded text-[10px] text-[#a1a1aa] space-y-2 mono-text">
+                                  <div className="bg-[#09090b] border border-[#18181b] p-3 rounded text-xs text-[#a1a1aa] space-y-2 mono-text">
                                     <div className="grid grid-cols-3 gap-y-1.5 gap-x-2">
                                       <p>Tecnologia: <span className="text-white">{mach.technology}</span></p>
                                       <p>Volume Útil: <span className="text-white">{mach.volume}</span></p>
@@ -2588,7 +2588,7 @@ export default function Home() {
                                       <p>Precisão: <span className="text-white">±{mach.typicalPrecision} mm</span></p>
                                       <p>Carga Máx Z: <span className="text-white">{mach.maxPartWeightG}g</span></p>
                                     </div>
-                                    <div className="border-t border-[#18181b] pt-1.5 text-[9px]">
+                                    <div className="border-t border-[#18181b] pt-1.5 text-xs">
                                       <p className="truncate">Materiais Compatíveis: <span className="text-white">{(mach.compatibleMaterials || []).join(", ")}</span></p>
                                     </div>
                                   </div>
@@ -2616,8 +2616,8 @@ export default function Home() {
                       <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Controle de Filamento & Matéria-Prima</h3>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Seu Estoque de Filamento</label>
-                          <button onClick={addFilament} className="text-[10px] text-[#d44d00] hover:underline font-bold">+ Adicionar Filamento</button>
+                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Seu Estoque de Filamento</label>
+                          <button onClick={addFilament} className="text-xs text-[#d44d00] hover:underline font-bold">+ Adicionar Filamento</button>
                         </div>
                         {wizardFilaments.map((fil, index) => (
                           <div key={fil.id} className="border border-[#18181b] p-3 rounded grid grid-cols-3 gap-2 bg-[#050506]">
@@ -2676,12 +2676,12 @@ export default function Home() {
                       
                       {/* Calendário interativo de escala */}
                       <div className="space-y-4">
-                        <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Grade de Escala Semanal (Escolha os dias de Trabalho)</label>
+                        <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Grade de Escala Semanal (Escolha os dias de Trabalho)</label>
                         
                         <div className="grid grid-cols-7 gap-2 text-center text-xs">
                           {["seg", "ter", "qua", "qui", "sex", "sab", "dom"].map((day) => (
                             <div key={day} className="space-y-2">
-                              <span className="font-bold text-[#a1a1aa] uppercase tracking-widest text-[9px] mono-text">{day}</span>
+                              <span className="font-bold text-[#a1a1aa] uppercase tracking-widest text-xs mono-text">{day}</span>
                               <button 
                                 onClick={() => {
                                   const isEscalado = wizardDays.includes(day);
@@ -2691,7 +2691,7 @@ export default function Home() {
                                     [day]: isEscalado ? 0 : 8
                                   }));
                                 }}
-                                className={`w-full py-2 border rounded font-semibold text-[10px] uppercase transition cursor-pointer ${
+                                className={`w-full py-2 border rounded font-semibold text-xs uppercase transition cursor-pointer ${
                                   wizardDays.includes(day) ? "border-[#d44d00] bg-[#d44d00]/5 text-white" : "border-[#18181b] bg-[#050506] text-[#71717a]"
                                 }`}
                               >
@@ -2705,7 +2705,7 @@ export default function Home() {
                       {/* Ajuste de horas da máquina por dia da semana */}
                       {wizardDays.length > 0 && (
                         <div className="space-y-4 border-t border-[#18181b] pt-4">
-                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Capacidade Horária por Dia (Carga Máquina)</label>
+                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Capacidade Horária por Dia (Carga Máquina)</label>
                           <div className="space-y-2">
                             {wizardDays.map((day) => (
                               <div key={day} className="flex justify-between items-center gap-4 bg-[#09090b] border border-[#18181b] p-2.5 rounded text-xs">
@@ -2736,7 +2736,7 @@ export default function Home() {
                                 {wizardDays.reduce((acc, d) => acc + (wizardDailyHours[d] || 8), 0) * wizardMachines.length}h / semana
                               </span>
                             </div>
-                            <p className="text-[10px] text-[#71717a] font-normal normal-case">
+                            <p className="text-xs text-[#71717a] font-normal normal-case">
                               Calculado com base em {wizardMachines.length} máquina(s) cadastrada(s) na etapa 3 e horas produtivas.
                             </p>
                           </div>
@@ -2745,7 +2745,7 @@ export default function Home() {
 
                       {/* UPLOAD DE KYC (DOCUMENTOS) */}
                       <div className="border-t border-[#18181b] pt-4 space-y-4">
-                        <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Documentação KYC (Verificação de Identidade)</label>
+                        <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Documentação KYC (Verificação de Identidade)</label>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-1.5">
                             <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Documento de Identidade (RG ou CNH)</span>
@@ -2759,7 +2759,7 @@ export default function Home() {
                                   }} 
                                 />
                               </label>
-                              <span className="text-[9px] text-white truncate max-w-[120px]">{kycDocumentName || "Nenhum arquivo"}</span>
+                              <span className="text-xs text-white truncate max-w-[120px]">{kycDocumentName || "Nenhum arquivo"}</span>
                             </div>
                           </div>
 
@@ -2775,7 +2775,7 @@ export default function Home() {
                                   }} 
                                 />
                               </label>
-                              <span className="text-[9px] text-white truncate max-w-[120px]">{kycSelfieName || "Nenhum arquivo"}</span>
+                              <span className="text-xs text-white truncate max-w-[120px]">{kycSelfieName || "Nenhum arquivo"}</span>
                             </div>
                           </div>
                         </div>
@@ -2784,8 +2784,8 @@ export default function Home() {
                       {/* HOMOLOGAÇÃO DE CALIBRAÇÃO TÉCNICA (CUBO BENCHMARK) */}
                       <div className="border-t border-[#18181b] pt-4 space-y-4">
                         <div className="space-y-1">
-                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Prova de Calibração Física (Cubo Calibrado 20mm)</label>
-                          <p className="text-[9px] text-[#71717a] leading-tight">
+                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Prova de Calibração Física (Cubo Calibrado 20mm)</label>
+                          <p className="text-xs text-[#71717a] leading-tight">
                             Faça o download e imprima o cubo de teste oficial da plataforma. Use um paquímetro para medir com precisão as faces X, Y e Z e insira os milímetros reais medidos abaixo (Tolerância máxima: ±0.05mm).
                           </p>
                         </div>
@@ -2829,7 +2829,7 @@ export default function Home() {
                                 }} 
                               />
                             </label>
-                            <span className="text-[9px] text-white truncate max-w-[200px]">{calibImageName || "Nenhum arquivo"}</span>
+                            <span className="text-xs text-white truncate max-w-[200px]">{calibImageName || "Nenhum arquivo"}</span>
                           </div>
                         </div>
                       </div>
@@ -2860,12 +2860,12 @@ export default function Home() {
                   {/* Status de Aprovação do Admin */}
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <span className="text-[9px] uppercase tracking-widest text-[#71717a] block mono-text">Avaliação da Rede</span>
+                      <span className="text-xs uppercase tracking-widest text-[#71717a] block mono-text">Avaliação da Rede</span>
                       <span className="text-sm font-bold text-white mono-text">★ {makerProfile.rating} / 5.0</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[9px] uppercase tracking-widest text-[#71717a] block mono-text">Status de Cadastro</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase mono-text ${
+                      <span className="text-xs uppercase tracking-widest text-[#71717a] block mono-text">Status de Cadastro</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded border uppercase mono-text ${
                         makerProfile.isBanned ? "border-red-500/30 text-red-500 bg-red-500/5 animate-pulse" :
                         makerProfile.makerStatus === "HOMOLOGATED" ? "border-green-500/30 text-green-500 bg-green-500/5" :
                         makerProfile.makerStatus === "SANDBOX" ? "border-blue-500/30 text-blue-500 bg-blue-500/5" :
@@ -2909,8 +2909,8 @@ export default function Home() {
                       <p className="text-xs text-[#a1a1aa] mt-2 max-w-lg mx-auto leading-relaxed">
                         Sua solicitação foi enviada para a fila de homologação. O administrador da plataforma auditará seus documentos KYC, selfie e a precisão dimensional do cubo de teste.
                       </p>
-                      <div className="bg-[#050506] border border-[#18181b] p-4 rounded max-w-md mx-auto mt-4 text-left text-[11px] text-[#a1a1aa] space-y-1.5 mono-text">
-                        <p className="font-bold text-white border-b border-[#18181b] pb-1 uppercase text-[9px] tracking-wider">Seus Dados de Calibração Física</p>
+                      <div className="bg-[#050506] border border-[#18181b] p-4 rounded max-w-md mx-auto mt-4 text-left text-xs text-[#a1a1aa] space-y-1.5 mono-text">
+                        <p className="font-bold text-white border-b border-[#18181b] pb-1 uppercase text-xs tracking-wider">Seus Dados de Calibração Física</p>
                         <p>Eixo X medido: <span className="text-white font-bold">{makerProfile.calibX?.toFixed(2)} mm</span></p>
                         <p>Eixo Y medido: <span className="text-white font-bold">{makerProfile.calibY?.toFixed(2)} mm</span></p>
                         <p>Eixo Z medido: <span className="text-white font-bold">{makerProfile.calibZ?.toFixed(2)} mm</span></p>
@@ -2923,7 +2923,7 @@ export default function Home() {
                         </span></p>
                       </div>
                     </div>
-                    <p className="text-[10px] text-[#71717a]">
+                    <p className="text-xs text-[#71717a]">
                       💡 Dica rápida: Clique em <strong>Admin</strong> no menu superior para auditar e aprovar esta solicitação manualmente!
                     </p>
                   </div>
@@ -2935,11 +2935,11 @@ export default function Home() {
                       <div className="border border-blue-500/20 bg-blue-500/5 p-4 rounded text-xs text-[#60a5fa] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                         <div>
                           <strong className="block text-white">⚠️ Período de Sandbox Ativo (Fase de Experiência)</strong>
-                          <span className="text-[11px] text-[#a1a1aa] mt-0.5 block">
+                          <span className="text-xs text-[#a1a1aa] mt-0.5 block">
                             Como novo parceiro credenciado, você está em período probatório de 3 entregas e está limitado a aceitar apenas <strong>1 job por vez</strong>.
                           </span>
                         </div>
-                        <div className="bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded mono-text text-[10px] text-white font-bold">
+                        <div className="bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded mono-text text-xs text-white font-bold">
                           0 de 3 Entregas Concluídas
                         </div>
                       </div>
@@ -2958,9 +2958,9 @@ export default function Home() {
                           
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-[9px] uppercase tracking-widest text-[#d44d00] font-bold mono-text block">TRABALHO DIRECIONADO DISPONÍVEL (RADAR CEP)</span>
+                              <span className="text-xs uppercase tracking-widest text-[#d44d00] font-bold mono-text block">TRABALHO DIRECIONADO DISPONÍVEL (RADAR CEP)</span>
                               <h3 className="text-base font-bold text-white mono-text mt-1">{activeJobOffer.filename}</h3>
-                              <p className="text-[11px] text-[#a1a1aa] mt-1">Material exigido: <span className="text-white font-bold">{activeJobOffer.material}</span> | Peso: {activeJobOffer.weightG}g</p>
+                              <p className="text-xs text-[#a1a1aa] mt-1">Material exigido: <span className="text-white font-bold">{activeJobOffer.material}</span> | Peso: {activeJobOffer.weightG}g</p>
                             </div>
                             
                             {/* Cronômetro de Aceite */}
@@ -2972,15 +2972,15 @@ export default function Home() {
 
                           <div className="grid grid-cols-3 gap-4 border-t border-[#18181b] pt-4 text-xs">
                             <div>
-                              <span className="text-[9px] text-[#71717a] uppercase block">Tempo de Impressão</span>
+                              <span className="text-xs text-[#71717a] uppercase block">Tempo de Impressão</span>
                               <span className="font-bold text-white">{activeJobOffer.timeFormatted}</span>
                             </div>
                             <div>
-                              <span className="text-[9px] text-[#71717a] uppercase block">Seu Ganho Líquido (95%)</span>
+                              <span className="text-xs text-[#71717a] uppercase block">Seu Ganho Líquido (95%)</span>
                               <span className="font-bold text-[#10b981]">R$ {(activeJobOffer.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
                             </div>
                             <div>
-                              <span className="text-[9px] text-[#71717a] uppercase block">Comissão Intermediação (5%)</span>
+                              <span className="text-xs text-[#71717a] uppercase block">Comissão Intermediação (5%)</span>
                               <span className="font-bold text-red-400">R$ {(activeJobOffer.totalPrice * 0.05).toFixed(2).replace(".", ",")}</span>
                             </div>
                           </div>
@@ -3007,7 +3007,7 @@ export default function Home() {
                             <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Radar Geral de Demandas</h3>
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping"></span>
-                              <span className="text-[9px] text-[#a1a1aa] font-bold uppercase tracking-wider mono-text">Buscando...</span>
+                              <span className="text-xs text-[#a1a1aa] font-bold uppercase tracking-wider mono-text">Buscando...</span>
                             </div>
                           </div>
 
@@ -3017,8 +3017,8 @@ export default function Home() {
                                 <div className="w-8 h-8 rounded-full border border-dashed border-[#18181b] flex items-center justify-center mx-auto">
                                   <span className="w-1.5 h-1.5 rounded-full bg-[#71717a]"></span>
                                 </div>
-                                <h4 className="font-bold text-white uppercase text-[10px] tracking-wider mono-text">Sem pedidos pendentes no radar</h4>
-                                <p className="text-[9px] text-[#71717a] max-w-xs mx-auto leading-relaxed">
+                                <h4 className="font-bold text-white uppercase text-xs tracking-wider mono-text">Sem pedidos pendentes no radar</h4>
+                                <p className="text-xs text-[#71717a] max-w-xs mx-auto leading-relaxed">
                                   {makerProfile.makerStatus === "HOMOLOGATED" || makerProfile.makerStatus === "SANDBOX"
                                     ? "Você está online. Novas ordens de serviço geradas por clientes locais aparecerão no seu radar instantaneamente."
                                     : "Aguarde a aprovação e homologação técnica de sua conta pelo administrador para acessar o radar."}
@@ -3032,8 +3032,8 @@ export default function Home() {
                                       <span className="font-bold text-white mono-text">OFERTA #{ord.id}</span>
                                       <span className="text-[8px] bg-[#d44d00]/15 text-[#d44d00] border border-[#d44d00]/20 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider mono-text">Aguardando Impressão</span>
                                     </div>
-                                    <p className="text-[11px] text-[#a1a1aa]">Peça: <span className="text-white">{ord.filename}</span> | CEP: {ord.zipCode}</p>
-                                    <div className="text-[10px] text-[#71717a] mono-text flex gap-4">
+                                    <p className="text-xs text-[#a1a1aa]">Peça: <span className="text-white">{ord.filename}</span> | CEP: {ord.zipCode}</p>
+                                    <div className="text-xs text-[#71717a] mono-text flex gap-4">
                                       <span>Peso: {ord.weightG}g</span>
                                       <span>Material: {ord.material}</span>
                                       <span>Infill: {ord.infill || 20}%</span>
@@ -3044,7 +3044,7 @@ export default function Home() {
                                     <div>
                                       <span className="text-[8px] text-[#71717a] block uppercase tracking-wider mono-text">Seu Ganho Líquido (95%)</span>
                                       <span className="text-sm font-extrabold text-[#10b981] mono-text">R$ {(ord.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
-                                      <span className="text-[9px] text-[#71717a] block">Taxa Intermediação (5%): R$ {(ord.totalPrice * 0.05).toFixed(2)}</span>
+                                      <span className="text-xs text-[#71717a] block">Taxa Intermediação (5%): R$ {(ord.totalPrice * 0.05).toFixed(2)}</span>
                                     </div>
                                     <button
                                       onClick={() => {
@@ -3061,7 +3061,7 @@ export default function Home() {
                                         }));
                                         alert(`Você assumiu a fabricação da Ordem de Serviço #${ord.id}! Verifique a aba 'Seus Trabalhos Alocados' para acompanhar.`);
                                       }}
-                                      className="px-4 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer"
+                                      className="px-4 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
                                     >
                                       Aceitar Serviço
                                     </button>
@@ -3077,7 +3077,7 @@ export default function Home() {
                       <div className="technical-panel rounded overflow-hidden">
                         <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b] flex justify-between items-center">
                           <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Seus Trabalhos Alocados</h3>
-                          <span className="text-[9px] text-[#71717a] mono-text">ESCALA FAB MAKERS</span>
+                          <span className="text-xs text-[#71717a] mono-text">ESCALA FAB MAKERS</span>
                         </div>
                         <div className="divide-y divide-[#18181b] text-xs">
                           {orders.filter(o => o.makerName === makerProfile.name).map((ord) => (
@@ -3091,22 +3091,22 @@ export default function Home() {
                                     {ord.status === "PRINTING" ? "Imprimindo" : "Despachado"}
                                   </span>
                                 </div>
-                                <div className="text-[11px] text-[#71717a]">Peça: <span className="text-white">{ord.filename}</span></div>
-                                <div className="text-[10px] text-[#71717a] mono-text">Volume: {ord.weightG}g | Material: {ord.material}</div>
+                                <div className="text-xs text-[#71717a]">Peça: <span className="text-white">{ord.filename}</span></div>
+                                <div className="text-xs text-[#71717a] mono-text">Volume: {ord.weightG}g | Material: {ord.material}</div>
                               </div>
                               <div className="sm:text-right space-y-2">
                                 {ord.status === "PRINTING" ? (
                                   <>
-                                    <div className="text-[11px] font-bold text-white">Progresso: {ord.progress}%</div>
+                                    <div className="text-xs font-bold text-white">Progresso: {ord.progress}%</div>
                                     <button
                                       onClick={() => cancelActiveJob(ord.id)}
-                                      className="text-[9px] text-red-400 hover:text-red-300 font-bold uppercase tracking-wider border border-red-500/20 bg-red-500/5 px-2.5 py-1 rounded transition cursor-pointer"
+                                      className="text-xs text-red-400 hover:text-red-300 font-bold uppercase tracking-wider border border-red-500/20 bg-red-500/5 px-2.5 py-1 rounded transition cursor-pointer"
                                     >
                                       Desistir do Job (Penalidade)
                                     </button>
                                   </>
                                 ) : (
-                                  <span className="text-[10px] text-[#10b981] font-bold uppercase tracking-wider">Despachado ao cliente</span>
+                                  <span className="text-xs text-[#10b981] font-bold uppercase tracking-wider">Despachado ao cliente</span>
                                 )}
                               </div>
                             </div>
@@ -3142,7 +3142,7 @@ export default function Home() {
 
                         <div className="border border-[#18181b] p-3 rounded space-y-2 bg-[#050506]">
                           <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Disponibilidade Declarada</span>
-                          <p className="text-xs font-bold text-white uppercase tracking-widest text-[9px] mono-text">Dias: {makerProfile.availability.days.join(", ")}</p>
+                          <p className="text-xs font-bold text-white uppercase tracking-widest text-xs mono-text">Dias: {makerProfile.availability.days.join(", ")}</p>
                           <p className="text-xs text-[#a1a1aa] mt-1 leading-normal">Turnos: {makerProfile.availability.shifts.join(", ")}</p>
                         </div>
                       </div>
@@ -3167,19 +3167,19 @@ export default function Home() {
             {/* Métricas de Escala */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="technical-panel p-5 rounded">
-                <span className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Faturamento Bruto</span>
+                <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Faturamento Bruto</span>
                 <span className="text-2xl font-bold text-white block mt-1 mono-text">R$ {orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0).toFixed(2).replace(".", ",")}</span>
               </div>
               <div className="technical-panel p-5 rounded">
-                <span className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Comissão Plataforma (5%)</span>
+                <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Comissão Plataforma (5%)</span>
                 <span className="text-2xl font-bold text-[#d44d00] block mt-1 mono-text">R$ {(orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0) * 0.05).toFixed(2).replace(".", ",")}</span>
               </div>
               <div className="technical-panel p-5 rounded">
-                <span className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Makers Ativos no Grid</span>
+                <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Makers Ativos no Grid</span>
                 <span className="text-2xl font-bold text-white block mt-1 mono-text">{systemMakers.filter(m => m.isApproved && !m.isBanned).length}</span>
               </div>
               <div className="technical-panel p-5 rounded">
-                <span className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Material Extrudado</span>
+                <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Material Extrudado</span>
                 <span className="text-2xl font-bold text-[#10b981] block mt-1 mono-text">{orders.filter(o => o.status === "COMPLETED").reduce((acc, curr) => acc + curr.weightG, 0).toFixed(1)}g</span>
               </div>
             </div>
@@ -3200,7 +3200,7 @@ export default function Home() {
                         <div className="flex justify-between items-center">
                           <div>
                             <span className="font-bold text-white block">{req.name}</span>
-                            <span className="text-[10px] text-[#71717a] mono-text">CEP: {req.zipCode} | Impressora: {req.machineModel}</span>
+                            <span className="text-xs text-[#71717a] mono-text">CEP: {req.zipCode} | Impressora: {req.machineModel}</span>
                           </div>
                           
                           <span className={`text-[8px] font-bold px-2 py-0.5 rounded border uppercase mono-text ${
@@ -3221,10 +3221,10 @@ export default function Home() {
                             <div className="space-y-4 pt-2 border-t border-[#18181b]">
                               {/* Dados Dimensionais */}
                               <div className="bg-[#050506] p-4 rounded border border-[#18181b] space-y-3">
-                                <span className="text-[9px] text-[#71717a] font-bold uppercase tracking-wider block mono-text">
+                                <span className="text-xs text-[#71717a] font-bold uppercase tracking-wider block mono-text">
                                   1. Calibração Dimensional (Cubo 20mm)
                                 </span>
-                                <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                                <div className="grid grid-cols-3 gap-2 text-center text-xs">
                                   <div className="bg-[#09090b] border border-[#18181b] p-2 rounded">
                                     <span className="text-[#71717a] block">Eixo X</span>
                                     <strong className="text-white block mt-0.5">{req.calibX.toFixed(2)} mm</strong>
@@ -3247,7 +3247,7 @@ export default function Home() {
                                     </span>
                                   </div>
                                 </div>
-                                <div className="flex justify-between items-center text-[10px] border-t border-[#18181b]/50 pt-2">
+                                <div className="flex justify-between items-center text-xs border-t border-[#18181b]/50 pt-2">
                                   <span className="text-[#71717a]">Desvio Máximo Encontrado:</span>
                                   <span className={`font-bold ${isWithinTolerance ? "text-green-500" : "text-red-500"}`}>
                                     {maxDeviation.toFixed(3)} mm ({isWithinTolerance ? "Dentro da Tolerância ±0.05mm" : "Fora da Tolerância"})
@@ -3256,8 +3256,8 @@ export default function Home() {
                               </div>
 
                               {/* Documentos Anexados */}
-                              <div className="bg-[#050506] p-4 rounded border border-[#18181b] space-y-3 text-[10px]">
-                                <span className="text-[9px] text-[#71717a] font-bold uppercase tracking-wider block mono-text">
+                              <div className="bg-[#050506] p-4 rounded border border-[#18181b] space-y-3 text-xs">
+                                <span className="text-xs text-[#71717a] font-bold uppercase tracking-wider block mono-text">
                                   2. Documentos e Comprovantes (KYC)
                                 </span>
                                 <div className="grid grid-cols-3 gap-2">
@@ -3292,13 +3292,13 @@ export default function Home() {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => approveMakerRequest(req.id, req.name)}
-                                  className="flex-grow py-2 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                  className="flex-grow py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded uppercase tracking-wider transition cursor-pointer"
                                 >
                                   ✅ Aprovar e Homologar
                                 </button>
                                 <button
                                   onClick={() => rejectMakerRequest(req.id, req.name)}
-                                  className="px-4 py-2 border border-red-500/30 text-red-500 bg-red-500/5 hover:bg-red-500/10 text-[10px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                  className="px-4 py-2 border border-red-500/30 text-red-500 bg-red-500/5 hover:bg-red-500/10 text-xs font-bold rounded uppercase tracking-wider transition cursor-pointer"
                                 >
                                   ❌ Rejeitar
                                 </button>
@@ -3324,11 +3324,11 @@ export default function Home() {
                       <div key={maker.name} className="p-4 flex justify-between items-center">
                         <div>
                           <span className="font-bold text-white block">{maker.name}</span>
-                          <span className="text-[10px] text-[#71717a] mono-text">Reputação: ★ {maker.rating} | Penalidades: {maker.penalties}/3</span>
+                          <span className="text-xs text-[#71717a] mono-text">Reputação: ★ {maker.rating} | Penalidades: {maker.penalties}/3</span>
                         </div>
                         <button
                           onClick={() => toggleBanMaker(maker.name)}
-                          className={`px-3 py-1 text-[10px] font-bold rounded uppercase tracking-wider border transition ${
+                          className={`px-3 py-1 text-xs font-bold rounded uppercase tracking-wider border transition ${
                             maker.isBanned
                               ? "border-green-500/30 text-green-500 bg-green-500/5 hover:bg-green-500/10"
                               : "border-red-500/30 text-red-500 bg-red-500/5 hover:bg-red-500/10"
@@ -3380,45 +3380,45 @@ export default function Home() {
                   }}
                   className="space-y-4 border border-[#18181b] p-4 rounded bg-[#050506]"
                 >
-                  <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text">Cadastrar Novo Produto para Revenda / Dropshipping</h4>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Cadastrar Novo Produto para Revenda / Dropshipping</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Nome do Produto</label>
+                      <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Nome do Produto</label>
                       <input 
                         type="text" value={novoInsumoTitle} onChange={(e) => setNovoInsumoTitle(e.target.value)} placeholder="Filamento PLA 1kg"
                         className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Preço de Venda (R$)</label>
+                      <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Preço de Venda (R$)</label>
                       <input 
                         type="number" step="0.01" value={novoInsumoPrice} onChange={(e) => setNovoInsumoPrice(e.target.value)} placeholder="119.90"
                         className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Link do Fornecedor (Shopee/Ali)</label>
+                      <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Link do Fornecedor (Shopee/Ali)</label>
                       <input 
                         type="text" value={novoInsumoLink} onChange={(e) => setNovoInsumoLink(e.target.value)} placeholder="https://shopee..."
                         className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Comissão de Afiliado (%)</label>
+                      <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Comissão de Afiliado (%)</label>
                       <input 
                         type="number" value={novoInsumoCommission} onChange={(e) => setNovoInsumoCommission(e.target.value)} placeholder="5"
                         className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">URL da Imagem</label>
+                      <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">URL da Imagem</label>
                       <input 
                         type="text" value={novoInsumoImage} onChange={(e) => setNovoInsumoImage(e.target.value)} placeholder="https://images.unsplash..."
                         className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Prazo de Entrega Estimado</label>
+                      <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Prazo de Entrega Estimado</label>
                       <input 
                         type="text" value={novoInsumoDelivery} onChange={(e) => setNovoInsumoDelivery(e.target.value)} placeholder="3 a 7 dias úteis"
                         className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
@@ -3435,20 +3435,20 @@ export default function Home() {
 
                 {/* Lista de Produtos Cadastrados */}
                 <div className="space-y-3">
-                  <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text">Produtos Ativos na Loja</h4>
+                  <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Produtos Ativos na Loja</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                     {lojaInsumos.map(prod => (
                       <div key={prod.id} className="border border-[#18181b] p-3 rounded bg-[#09090b] flex justify-between items-center">
                         <div>
                           <strong className="text-white block truncate max-w-[150px]">{prod.title}</strong>
-                          <span className="text-[10px] text-[#71717a] mono-text">R$ {prod.price.toFixed(2)} | Prazo: {prod.deliveryTime}</span>
+                          <span className="text-xs text-[#71717a] mono-text">R$ {prod.price.toFixed(2)} | Prazo: {prod.deliveryTime}</span>
                         </div>
                         <button 
                           onClick={() => {
                             setLojaInsumos(prev => prev.filter(p => p.id !== prod.id));
                             alert(`Produto "${prod.title}" removido da loja.`);
                           }}
-                          className="text-[10px] text-red-500 hover:text-red-400 font-bold uppercase cursor-pointer"
+                          className="text-xs text-red-500 hover:text-red-400 font-bold uppercase cursor-pointer"
                         >
                           Remover
                         </button>
@@ -3475,36 +3475,36 @@ export default function Home() {
                 className="h-14 w-auto select-none" 
               />
             </div>
-            <p className="text-[11px] text-[#71717a] leading-relaxed">
+            <p className="text-xs text-[#71717a] leading-relaxed">
               Manufatura digital distribuída sob demanda no Brasil. A maior infraestrutura descentralizada de ativos de impressão.
             </p>
           </div>
           <div>
-            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text mb-3">Plataforma</h4>
-            <ul className="space-y-2 text-[11px] text-[#71717a]">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text mb-3">Plataforma</h4>
+            <ul className="space-y-2 text-xs text-[#71717a]">
               <li><button onClick={() => { if (currentUser?.role === "CLIENT") setActiveTab("client"); else { setLoginRole("CLIENT"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Cotação STL</button></li>
               <li><button onClick={() => { if (currentUser?.role === "MAKER") setActiveTab("maker"); else { setLoginRole("MAKER"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Portal do Maker</button></li>
               <li><button onClick={() => { if (currentUser?.role === "ADMIN") setActiveTab("admin"); else { setLoginRole("ADMIN"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Administração</button></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text mb-3">Políticas da Rede</h4>
-            <ul className="space-y-2 text-[11px] text-[#71717a]">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text mb-3">Políticas da Rede</h4>
+            <ul className="space-y-2 text-xs text-[#71717a]">
               <li><span className="text-[#a1a1aa]">SLA de Resposta: Aceite em 30s</span></li>
               <li><span className="text-[#a1a1aa]">Desistência: Penalidade de Nível</span></li>
               <li><span className="text-[#a1a1aa]">Tolerância Dimensional: ±0.05mm</span></li>
             </ul>
           </div>
           <div className="space-y-2">
-            <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text mb-3">Status do Grid</h4>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/20 rounded text-[9px] font-bold tracking-wider uppercase">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text mb-3">Status do Grid</h4>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/20 rounded text-xs font-bold tracking-wider uppercase">
               <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></span>
               Grid Operacional: {systemMakers.filter(m => m.isApproved && !m.isBanned).length + 343} Online
             </div>
-            <p className="text-[9px] text-[#71717a] mt-2 block">Latência média do Roteador: 85ms</p>
+            <p className="text-xs text-[#71717a] mt-2 block">Latência média do Roteador: 85ms</p>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 mt-12 pt-6 border-t border-[#18181b] flex flex-col sm:flex-row justify-between text-[10px] text-[#71717a] gap-4">
+        <div className="max-w-7xl mx-auto px-6 mt-12 pt-6 border-t border-[#18181b] flex flex-col sm:flex-row justify-between text-xs text-[#71717a] gap-4">
           <p>&copy; {new Date().getFullYear()} FAB MAKERS. Todos os direitos reservados. Projeto Conceitual e Confidencial.</p>
         </div>
       </footer>
@@ -3547,7 +3547,7 @@ export default function Home() {
 
               {isSignUp && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Nome Completo</label>
+                  <label className="text-xs text-[#71717a] uppercase tracking-wider font-bold block">Nome Completo</label>
                   <input
                     type="text"
                     required
@@ -3560,7 +3560,7 @@ export default function Home() {
               )}
 
               <div className="space-y-1.5">
-                <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Endereço de E-mail</label>
+                <label className="text-xs text-[#71717a] uppercase tracking-wider font-bold block">Endereço de E-mail</label>
                 <input
                   type="email"
                   required
@@ -3574,7 +3574,7 @@ export default function Home() {
               {(!isSignUp && loginRole === "CLIENT") ? (
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Senha (Opcional se conta automática)</label>
+                    <label className="text-xs text-[#71717a] uppercase tracking-wider font-bold block">Senha (Opcional se conta automática)</label>
                   </div>
                   <input
                     type="password"
@@ -3587,9 +3587,9 @@ export default function Home() {
               ) : (
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Senha de Acesso</label>
+                    <label className="text-xs text-[#71717a] uppercase tracking-wider font-bold block">Senha de Acesso</label>
                     {!isSignUp && loginRole === "ADMIN" && (
-                      <span className="text-[9px] text-[#71717a] lowercase italic">dica: admin123</span>
+                      <span className="text-xs text-[#71717a] lowercase italic">dica: admin123</span>
                     )}
                   </div>
                   <input
@@ -3605,7 +3605,7 @@ export default function Home() {
 
               {isSignUp && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Confirmar Senha</label>
+                  <label className="text-xs text-[#71717a] uppercase tracking-wider font-bold block">Confirmar Senha</label>
                   <input
                     type="password"
                     required
