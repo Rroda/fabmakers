@@ -3,18 +3,24 @@ import { createClient } from '@libsql/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 
 function buildPrismaClient(): PrismaClient {
-  const url = process.env.TURSO_DATABASE_URL
+  const tursoUrl = process.env.TURSO_DATABASE_URL
   const authToken = process.env.TURSO_AUTH_TOKEN
 
-  if (!url || url === 'undefined' || url.trim() === '') {
+  if (!tursoUrl || tursoUrl === 'undefined' || tursoUrl.trim() === '') {
     throw new Error(
-      `[FabMakers] TURSO_DATABASE_URL não está definida no ambiente. ` +
-      `Verifique as variáveis de ambiente na Vercel.`
+      `[FabMakers DB] TURSO_DATABASE_URL não está definida. Configure a variável de ambiente na Vercel.`
     )
   }
 
+  // O Prisma v7 ainda lê DATABASE_URL internamente mesmo com adapter.
+  // Forçamos um valor válido para sqlite antes de inicializar o client.
+  // A conexão REAL vai pelo adapter libsql usando TURSO_DATABASE_URL.
+  if (!process.env.DATABASE_URL || process.env.DATABASE_URL === 'undefined') {
+    process.env.DATABASE_URL = 'file:./dev.db'
+  }
+
   const libsql = createClient({
-    url,
+    url: tursoUrl,
     authToken: authToken && authToken !== 'undefined' ? authToken : undefined,
   })
 
@@ -22,7 +28,6 @@ function buildPrismaClient(): PrismaClient {
   return new PrismaClient({ adapter })
 }
 
-// Singleton seguro para Next.js (evita múltiplas instâncias em dev)
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
 export const prisma: PrismaClient =
