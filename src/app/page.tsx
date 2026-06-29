@@ -3,6 +3,7 @@
 import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
 import Image from "next/image";
 import logoImg from "../logo/logo.png";
+import { PRINTER_PRESETS } from "../lib/printerPresets";
 
 // Interface para dados do fatiador STL
 interface QuoteData {
@@ -55,6 +56,18 @@ interface Machine {
   model: string;
   nozzle: string;
   volume: string;
+  technology: string;
+  hasEnclosure: boolean;
+  hasMulticolor: boolean;
+  maxNozzleTemp: number;
+  maxBedTemp: number;
+  compatibleMaterials: string[];
+  supportedNozzles: string[];
+  typicalPrecision: number;
+  maxSpeed: number;
+  maxPartWeightG: number;
+  releaseYear: number;
+  status: string;
 }
 
 // Interface para filamentos
@@ -79,7 +92,18 @@ interface MakerProfile {
     days: string[]; // ['seg', 'ter', 'qua'...]
     shifts: string[]; // ['manha', 'tarde', 'noite']
     months: string[]; // ['jan', 'fev'...]
+    dailyHours?: Record<string, number>;
   };
+  // Onboarding Anti-Fraude e Contrato SLA
+  contractAccepted: boolean;
+  kycStatus: "PENDING" | "APPROVED" | "REJECTED";
+  makerStatus: "UNVERIFIED" | "PENDING_APPROVAL" | "SANDBOX" | "HOMOLOGATED" | "BANNED";
+  kycDocumentUrl?: string;
+  kycSelfieUrl?: string;
+  calibX?: number;
+  calibY?: number;
+  calibZ?: number;
+  calibImageUrl?: string;
 }
 
 // Interface para solicitações de homologação na fila do Admin
@@ -90,10 +114,19 @@ interface HomologationRequest {
   machineModel: string;
   benchmarkResult: "PENDING" | "APPROVED" | "REJECTED";
   benchmarkImageUrl: string;
+  
+  // Dados de KYC e medições físicas de paquímetro para o Admin auditar
+  documentUrl: string;
+  selfieUrl: string;
+  calibX: number;
+  calibY: number;
+  calibZ: number;
+  createdAt: string;
 }
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"home" | "client" | "maker" | "admin">("home");
+  const uniqueBrands = Array.from(new Set(PRINTER_PRESETS.map(p => p.brand))).sort();
 
   // --- ESTADOS COMPARTILHADOS (SIMULAÇÃO DE BANCO DE DADOS) ---
   const [orders, setOrders] = useState<SimulatedOrder[]>([
@@ -127,7 +160,7 @@ export default function Home() {
 
   // Perfil do Maker (colaborador logado)
   const [makerProfile, setMakerProfile] = useState<MakerProfile | null>(null);
-  
+
   // Lista de Makers no sistema (para visualização do Admin)
   const [systemMakers, setSystemMakers] = useState<MakerProfile[]>([
     {
@@ -137,9 +170,41 @@ export default function Home() {
       penalties: 0,
       isBanned: false,
       isApproved: true,
-      machines: [{ id: "m1", brand: "Bambu Lab", model: "P1S", nozzle: "0.4mm", volume: "256x256x256mm" }],
+      machines: [{ 
+        id: "m1", 
+        brand: "Bambu Lab", 
+        model: "P1S", 
+        nozzle: "0.4mm", 
+        volume: "256x256x256mm",
+        technology: "FDM",
+        hasEnclosure: true,
+        hasMulticolor: true,
+        maxNozzleTemp: 300,
+        maxBedTemp: 100,
+        compatibleMaterials: ["PLA", "PETG", "ABS", "ASA", "TPU", "PC", "Nylon", "CF (Fibra de Carbono)"],
+        supportedNozzles: ["0.2mm", "0.4mm", "0.6mm", "0.8mm"],
+        typicalPrecision: 0.05,
+        maxSpeed: 500,
+        maxPartWeightG: 2000,
+        releaseYear: 2023,
+        status: "ACTIVE"
+      }],
       filaments: [{ id: "f1", type: "PLA", color: "Preto", weightG: 850 }],
-      availability: { days: ["seg", "ter", "qua", "qui", "sex"], shifts: ["tarde", "noite"], months: ["todos"] }
+      availability: { 
+        days: ["seg", "ter", "qua", "qui", "sex"], 
+        shifts: ["tarde", "noite"], 
+        months: ["todos"],
+        dailyHours: { seg: 8, ter: 8, qua: 8, qui: 8, sex: 8, sab: 0, dom: 0 }
+      },
+      contractAccepted: true,
+      kycStatus: "APPROVED",
+      makerStatus: "HOMOLOGATED",
+      kycDocumentUrl: "cnh_maria.jpg",
+      kycSelfieUrl: "selfie_maria.jpg",
+      calibX: 20.01,
+      calibY: 19.99,
+      calibZ: 20.00,
+      calibImageUrl: "cubo_maria.jpg"
     },
     {
       name: "Roberto Lima",
@@ -148,12 +213,44 @@ export default function Home() {
       penalties: 1,
       isBanned: false,
       isApproved: true,
-      machines: [{ id: "m2", brand: "Creality", model: "K1 Max", nozzle: "0.6mm", volume: "300x300x300mm" }],
+      machines: [{ 
+        id: "m2", 
+        brand: "Creality", 
+        model: "K1 Max", 
+        nozzle: "0.6mm", 
+        volume: "300x300x300mm",
+        technology: "FDM",
+        hasEnclosure: true,
+        hasMulticolor: false,
+        maxNozzleTemp: 300,
+        maxBedTemp: 110,
+        compatibleMaterials: ["PLA", "PETG", "ABS", "ASA", "TPU", "PC", "Nylon", "CF (Fibra de Carbono)"],
+        supportedNozzles: ["0.2mm", "0.4mm", "0.6mm", "0.8mm"],
+        typicalPrecision: 0.05,
+        maxSpeed: 500,
+        maxPartWeightG: 2000,
+        releaseYear: 2023,
+        status: "ACTIVE"
+      }],
       filaments: [{ id: "f2", type: "PETG", color: "Cinza", weightG: 600 }],
-      availability: { days: ["seg", "qua", "sex", "sab"], shifts: ["manha", "tarde"], months: ["todos"] }
+      availability: { 
+        days: ["seg", "qua", "sex", "sab"], 
+        shifts: ["manha", "tarde"], 
+        months: ["todos"],
+        dailyHours: { seg: 6, ter: 0, qua: 6, qui: 0, sex: 6, sab: 6, dom: 0 }
+      },
+      contractAccepted: true,
+      kycStatus: "APPROVED",
+      makerStatus: "HOMOLOGATED",
+      kycDocumentUrl: "rg_roberto.jpg",
+      kycSelfieUrl: "selfie_roberto.jpg",
+      calibX: 20.03,
+      calibY: 19.96,
+      calibZ: 20.02,
+      calibImageUrl: "cubo_roberto.jpg"
     }
   ]);
-
+ 
   // Fila de solicitações de Homologação de Makers para o Admin
   const [homologations, setHomologations] = useState<HomologationRequest[]>([
     {
@@ -162,7 +259,13 @@ export default function Home() {
       zipCode: "80010-000",
       machineModel: "Prusa i3 MK4",
       benchmarkResult: "PENDING",
-      benchmarkImageUrl: "cubo_teste_andre.jpg"
+      benchmarkImageUrl: "cubo_teste_andre.jpg",
+      documentUrl: "rg_andre.jpg",
+      selfieUrl: "selfie_andre.jpg",
+      calibX: 20.08,
+      calibY: 19.92,
+      calibZ: 20.03,
+      createdAt: "29/06/2026 10:14"
     },
     {
       id: "req-2",
@@ -170,7 +273,13 @@ export default function Home() {
       zipCode: "30110-000",
       machineModel: "Formlabs Form 4",
       benchmarkResult: "PENDING",
-      benchmarkImageUrl: "peca_resina_fernanda.jpg"
+      benchmarkImageUrl: "peca_resina_fernanda.jpg",
+      documentUrl: "cnh_fernanda.jpg",
+      selfieUrl: "selfie_fernanda.jpg",
+      calibX: 20.02,
+      calibY: 19.98,
+      calibZ: 20.01,
+      createdAt: "29/06/2026 11:22"
     }
   ]);
 
@@ -188,18 +297,62 @@ export default function Home() {
   const [isDragActive, setIsDragActive] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estados extras de proximidade do Cliente (ViaCEP + Radar)
+  const [clientZip, setClientZip] = useState<string>("");
+  const [clientAddress, setClientAddress] = useState<string>("");
+  const [clientZipLoading, setClientZipLoading] = useState<boolean>(false);
+  const [isScanningRadar, setIsScanningRadar] = useState<boolean>(false);
+  const [nearbyMakers, setNearbyMakers] = useState<Array<{ name: string; distanceKm: number; etaMinutes: number; machine: string; rating: number }>>([]);
+
   // --- ESTADOS DE CADASTRO DO MAKER (WIZARD ETAPAS) ---
   const [wizardStep, setWizardStep] = useState<number>(1);
   const [wizardName, setWizardName] = useState<string>("");
   const [wizardZip, setWizardZip] = useState<string>("");
+  const [makerZipFeedback, setMakerZipFeedback] = useState<string>("");
+  const [makerZipLoading, setMakerZipLoading] = useState<boolean>(false);
   const [wizardMachines, setWizardMachines] = useState<Machine[]>([
-    { id: "1", brand: "Bambu Lab", model: "P1S", nozzle: "0.4mm", volume: "256x256x256mm" }
+    { 
+      id: "1", 
+      brand: "Bambu Lab", 
+      model: "P1S", 
+      nozzle: "0.4mm", 
+      volume: "256x256x256mm",
+      technology: "FDM",
+      hasEnclosure: true,
+      hasMulticolor: true,
+      maxNozzleTemp: 300,
+      maxBedTemp: 100,
+      compatibleMaterials: ["PLA", "PETG", "ABS", "ASA", "TPU", "PC", "Nylon", "CF (Fibra de Carbono)"],
+      supportedNozzles: ["0.2mm", "0.4mm", "0.6mm", "0.8mm"],
+      typicalPrecision: 0.05,
+      maxSpeed: 500,
+      maxPartWeightG: 2000,
+      releaseYear: 2023,
+      status: "ACTIVE"
+    }
   ]);
   const [wizardFilaments, setWizardFilaments] = useState<Filament[]>([
     { id: "1", type: "PLA", color: "Preto", weightG: 1000 }
   ]);
   const [wizardDays, setWizardDays] = useState<string[]>(["seg", "ter", "qua", "qui", "sex"]);
   const [wizardShifts, setWizardShifts] = useState<string[]>(["tarde", "noite"]);
+  const [wizardDailyHours, setWizardDailyHours] = useState<Record<string, number>>({
+    seg: 8, ter: 8, qua: 8, qui: 8, sex: 8, sab: 0, dom: 0
+  });
+
+  // Estados para Onboarding de Segurança, Confirmação de E-mail Zoho e Contrato SLA
+  const [wizardEmail, setWizardEmail] = useState<string>("");
+  const [wizardPassword, setWizardPassword] = useState<string>("");
+  const [emailSent, setEmailSent] = useState<boolean>(false);
+  const [emailVerified, setEmailVerified] = useState<boolean>(false);
+  const [emailVerificationLoading, setEmailVerificationLoading] = useState<boolean>(false);
+  const [contractAccepted, setContractAccepted] = useState<boolean>(false);
+  const [kycDocumentName, setKycDocumentName] = useState<string>("");
+  const [kycSelfieName, setKycSelfieName] = useState<string>("");
+  const [calibX, setCalibX] = useState<number>(20.00);
+  const [calibY, setCalibY] = useState<number>(20.00);
+  const [calibZ, setCalibZ] = useState<number>(20.00);
+  const [calibImageName, setCalibImageName] = useState<string>("");
 
   // --- LÓGICA DE SIMULAÇÃO EM SEGUNDO PLANO ---
   
@@ -352,9 +505,84 @@ export default function Home() {
     setInfill(newInfill);
   };
 
+  // --- FUNÇÕES DE CEP E GEOLOCALIZAÇÃO (ViaCEP) ---
+  const handleClientZipChange = async (val: string) => {
+    setClientZip(val);
+    const cleanZip = val.replace(/\D/g, "");
+    if (cleanZip.length === 8) {
+      setClientZipLoading(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanZip}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setClientAddress(`${data.bairro}, ${data.localidade} - ${data.uf}`);
+          setIsScanningRadar(true);
+          setNearbyMakers([]);
+          
+          setTimeout(() => {
+            setIsScanningRadar(false);
+            const simulated = [
+              { name: "Maria Souza", distanceKm: 2.3, etaMinutes: 9, machine: "Bambu Lab P1S", rating: 4.9 },
+              { name: "Roberto Lima", distanceKm: 5.7, etaMinutes: 18, machine: "Creality K1 Max", rating: 4.2 }
+            ];
+            
+            // Adiciona o próprio maker logado se ativo
+            if (makerProfile && makerProfile.isApproved && !makerProfile.isBanned) {
+              simulated.push({
+                name: `${makerProfile.name} (Você)`,
+                distanceKm: 0.8,
+                etaMinutes: 4,
+                machine: (makerProfile.machines[0]?.brand + " " + makerProfile.machines[0]?.model) || "FDM Standard",
+                rating: makerProfile.rating
+              });
+            }
+            setNearbyMakers(simulated.sort((a, b) => a.distanceKm - b.distanceKm));
+          }, 1800);
+        } else {
+          setClientAddress("CEP não encontrado.");
+          setNearbyMakers([]);
+        }
+      } catch (err) {
+        setClientAddress("Erro ao buscar endereço.");
+      } finally {
+        setClientZipLoading(false);
+      }
+    } else {
+      setClientAddress("");
+      setNearbyMakers([]);
+    }
+  };
+
+  const handleMakerZipChange = async (val: string) => {
+    setWizardZip(val);
+    const cleanZip = val.replace(/\D/g, "");
+    if (cleanZip.length === 8) {
+      setMakerZipLoading(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanZip}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setMakerZipFeedback(`${data.bairro}, ${data.localidade} - ${data.uf}`);
+        } else {
+          setMakerZipFeedback("CEP não encontrado.");
+        }
+      } catch (err) {
+        setMakerZipFeedback("Erro ao buscar endereço.");
+      } finally {
+        setMakerZipLoading(false);
+      }
+    } else {
+      setMakerZipFeedback("");
+    }
+  };
+
   // Enviar ordem para fabricação local
   const dispatchOrder = () => {
     if (!quote) return;
+    if (!clientZip || clientZip.replace(/\D/g, "").length !== 8) {
+      alert("Por favor, informe um CEP válido para cotação de frete e roteamento.");
+      return;
+    }
     
     const newOrder: SimulatedOrder = {
       id: Math.floor(1000 + Math.random() * 9000).toString(),
@@ -365,12 +593,15 @@ export default function Home() {
       timeFormatted: quote.metrics.timeFormatted,
       progress: 0,
       material: material,
-      zipCode: "13083-970",
+      zipCode: clientZip,
       createdAt: new Date().toLocaleDateString("pt-BR") + " " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     };
 
     setOrders(prev => [newOrder, ...prev]);
     handleClear();
+    setClientZip("");
+    setClientAddress("");
+    setNearbyMakers([]);
     alert(`Pedido #${newOrder.id} enviado para o roteador geolocalizado! Os makers nas proximidades receberão o Push.`);
   };
 
@@ -380,6 +611,22 @@ export default function Home() {
   const handleRegisterMaker = () => {
     if (!wizardName || !wizardZip) {
       alert("Por favor, preencha o Nome e o CEP.");
+      return;
+    }
+    if (!emailVerified) {
+      alert("Por favor, verifique seu e-mail antes de prosseguir.");
+      return;
+    }
+    if (!contractAccepted) {
+      alert("Por favor, aceite os termos do contrato para prosseguir.");
+      return;
+    }
+    if (!kycDocumentName || !kycSelfieName) {
+      alert("Por favor, envie seu documento de identificação e selfie.");
+      return;
+    }
+    if (!calibImageName) {
+      alert("Por favor, envie a foto da medição do cubo de calibração.");
       return;
     }
 
@@ -395,20 +642,36 @@ export default function Home() {
       availability: {
         days: wizardDays,
         shifts: wizardShifts,
-        months: ["todos"]
-      }
+        months: ["todos"],
+        dailyHours: wizardDailyHours
+      },
+      contractAccepted: true,
+      kycStatus: "PENDING",
+      makerStatus: "PENDING_APPROVAL", // Aguardando aprovação do Admin
+      kycDocumentUrl: kycDocumentName,
+      kycSelfieUrl: kycSelfieName,
+      calibX: calibX,
+      calibY: calibY,
+      calibZ: calibZ,
+      calibImageUrl: calibImageName
     };
 
     setMakerProfile(newProfile);
 
-    // Enviar solicitação de homologação para o Admin
+    // Enviar solicitação de homologação completa para o Admin
     const newRequest: HomologationRequest = {
       id: `req-${Math.floor(100 + Math.random() * 900)}`,
       name: wizardName,
       zipCode: wizardZip,
       machineModel: wizardMachines[0]?.model || "FDM Standard",
       benchmarkResult: "PENDING",
-      benchmarkImageUrl: "cubo_calibracao_novo.jpg"
+      benchmarkImageUrl: calibImageName,
+      documentUrl: kycDocumentName,
+      selfieUrl: kycSelfieName,
+      calibX: calibX,
+      calibY: calibY,
+      calibZ: calibZ,
+      createdAt: new Date().toLocaleDateString("pt-BR") + " " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     };
 
     setHomologations(prev => [newRequest, ...prev]);
@@ -421,7 +684,19 @@ export default function Home() {
       brand: "Bambu Lab",
       model: "A1 Mini",
       nozzle: "0.4mm",
-      volume: "180x180x180mm"
+      volume: "180x180x180mm",
+      technology: "FDM",
+      hasEnclosure: false,
+      hasMulticolor: true,
+      maxNozzleTemp: 300,
+      maxBedTemp: 100,
+      compatibleMaterials: ["PLA", "PETG", "TPU"],
+      supportedNozzles: ["0.2mm", "0.4mm", "0.6mm", "0.8mm"],
+      typicalPrecision: 0.05,
+      maxSpeed: 500,
+      maxPartWeightG: 2000,
+      releaseYear: 2023,
+      status: "ACTIVE"
     };
     setWizardMachines([...wizardMachines, newM]);
   };
@@ -523,16 +798,36 @@ export default function Home() {
     
     // Se o maker homologado for o maker logado, atualiza o status dele para aprovado
     if (makerProfile && makerProfile.name === name) {
-      const updated = { ...makerProfile, isApproved: true };
+      const updated = { ...makerProfile, isApproved: true, makerStatus: "SANDBOX" as const };
       setMakerProfile(updated);
       setSystemMakers(prev => [...prev, updated]);
     } else {
       // Adiciona na lista geral de aprovados
       setSystemMakers(prev => 
-        prev.map(m => m.name === name ? { ...m, isApproved: true } : m)
+        prev.map(m => m.name === name ? { ...m, isApproved: true, makerStatus: "SANDBOX" as const } : m)
       );
     }
-    alert(`Maker ${name} homologado com sucesso! Agora está habilitado para receber cotações do Grid.`);
+    alert(`Maker ${name} homologado com sucesso! Agora está habilitado para receber cotações do Grid no período de Sandbox.`);
+  };
+
+  // Rejeitar Maker (Cubo fora da tolerância ou KYC inconsistente)
+  const rejectMakerRequest = (reqId: string, name: string) => {
+    setHomologations(prev => 
+      prev.map(r => r.id === reqId ? { ...r, benchmarkResult: "REJECTED" } : r)
+    );
+    
+    if (makerProfile && makerProfile.name === name) {
+      setMakerProfile({
+        ...makerProfile,
+        isApproved: false,
+        makerStatus: "UNVERIFIED"
+      });
+    } else {
+      setSystemMakers(prev => 
+        prev.map(m => m.name === name ? { ...m, isApproved: false, makerStatus: "UNVERIFIED" as const } : m)
+      );
+    }
+    alert(`Homologação do Maker ${name} rejeitada. O status foi resetado para permitir reenvio.`);
   };
 
   // Banir / Desbanir Maker manualmente
@@ -875,14 +1170,133 @@ export default function Home() {
                     <div className="flex justify-between"><span>Tempo Máquina</span><span>{quote.metrics.timeFormatted}</span></div>
                     <div className="flex justify-between"><span>Peso Extrudado</span><span>{quote.metrics.weightG}g</span></div>
                     <div className="flex justify-between"><span>Material</span><span>{material}</span></div>
+                    <div className="flex justify-between"><span>Dimensões Peça</span><span>{quote.boundingBox.width.toFixed(1)} x {quote.boundingBox.depth.toFixed(1)} x {quote.boundingBox.height.toFixed(1)} mm</span></div>
                   </div>
+
+                  {/* Campo de CEP do Cliente (ViaCEP) */}
+                  <div className="space-y-1.5 border-t border-[#18181b] pt-4">
+                    <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">CEP de Entrega para Cotação Logística</label>
+                    <input 
+                      type="text" value={clientZip} 
+                      onChange={(e) => handleClientZipChange(e.target.value)} 
+                      placeholder="Ex: 13083-970" 
+                      className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
+                    />
+                    {clientZipLoading && <p className="text-[9px] text-yellow-500 mono-text animate-pulse">Buscando localidade e calculando frete...</p>}
+                    {clientAddress && <p className="text-[10px] text-[#10b981] font-semibold mono-text mt-0.5">📍 {clientAddress}</p>}
+                  </div>
+
+                  {/* Sonar / Radar de Proximidade */}
+                  {clientZip && (
+                    <div className="border border-[#18181b] rounded p-4 bg-[#050506] space-y-3">
+                      <div className="flex justify-between items-center text-[9px] text-[#71717a] uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">
+                        <span>Radar de Proximidade</span>
+                        <span className={isScanningRadar ? "text-yellow-500 animate-pulse" : "text-[#10b981]"}>
+                          {isScanningRadar ? "Escaneando Rede..." : "Rede Pronta"}
+                        </span>
+                      </div>
+
+                      {isScanningRadar ? (
+                        <div className="flex flex-col items-center justify-center py-6 space-y-3 relative overflow-hidden">
+                          {/* Animação do sonar */}
+                          <div className="w-12 h-12 rounded-full border border-[#d44d00]/30 flex items-center justify-center animate-ping absolute"></div>
+                          <div className="w-20 h-20 rounded-full border border-[#d44d00]/20 flex items-center justify-center animate-ping absolute"></div>
+                          
+                          <svg className="w-10 h-10 text-[#d44d00] animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span className="text-[9px] text-[#71717a] mono-text">Escaneando e avaliando compatibilidades de mesa/câmara...</span>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {nearbyMakers.length > 0 ? (
+                            <div className="space-y-2">
+                              <p className="text-[9px] text-[#71717a] uppercase tracking-wider mono-text">Makers locais avaliados pela rede:</p>
+                              {nearbyMakers.map((maker, idx) => {
+                                const presetMatch = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === maker.machine);
+                                
+                                const width = quote.boundingBox.width;
+                                const depth = quote.boundingBox.depth;
+                                const height = quote.boundingBox.height;
+                                
+                                const fitsVolume = presetMatch 
+                                  ? (presetMatch.volumeX >= width && presetMatch.volumeY >= depth && presetMatch.volumeZ >= height)
+                                  : true;
+                                  
+                                const requiresEnclosure = material === "ABS" || material === "ASA";
+                                const meetsEnclosure = presetMatch 
+                                  ? (requiresEnclosure ? presetMatch.hasEnclosure : true)
+                                  : true;
+                                  
+                                const isCompatible = fitsVolume && meetsEnclosure;
+
+                                return (
+                                  <div key={idx} className={`p-2.5 rounded border text-[10px] space-y-1.5 ${
+                                    isCompatible ? "border-[#10b981]/20 bg-[#10b981]/2" : "border-red-500/20 bg-red-500/2"
+                                  }`}>
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-bold text-white">{maker.name} <span className="text-[#a1a1aa] font-normal text-[9px]">({maker.distanceKm} km)</span></span>
+                                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded mono-text ${
+                                        isCompatible ? "bg-[#10b981]/15 text-[#10b981]" : "bg-red-500/15 text-red-500"
+                                      }`}>
+                                        {isCompatible ? `Disponível (ETA: ${maker.etaMinutes} min)` : "Incompatível"}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[9px] text-[#71717a]">
+                                      <span>Máquina: {maker.machine}</span>
+                                      <span>Nota: ★{maker.rating.toFixed(1)}</span>
+                                    </div>
+                                    {!isCompatible && (
+                                      <p className="text-[8px] text-red-400 font-semibold mono-text mt-0.5 flex items-center gap-1">
+                                        ⚠️ Motivo: {!fitsVolume 
+                                          ? `Mesa útil (${presetMatch?.volumeX}x${presetMatch?.volumeY}x${presetMatch?.volumeZ}mm) menor que a peça` 
+                                          : "Material exige impressora fechada (Câmara térmica ABS/ASA)"}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="text-[9px] text-[#71717a] text-center py-2">Nenhum maker retornado.</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <button
                     onClick={dispatchOrder}
-                    className="w-full py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                    disabled={clientZip.replace(/\D/g, "").length !== 8 || nearbyMakers.filter(m => {
+                      const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
+                      const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
+                      const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
+                      return fitsVol && meetsEnc;
+                    }).length === 0}
+                    className={`w-full py-3 text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer ${
+                      clientZip.replace(/\D/g, "").length === 8 && nearbyMakers.filter(m => {
+                        const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
+                        const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
+                        const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
+                        return fitsVol && meetsEnc;
+                      }).length > 0
+                        ? "bg-[#d44d00] hover:bg-[#b04000]"
+                        : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
+                    }`}
                   >
                     Despachar para Fabricação Local (UBER Flow)
                   </button>
+                  {clientZip && nearbyMakers.length > 0 && nearbyMakers.filter(m => {
+                    const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
+                    const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
+                    const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
+                    return fitsVol && meetsEnc;
+                  }).length === 0 && (
+                    <p className="text-[9px] text-red-400 text-center font-semibold mt-1">
+                      ⚠️ Nenhum Maker no raio atende aos requisitos físicos/térmicos desta peça/material.
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="technical-panel rounded p-10 text-center flex flex-col items-center justify-center min-h-[180px]">
@@ -965,26 +1379,171 @@ export default function Home() {
         {/* TAB 3: PAINEL MAKER (CADASTRO PASSO A PASSO + NOTIFICAÇÕES UBER + REPUTAÇÃO E BANIMENTO) */}
         {activeTab === "maker" && (
           <div className="max-w-7xl mx-auto px-6 py-12">
-            
-            {/* 1. SE O MAKER NÃO ESTÁ CADASTRADO: WIZARD DE CADASTRO DETALHADO */}
+{/* 1. SE O MAKER NÃO ESTÁ CADASTRADO: WIZARD DE CADASTRO DETALHADO */}
             {!makerProfile ? (
               <div className="max-w-3xl mx-auto space-y-8">
                 <div className="border-b border-[#18181b] pb-4">
-                  <h2 className="text-xl font-bold text-white uppercase tracking-tight mono-text">Formulário de Entrada - Maker Parceiro</h2>
-                  <p className="text-xs text-[#a1a1aa] mt-1">Siga as 3 etapas para cadastrar suas impressoras, estoque e escala de disponibilidade.</p>
+                  <h2 className="text-xl font-bold text-white uppercase tracking-tight mono-text">Formulário de Entrada - Maker</h2>
+                  {/* Indicador de passos */}
                 </div>
-
-                {/* Indicador de passos */}
-                <div className="flex justify-between text-xs text-[#71717a] font-semibold uppercase tracking-wider mono-text">
-                  <span className={wizardStep === 1 ? "text-[#d44d00]" : ""}>1. Dados e Máquinas</span>
-                  <span className={wizardStep === 2 ? "text-[#d44d00]" : ""}>2. Insumos em Estoque</span>
-                  <span className={wizardStep === 3 ? "text-[#d44d00]" : ""}>3. Escala Calendário</span>
+                <div className="flex justify-between text-[9px] text-[#71717a] font-semibold uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">
+                  <span className={wizardStep === 1 ? "text-[#d44d00]" : ""}>1. Conta & E-mail</span>
+                  <span className={wizardStep === 2 ? "text-[#d44d00]" : ""}>2. Contrato SLA</span>
+                  <span className={wizardStep === 3 ? "text-[#d44d00]" : ""}>3. Máquinas</span>
+                  <span className={wizardStep === 4 ? "text-[#d44d00]" : ""}>4. Estoque</span>
+                  <span className={wizardStep === 5 ? "text-[#d44d00]" : ""}>5. Carga & KYC</span>
                 </div>
 
                 <div className="technical-panel p-6 rounded-lg space-y-6">
-                  {/* PASSO 1: DADOS E MÁQUINAS */}
+                  {/* PASSO 1: CONTA & E-MAIL (ZOHO SMTP) */}
                   {wizardStep === 1 && (
                     <div className="space-y-6">
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Criação de Credenciais & Confirmação de E-mail</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">E-mail Corporativo</label>
+                          <input 
+                            type="email" value={wizardEmail} onChange={(e) => setWizardEmail(e.target.value)} placeholder="maker@dominio.com" 
+                            className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Senha de Acesso</label>
+                          <input 
+                            type="password" value={wizardPassword} onChange={(e) => setWizardPassword(e.target.value)} placeholder="••••••••" 
+                            className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Simulação do Envio de E-mail via Zoho SMTP */}
+                      <div className="border border-[#18181b] rounded p-4 bg-[#050506] space-y-4">
+                        <div className="flex justify-between items-center text-[10px] mono-text">
+                          <span className="text-[#a1a1aa] uppercase font-bold">Status do E-mail</span>
+                          <span className={emailVerified ? "text-[#10b981]" : "text-yellow-500 animate-pulse"}>
+                            {emailVerified ? "📧 Verificado com sucesso!" : "Aguardando Verificação"}
+                          </span>
+                        </div>
+
+                        {!emailSent ? (
+                          <button
+                            onClick={() => {
+                              if (!wizardEmail || !wizardPassword) {
+                                alert("Informe e-mail e senha primeiro!");
+                                return;
+                              }
+                              setEmailSent(true);
+                              alert("Disparando e-mail de validação corporativa via Zoho Mail SMTP...");
+                            }}
+                            className="w-full py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
+                          >
+                            Enviar Link de Confirmação (Zoho SMTP)
+                          </button>
+                        ) : (
+                          <div className="space-y-3">
+                            <p className="text-[10px] text-[#71717a] text-center">
+                              Enviamos um e-mail com token de segurança para <strong className="text-white">{wizardEmail}</strong>. 
+                              Use o botão abaixo para simular que você clicou no link de validação no seu e-mail:
+                            </p>
+                            <button
+                              onClick={() => {
+                                setEmailVerificationLoading(true);
+                                setTimeout(() => {
+                                  setEmailVerified(true);
+                                  setEmailVerificationLoading(false);
+                                  alert("Conta verificada no banco SQLite/Turso via token!");
+                                }, 1000);
+                              }}
+                              disabled={emailVerificationLoading || emailVerified}
+                              className={`w-full py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                                emailVerified 
+                                  ? "bg-[#10b981]/20 border border-[#10b981]/30 text-[#10b981]" 
+                                  : "bg-[#18181b] border border-[#27272a] text-white hover:bg-[#27272a]"
+                              }`}
+                            >
+                              {emailVerificationLoading ? "Verificando token..." : emailVerified ? "✓ E-mail Confirmado!" : "🔗 Simular Clique no Link do E-mail"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <button 
+                        onClick={() => setWizardStep(2)} 
+                        disabled={!emailVerified}
+                        className={`w-full py-2.5 font-bold text-xs uppercase tracking-wider rounded transition ${
+                          emailVerified 
+                            ? "bg-white text-black hover:bg-[#e4e4e7] cursor-pointer" 
+                            : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
+                        }`}
+                      >
+                        Avançar para Contrato SLA
+                      </button>
+                    </div>
+                  )}
+
+                  {/* PASSO 2: CONTRATO SLA (UBER-STYLE) */}
+                  {wizardStep === 2 && (
+                    <div className="space-y-6">
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Contrato de Credenciamento e Nível de Serviço (SLA)</h3>
+                      
+                      {/* Corpo do Contrato */}
+                      <div className="h-64 overflow-y-auto border border-[#18181b] p-4 bg-[#050506] rounded space-y-4 text-[10px] text-[#a1a1aa] leading-relaxed">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">1. DO OBJETO DO CREDENCIAMENTO</h4>
+                        <p>
+                          Este termo regula o credenciamento de colaboradores autônomos de fabricação digital (Makers) na plataforma FAB MAKERS. O Maker atua como fornecedor terceirizado, assumindo inteira responsabilidade técnica e civil sobre a integridade das peças fabricadas.
+                        </p>
+                        
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">2. DO COMPROMISSO DE CANAL E EXCLUSIVIDADE</h4>
+                        <p className="text-white font-semibold">
+                          Fica terminantemente proibido ao Maker negociar diretamente, captar ou fechar serviços por fora com os clientes que foram apresentados por intermédio da plataforma FAB MAKERS. O descumprimento desta regra acarretará em multa contratual e no banimento permanente e irreversível da rede, sem direito a saques de comissões pendentes.
+                        </p>
+
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">3. DA HOMOLOGAÇÃO TÉCNICA E TOLERÂNCIA</h4>
+                        <p>
+                          O Maker obriga-se a manter seus equipamentos devidamente calibrados. A plataforma exige a conformidade física a partir da impressão de peças de calibração padrão. Tolerâncias dimensionais maiores que ±0.05mm constatadas em auditoria ensejarão a suspensão da conta para readequação de hardware.
+                        </p>
+
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">4. DAS PENALIDADES E ACORDO DE SLA</h4>
+                        <p>
+                          Atrasos não justificados deduzirão a reputação do Maker. Desistências de jobs já aceitos somam penalidades automáticas. O acúmulo de 3 penalidades ou a queda da nota média geral de qualidade para patamar inferior a 4.0 estrelas resultará na suspensão sumária e exclusão da rede de parceiros da FAB MAKERS.
+                        </p>
+                      </div>
+
+                      {/* Caixa de Aceite */}
+                      <label className="flex items-start gap-3 cursor-pointer select-none">
+                        <input 
+                          type="checkbox" checked={contractAccepted} 
+                          onChange={(e) => setContractAccepted(e.target.checked)} 
+                          className="mt-0.5 accent-[#d44d00]" 
+                        />
+                        <span className="text-[10px] text-[#71717a] leading-tight">
+                          Declaro que li, compreendi e concordo com todos os termos do Contrato de Credenciamento e SLA de Manufatura Responsável da FAB MAKERS, incluindo as penalidades de exclusividade de canal e banimento por descumprimento de prazos.
+                        </span>
+                      </label>
+
+                      <div className="flex gap-4">
+                        <button onClick={() => setWizardStep(1)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
+                          Voltar
+                        </button>
+                        <button 
+                          onClick={() => setWizardStep(3)} 
+                          disabled={!contractAccepted}
+                          className={`flex-1 py-2.5 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer ${
+                            contractAccepted 
+                              ? "bg-white text-black hover:bg-[#e4e4e7]" 
+                              : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
+                          }`}
+                        >
+                          Avançar para Máquinas
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PASSO 3: MÁQUINAS (ANTIGO PASSO 1) */}
+                  {wizardStep === 3 && (
+                    <div className="space-y-6">
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Informações Pessoais & Cadastro de Equipamentos</h3>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Nome Completo</label>
@@ -996,74 +1555,194 @@ export default function Home() {
                         <div className="space-y-1.5">
                           <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">CEP de Atuação</label>
                           <input 
-                            type="text" value={wizardZip} onChange={(e) => setWizardZip(e.target.value)} placeholder="Ex: 13083-970" 
+                            type="text" value={wizardZip} 
+                            onChange={(e) => handleMakerZipChange(e.target.value)} 
+                            placeholder="Ex: 13083-970" 
                             className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
                           />
+                          {makerZipLoading && <p className="text-[9px] text-yellow-500 mono-text animate-pulse">Buscando localidade...</p>}
+                          {makerZipFeedback && <p className="text-[10px] text-[#10b981] font-semibold mono-text mt-0.5">📍 {makerZipFeedback}</p>}
                         </div>
                       </div>
 
                       {/* Lista de Máquinas */}
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Suas Impressoras 3D</label>
                           <button onClick={addMachine} className="text-[10px] text-[#d44d00] hover:underline font-bold">+ Adicionar Máquina</button>
                         </div>
-                        {wizardMachines.map((mach, index) => (
-                          <div key={mach.id} className="border border-[#18181b] p-3 rounded grid grid-cols-4 gap-2 bg-[#050506]">
-                            <input 
-                              type="text" value={mach.brand} placeholder="Marca" 
-                              onChange={(e) => {
-                                const newM = [...wizardMachines];
-                                newM[index].brand = e.target.value;
-                                setWizardMachines(newM);
-                              }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white" 
-                            />
-                            <input 
-                              type="text" value={mach.model} placeholder="Modelo" 
-                              onChange={(e) => {
-                                const newM = [...wizardMachines];
-                                newM[index].model = e.target.value;
-                                setWizardMachines(newM);
-                              }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white" 
-                            />
-                            <select 
-                              value={mach.nozzle} 
-                              onChange={(e) => {
-                                const newM = [...wizardMachines];
-                                newM[index].nozzle = e.target.value;
-                                setWizardMachines(newM);
-                              }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-[#a1a1aa]"
-                            >
-                              <option value="0.2mm">Bocal 0.2mm</option>
-                              <option value="0.4mm">Bocal 0.4mm</option>
-                              <option value="0.6mm">Bocal 0.6mm</option>
-                              <option value="0.8mm">Bocal 0.8mm</option>
-                            </select>
-                            <input 
-                              type="text" value={mach.volume} placeholder="Volume Útil" 
-                              onChange={(e) => {
-                                const newM = [...wizardMachines];
-                                newM[index].volume = e.target.value;
-                                setWizardMachines(newM);
-                              }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white" 
-                            />
-                          </div>
-                        ))}
+                        
+                        {wizardMachines.map((mach, index) => {
+                          const filteredModels = PRINTER_PRESETS.filter(p => p.brand === mach.brand).map(p => p.model);
+                          const isCustom = !mach.brand || mach.brand === "Personalizada";
+                          
+                          return (
+                            <div key={mach.id} className="border border-[#18181b] p-4 rounded bg-[#050506] space-y-4">
+                              <div className="flex justify-between items-center text-xs font-bold text-[#a1a1aa] border-b border-[#18181b] pb-2">
+                                <span className="mono-text text-[9px] tracking-wider text-[#71717a]">MÁQUINA #{index + 1}</span>
+                                {wizardMachines.length > 1 && (
+                                  <button 
+                                    onClick={() => setWizardMachines(wizardMachines.filter(m => m.id !== mach.id))}
+                                    className="text-red-500 hover:text-red-400 font-normal hover:underline text-[10px]"
+                                  >
+                                    Remover
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Fabricante</label>
+                                  <select 
+                                    value={mach.brand || ""} 
+                                    onChange={(e) => {
+                                      const newM = [...wizardMachines];
+                                      newM[index].brand = e.target.value;
+                                      newM[index].model = ""; // limpa modelo anterior
+                                      if (e.target.value === "Personalizada") {
+                                        newM[index].volume = "220x220x250mm";
+                                        newM[index].nozzle = "0.4mm";
+                                        newM[index].technology = "FDM";
+                                        newM[index].hasEnclosure = false;
+                                        newM[index].hasMulticolor = false;
+                                        newM[index].maxNozzleTemp = 260;
+                                        newM[index].maxBedTemp = 100;
+                                        newM[index].compatibleMaterials = ["PLA", "PETG", "TPU"];
+                                        newM[index].supportedNozzles = ["0.4mm"];
+                                        newM[index].typicalPrecision = 0.1;
+                                        newM[index].maxSpeed = 100;
+                                        newM[index].maxPartWeightG = 1000;
+                                        newM[index].releaseYear = 2026;
+                                        newM[index].status = "ACTIVE";
+                                      }
+                                      setWizardMachines(newM);
+                                    }}
+                                    className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]" 
+                                  >
+                                    <option value="">-- Selecione a marca --</option>
+                                    {uniqueBrands.map(b => (
+                                      <option key={b} value={b}>{b}</option>
+                                    ))}
+                                    <option value="Personalizada">Outra / Personalizada</option>
+                                  </select>
+                                </div>
+
+                                {!isCustom && (
+                                  <div className="space-y-1">
+                                    <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Modelo do Equipamento</label>
+                                    <select 
+                                      value={mach.model || ""} 
+                                      onChange={(e) => {
+                                        const preset = PRINTER_PRESETS.find(p => p.brand === mach.brand && p.model === e.target.value);
+                                        if (preset) {
+                                          const newM = [...wizardMachines];
+                                          newM[index].model = preset.model;
+                                          newM[index].volume = `${preset.volumeX}x${preset.volumeY}x${preset.volumeZ}mm`;
+                                          newM[index].technology = preset.technology;
+                                          newM[index].hasEnclosure = preset.hasEnclosure;
+                                          newM[index].hasMulticolor = preset.hasMulticolor;
+                                          newM[index].maxNozzleTemp = preset.maxNozzleTemp;
+                                          newM[index].maxBedTemp = preset.maxBedTemp;
+                                          newM[index].compatibleMaterials = preset.compatibleMaterials;
+                                          newM[index].supportedNozzles = preset.supportedNozzles;
+                                          newM[index].typicalPrecision = preset.typicalPrecision;
+                                          newM[index].maxSpeed = preset.maxSpeed;
+                                          newM[index].maxPartWeightG = preset.maxPartWeightG;
+                                          newM[index].releaseYear = preset.releaseYear;
+                                          newM[index].status = preset.status;
+                                          setWizardMachines(newM);
+                                        }
+                                      }}
+                                      className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]"
+                                    >
+                                      <option value="">-- Selecione o modelo --</option>
+                                      {filteredModels.map(m => (
+                                        <option key={m} value={m}>{m}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
+                              </div>
+
+                              {isCustom ? (
+                                <div className="grid grid-cols-3 gap-2 pt-1">
+                                  <div className="space-y-1">
+                                    <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Fabricante Livre</label>
+                                    <input 
+                                      type="text" value={mach.brand === "Personalizada" ? "" : mach.brand} placeholder="Ex: Creality"
+                                      onChange={(e) => {
+                                        const newM = [...wizardMachines];
+                                        newM[index].brand = e.target.value;
+                                        setWizardMachines(newM);
+                                      }}
+                                      className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Modelo Livre</label>
+                                    <input 
+                                      type="text" value={mach.model} placeholder="Ex: Ender 3 V2"
+                                      onChange={(e) => {
+                                        const newM = [...wizardMachines];
+                                        newM[index].model = e.target.value;
+                                        setWizardMachines(newM);
+                                      }}
+                                      className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]"
+                                    />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Volume (XxYxZ mm)</label>
+                                    <input 
+                                      type="text" value={mach.volume} placeholder="Ex: 220x220x250mm"
+                                      onChange={(e) => {
+                                        const newM = [...wizardMachines];
+                                        newM[index].volume = e.target.value;
+                                        setWizardMachines(newM);
+                                      }}
+                                      className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                mach.model && (
+                                  <div className="bg-[#09090b] border border-[#18181b] p-3 rounded text-[10px] text-[#a1a1aa] space-y-2 mono-text">
+                                    <div className="grid grid-cols-3 gap-y-1.5 gap-x-2">
+                                      <p>Tecnologia: <span className="text-white">{mach.technology}</span></p>
+                                      <p>Volume Útil: <span className="text-white">{mach.volume}</span></p>
+                                      <p>Câmara: <span className="text-white">{mach.hasEnclosure ? "Fechada (Sim)" : "Aberta (Não)"}</span></p>
+                                      <p>Multicor: <span className="text-white">{mach.hasMulticolor ? "Suporta AMS/MMU" : "Não"}</span></p>
+                                      <p>Bico Máx: <span className="text-white">{mach.maxNozzleTemp}°C</span></p>
+                                      <p>Mesa Máx: <span className="text-white">{mach.maxBedTemp}°C</span></p>
+                                      <p>Velocidade: <span className="text-white">{mach.maxSpeed} mm/s</span></p>
+                                      <p>Precisão: <span className="text-white">±{mach.typicalPrecision} mm</span></p>
+                                      <p>Carga Máx Z: <span className="text-white">{mach.maxPartWeightG}g</span></p>
+                                    </div>
+                                    <div className="border-t border-[#18181b] pt-1.5 text-[9px]">
+                                      <p className="truncate">Materiais Compatíveis: <span className="text-white">{(mach.compatibleMaterials || []).join(", ")}</span></p>
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
-                      <button onClick={() => setWizardStep(2)} className="w-full py-2.5 bg-white text-black font-bold text-xs uppercase tracking-wider rounded transition hover:bg-[#e4e4e7]">
-                        Avançar para Insumos
-                      </button>
+                      <div className="flex gap-4">
+                        <button onClick={() => setWizardStep(2)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
+                          Voltar
+                        </button>
+                        <button onClick={() => setWizardStep(4)} className="flex-1 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
+                          Avançar para Insumos
+                        </button>
+                      </div>
                     </div>
                   )}
 
-                  {/* PASSO 2: INSUMOS EM ESTOQUE */}
-                  {wizardStep === 2 && (
+                  {/* PASSO 4: INSUMOS EM ESTOQUE (ANTIGO PASSO 2) */}
+                  {wizardStep === 4 && (
                     <div className="space-y-6">
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Controle de Filamento & Matéria-Prima</h3>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Seu Estoque de Filamento</label>
@@ -1078,7 +1757,7 @@ export default function Home() {
                                 newF[index].type = e.target.value;
                                 setWizardFilaments(newF);
                               }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-[#a1a1aa]"
+                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-[#a1a1aa] focus:outline-none"
                             >
                               <option value="PLA">PLA</option>
                               <option value="ABS">ABS</option>
@@ -1093,7 +1772,7 @@ export default function Home() {
                                 newF[index].color = e.target.value;
                                 setWizardFilaments(newF);
                               }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white" 
+                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]" 
                             />
                             <input 
                               type="number" value={fil.weightG} placeholder="Peso em Gramas" 
@@ -1102,38 +1781,46 @@ export default function Home() {
                                 newF[index].weightG = parseInt(e.target.value) || 0;
                                 setWizardFilaments(newF);
                               }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white" 
+                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]" 
                             />
                           </div>
                         ))}
                       </div>
 
                       <div className="flex gap-4">
-                        <button onClick={() => setWizardStep(1)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition">
+                        <button onClick={() => setWizardStep(3)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
                           Voltar
                         </button>
-                        <button onClick={() => setWizardStep(3)} className="flex-1 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-wider rounded transition">
-                          Avançar para Calendário
+                        <button onClick={() => setWizardStep(5)} className="flex-1 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
+                          Avançar para Carga & KYC
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* PASSO 3: CALENDÁRIO DISPONIBILIDADE */}
-                  {wizardStep === 3 && (
+                  {/* PASSO 5: CARGA OPERACIONAL, KYC E CALIBRAÇÃO */}
+                  {wizardStep === 5 && (
                     <div className="space-y-6">
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Capacidade Diária, Verificação KYC e Calibração Técnica</h3>
                       
                       {/* Calendário interativo de escala */}
                       <div className="space-y-4">
-                        <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Grade de Escala Semanal (Escolha seus turnos de Trabalho)</label>
+                        <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Grade de Escala Semanal (Escolha os dias de Trabalho)</label>
                         
                         <div className="grid grid-cols-7 gap-2 text-center text-xs">
                           {["seg", "ter", "qua", "qui", "sex", "sab", "dom"].map((day) => (
                             <div key={day} className="space-y-2">
                               <span className="font-bold text-[#a1a1aa] uppercase tracking-widest text-[9px] mono-text">{day}</span>
                               <button 
-                                onClick={() => toggleDay(day)}
-                                className={`w-full py-2 border rounded font-semibold text-[10px] uppercase transition ${
+                                onClick={() => {
+                                  const isEscalado = wizardDays.includes(day);
+                                  toggleDay(day);
+                                  setWizardDailyHours(prev => ({
+                                    ...prev,
+                                    [day]: isEscalado ? 0 : 8
+                                  }));
+                                }}
+                                className={`w-full py-2 border rounded font-semibold text-[10px] uppercase transition cursor-pointer ${
                                   wizardDays.includes(day) ? "border-[#d44d00] bg-[#d44d00]/5 text-white" : "border-[#18181b] bg-[#050506] text-[#71717a]"
                                 }`}
                               >
@@ -1144,28 +1831,143 @@ export default function Home() {
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Turno Diário Disponível</label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {["manha", "tarde", "noite"].map((shift) => (
-                            <button
-                              key={shift}
-                              onClick={() => toggleShift(shift)}
-                              className={`py-3 border text-xs font-semibold rounded uppercase tracking-wider transition ${
-                                wizardShifts.includes(shift) ? "border-[#d44d00] bg-[#d44d00]/5 text-white" : "border-[#18181b] bg-[#050506] text-[#71717a]"
-                              }`}
-                            >
-                              {shift === "manha" ? "Manhã (08h - 12h)" : shift === "tarde" ? "Tarde (12h - 18h)" : "Noite (18h - 23h)"}
-                            </button>
-                          ))}
+                      {/* Ajuste de horas da máquina por dia da semana */}
+                      {wizardDays.length > 0 && (
+                        <div className="space-y-4 border-t border-[#18181b] pt-4">
+                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Capacidade Horária por Dia (Carga Máquina)</label>
+                          <div className="space-y-2">
+                            {wizardDays.map((day) => (
+                              <div key={day} className="flex justify-between items-center gap-4 bg-[#09090b] border border-[#18181b] p-2.5 rounded text-xs">
+                                <span className="font-bold text-white uppercase mono-text w-12">{day}</span>
+                                <input 
+                                  type="range" min="1" max="24" step="1"
+                                  value={wizardDailyHours[day] !== undefined ? wizardDailyHours[day] : 8}
+                                  onChange={(e) => {
+                                    setWizardDailyHours(prev => ({
+                                      ...prev,
+                                      [day]: parseInt(e.target.value)
+                                    }));
+                                  }}
+                                  className="flex-1 accent-[#d44d00] h-1 bg-[#18181b] rounded-lg appearance-none cursor-pointer"
+                                />
+                                <span className="text-[#d44d00] font-bold w-16 text-right mono-text">
+                                  {wizardDailyHours[day] !== undefined ? wizardDailyHours[day] : 8} horas
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Mostrador de Capacidade Máquina Total Semanal */}
+                          <div className="bg-[#10b981]/5 border border-[#10b981]/15 p-4 rounded-lg space-y-2 mono-text text-xs text-[#10b981]">
+                            <div className="flex justify-between items-center font-bold">
+                              <span>CAPACIDADE OPERACIONAL DA REDE</span>
+                              <span>
+                                {wizardDays.reduce((acc, d) => acc + (wizardDailyHours[d] || 8), 0) * wizardMachines.length}h / semana
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-[#71717a] font-normal normal-case">
+                              Calculado com base em {wizardMachines.length} máquina(s) cadastrada(s) na etapa 3 e horas produtivas.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* UPLOAD DE KYC (DOCUMENTOS) */}
+                      <div className="border-t border-[#18181b] pt-4 space-y-4">
+                        <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Documentação KYC (Verificação de Identidade)</label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Documento de Identidade (RG ou CNH)</span>
+                            <div className="flex items-center gap-2">
+                              <label className="px-3 py-2 bg-[#050506] border border-[#18181b] rounded text-xs text-[#a1a1aa] hover:border-[#d44d00] cursor-pointer transition">
+                                📁 Selecionar Arquivo
+                                <input 
+                                  type="file" accept="image/*" className="hidden" 
+                                  onChange={(e) => {
+                                    if (e.target.files?.[0]) setKycDocumentName(e.target.files[0].name);
+                                  }} 
+                                />
+                              </label>
+                              <span className="text-[9px] text-white truncate max-w-[120px]">{kycDocumentName || "Nenhum arquivo"}</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Selfie Segurando Documento</span>
+                            <div className="flex items-center gap-2">
+                              <label className="px-3 py-2 bg-[#050506] border border-[#18181b] rounded text-xs text-[#a1a1aa] hover:border-[#d44d00] cursor-pointer transition">
+                                📸 Anexar Foto
+                                <input 
+                                  type="file" accept="image/*" className="hidden" 
+                                  onChange={(e) => {
+                                    if (e.target.files?.[0]) setKycSelfieName(e.target.files[0].name);
+                                  }} 
+                                />
+                              </label>
+                              <span className="text-[9px] text-white truncate max-w-[120px]">{kycSelfieName || "Nenhum arquivo"}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* HOMOLOGAÇÃO DE CALIBRAÇÃO TÉCNICA (CUBO BENCHMARK) */}
+                      <div className="border-t border-[#18181b] pt-4 space-y-4">
+                        <div className="space-y-1">
+                          <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Prova de Calibração Física (Cubo Calibrado 20mm)</label>
+                          <p className="text-[9px] text-[#71717a] leading-tight">
+                            Faça o download e imprima o cubo de teste oficial da plataforma. Use um paquímetro para medir com precisão as faces X, Y e Z e insira os milímetros reais medidos abaixo (Tolerância máxima: ±0.05mm).
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="space-y-1.5">
+                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo X (mm)</span>
+                            <input 
+                              type="number" step="0.01" value={calibX} 
+                              onChange={(e) => setCalibX(parseFloat(e.target.value) || 20.00)}
+                              className="w-full bg-[#050506] border border-[#18181b] rounded p-2 text-xs text-white mono-text focus:outline-none focus:border-[#d44d00]" 
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo Y (mm)</span>
+                            <input 
+                              type="number" step="0.01" value={calibY} 
+                              onChange={(e) => setCalibY(parseFloat(e.target.value) || 20.00)}
+                              className="w-full bg-[#050506] border border-[#18181b] rounded p-2 text-xs text-white mono-text focus:outline-none focus:border-[#d44d00]" 
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo Z (mm)</span>
+                            <input 
+                              type="number" step="0.01" value={calibZ} 
+                              onChange={(e) => setCalibZ(parseFloat(e.target.value) || 20.00)}
+                              className="w-full bg-[#050506] border border-[#18181b] rounded p-2 text-xs text-white mono-text focus:outline-none focus:border-[#d44d00]" 
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Foto da Medição (Cubo sendo medido com Paquímetro)</span>
+                          <div className="flex items-center gap-2">
+                            <label className="px-3 py-2 bg-[#050506] border border-[#18181b] rounded text-xs text-[#a1a1aa] hover:border-[#d44d00] cursor-pointer transition">
+                              📷 Anexar Foto da Medição
+                              <input 
+                                type="file" accept="image/*" className="hidden" 
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) setCalibImageName(e.target.files[0].name);
+                                }} 
+                              />
+                            </label>
+                            <span className="text-[9px] text-white truncate max-w-[200px]">{calibImageName || "Nenhum arquivo"}</span>
+                          </div>
                         </div>
                       </div>
 
                       <div className="flex gap-4">
-                        <button onClick={() => setWizardStep(2)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition">
+                        <button onClick={() => setWizardStep(4)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
                           Voltar
                         </button>
-                        <button onClick={handleRegisterMaker} className="flex-1 py-2.5 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition">
+                        <button onClick={handleRegisterMaker} className="flex-1 py-2.5 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
                           Concluir Cadastro & Solicitar Homologação
                         </button>
                       </div>
@@ -1177,7 +1979,7 @@ export default function Home() {
               // 2. SE O MAKER JÁ TEM CADASTRO
               <div className="space-y-8">
                 
-                {/* Cabeçalho do Maker Cadastrado */}
+                {/* Cabeçalho do Maker Cadastrado com status Sandbox */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#09090b] border border-[#18181b] p-6 rounded">
                   <div>
                     <h2 className="text-lg font-bold text-white mono-text">{makerProfile.name}</h2>
@@ -1194,10 +1996,14 @@ export default function Home() {
                       <span className="text-[9px] uppercase tracking-widest text-[#71717a] block mono-text">Status de Cadastro</span>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase mono-text ${
                         makerProfile.isBanned ? "border-red-500/30 text-red-500 bg-red-500/5 animate-pulse" :
-                        makerProfile.isApproved ? "border-green-500/30 text-green-500 bg-green-500/5" :
+                        makerProfile.makerStatus === "HOMOLOGATED" ? "border-green-500/30 text-green-500 bg-green-500/5" :
+                        makerProfile.makerStatus === "SANDBOX" ? "border-blue-500/30 text-blue-500 bg-blue-500/5" :
                         "border-yellow-500/30 text-yellow-500 bg-yellow-500/5"
                       }`}>
-                        {makerProfile.isBanned ? "BANIDO" : makerProfile.isApproved ? "HOMOLOGADO" : "Aguardando Homologação"}
+                        {makerProfile.isBanned ? "BANIDO" : 
+                         makerProfile.makerStatus === "HOMOLOGATED" ? "HOMOLOGADO" : 
+                         makerProfile.makerStatus === "SANDBOX" ? "SANDBOX (EXPERIÊNCIA)" : 
+                         "Aguardando Auditoria"}
                       </span>
                     </div>
                   </div>
@@ -1222,9 +2028,53 @@ export default function Home() {
                       Restaurar Conta (Testes e Simulação)
                     </button>
                   </div>
+                ) : makerProfile.makerStatus === "PENDING_APPROVAL" ? (
+                  <div className="border border-yellow-500/30 bg-yellow-950/20 p-8 rounded text-center space-y-4">
+                    <div className="w-12 h-12 rounded bg-yellow-500/10 text-yellow-500 flex items-center justify-center mx-auto border border-yellow-500/20 text-2xl font-bold animate-pulse">
+                      ⏳
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-extrabold text-yellow-500 uppercase tracking-wider mono-text">Cadastro em Auditoria de Segurança</h3>
+                      <p className="text-xs text-[#a1a1aa] mt-2 max-w-lg mx-auto leading-relaxed">
+                        Sua solicitação foi enviada para a fila de homologação. O administrador da plataforma auditará seus documentos KYC, selfie e a precisão dimensional do cubo de teste.
+                      </p>
+                      <div className="bg-[#050506] border border-[#18181b] p-4 rounded max-w-md mx-auto mt-4 text-left text-[11px] text-[#a1a1aa] space-y-1.5 mono-text">
+                        <p className="font-bold text-white border-b border-[#18181b] pb-1 uppercase text-[9px] tracking-wider">Seus Dados de Calibração Física</p>
+                        <p>Eixo X medido: <span className="text-white font-bold">{makerProfile.calibX?.toFixed(2)} mm</span></p>
+                        <p>Eixo Y medido: <span className="text-white font-bold">{makerProfile.calibY?.toFixed(2)} mm</span></p>
+                        <p>Eixo Z medido: <span className="text-white font-bold">{makerProfile.calibZ?.toFixed(2)} mm</span></p>
+                        <p>Desvio Máximo: <span className="text-red-400 font-bold">
+                          {Math.max(
+                            Math.abs(20 - (makerProfile.calibX || 20)),
+                            Math.abs(20 - (makerProfile.calibY || 20)),
+                            Math.abs(20 - (makerProfile.calibZ || 20))
+                          ).toFixed(3)} mm
+                        </span></p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-[#71717a]">
+                      💡 Dica rápida: Clique em <strong>Admin</strong> no menu superior para auditar e aprovar esta solicitação manualmente!
+                    </p>
+                  </div>
                 ) : (
-                  // MAKER ATIVO E HOMOLOGADO
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  // MAKER ATIVO (HOMOLOGADO OU SANDBOX)
+                  <div className="space-y-6">
+                    {/* Faixa de Sandbox */}
+                    {makerProfile.makerStatus === "SANDBOX" && (
+                      <div className="border border-blue-500/20 bg-blue-500/5 p-4 rounded text-xs text-[#60a5fa] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div>
+                          <strong className="block text-white">⚠️ Período de Sandbox Ativo (Fase de Experiência)</strong>
+                          <span className="text-[11px] text-[#a1a1aa] mt-0.5 block">
+                            Como novo parceiro credenciado, você está em período probatório de 3 entregas e está limitado a aceitar apenas <strong>1 job por vez</strong>.
+                          </span>
+                        </div>
+                        <div className="bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded mono-text text-[10px] text-white font-bold">
+                          0 de 3 Entregas Concluídas
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
                     {/* UBER JOB FLOW: NOTIFICAÇÃO PUSH DE TRABALHOS PRÓXIMOS */}
                     <div className="lg:col-span-8 space-y-6">
@@ -1369,14 +2219,13 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-
                   </div>
-                )}
-              </div>
-            )}
-            
-          </div>
-        )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
         {/* TAB 4: PAINEL ADMINISTRATIVO (CONTROLE, HOMOLOGAÇÕES E MÉTRICAS DE ESCALA) */}
         {activeTab === "admin" && (
@@ -1433,17 +2282,102 @@ export default function Home() {
                           </span>
                         </div>
 
-                        {req.benchmarkResult === "PENDING" && (
-                          <div className="bg-[#050506] p-3 rounded border border-[#18181b] flex justify-between items-center">
-                            <span className="text-[9px] text-[#71717a] mono-text">Inspeção Tolerância (Benchmark ±0.05mm)</span>
-                            <button
-                              onClick={() => approveMakerRequest(req.id, req.name)}
-                              className="px-3 py-1 bg-[#d44d00] hover:bg-[#b04000] text-white text-[10px] font-bold rounded uppercase tracking-wider transition"
-                            >
-                              Homologar Máquina
-                            </button>
-                          </div>
-                        )}
+                        {req.benchmarkResult === "PENDING" && (() => {
+                          const devX = Math.abs(20 - req.calibX);
+                          const devY = Math.abs(20 - req.calibY);
+                          const devZ = Math.abs(20 - req.calibZ);
+                          const maxDeviation = Math.max(devX, devY, devZ);
+                          const isWithinTolerance = maxDeviation <= 0.05;
+
+                          return (
+                            <div className="space-y-4 pt-2 border-t border-[#18181b]">
+                              {/* Dados Dimensionais */}
+                              <div className="bg-[#050506] p-4 rounded border border-[#18181b] space-y-3">
+                                <span className="text-[9px] text-[#71717a] font-bold uppercase tracking-wider block mono-text">
+                                  1. Calibração Dimensional (Cubo 20mm)
+                                </span>
+                                <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                                  <div className="bg-[#09090b] border border-[#18181b] p-2 rounded">
+                                    <span className="text-[#71717a] block">Eixo X</span>
+                                    <strong className="text-white block mt-0.5">{req.calibX.toFixed(2)} mm</strong>
+                                    <span className={`text-[8px] block mt-0.5 ${devX <= 0.05 ? "text-green-500" : "text-red-500"}`}>
+                                      Δ: {req.calibX - 20 >= 0 ? `+${(req.calibX - 20).toFixed(2)}` : (req.calibX - 20).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div className="bg-[#09090b] border border-[#18181b] p-2 rounded">
+                                    <span className="text-[#71717a] block">Eixo Y</span>
+                                    <strong className="text-white block mt-0.5">{req.calibY.toFixed(2)} mm</strong>
+                                    <span className={`text-[8px] block mt-0.5 ${devY <= 0.05 ? "text-green-500" : "text-red-500"}`}>
+                                      Δ: {req.calibY - 20 >= 0 ? `+${(req.calibY - 20).toFixed(2)}` : (req.calibY - 20).toFixed(2)}
+                                    </span>
+                                  </div>
+                                  <div className="bg-[#09090b] border border-[#18181b] p-2 rounded">
+                                    <span className="text-[#71717a] block">Eixo Z</span>
+                                    <strong className="text-white block mt-0.5">{req.calibZ.toFixed(2)} mm</strong>
+                                    <span className={`text-[8px] block mt-0.5 ${devZ <= 0.05 ? "text-green-500" : "text-red-500"}`}>
+                                      Δ: {req.calibZ - 20 >= 0 ? `+${(req.calibZ - 20).toFixed(2)}` : (req.calibZ - 20).toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex justify-between items-center text-[10px] border-t border-[#18181b]/50 pt-2">
+                                  <span className="text-[#71717a]">Desvio Máximo Encontrado:</span>
+                                  <span className={`font-bold ${isWithinTolerance ? "text-green-500" : "text-red-500"}`}>
+                                    {maxDeviation.toFixed(3)} mm ({isWithinTolerance ? "Dentro da Tolerância ±0.05mm" : "Fora da Tolerância"})
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Documentos Anexados */}
+                              <div className="bg-[#050506] p-4 rounded border border-[#18181b] space-y-3 text-[10px]">
+                                <span className="text-[9px] text-[#71717a] font-bold uppercase tracking-wider block mono-text">
+                                  2. Documentos e Comprovantes (KYC)
+                                </span>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <a 
+                                    href="#" 
+                                    onClick={(e) => { e.preventDefault(); alert(`Visualizando documento simulado: ${req.documentUrl}`); }}
+                                    className="bg-[#09090b] hover:bg-[#18181b] border border-[#18181b] p-2 rounded text-center block text-[#a1a1aa] transition"
+                                  >
+                                    📄 RG/CNH
+                                    <span className="text-[8px] text-[#71717a] block truncate mt-0.5">{req.documentUrl}</span>
+                                  </a>
+                                  <a 
+                                    href="#" 
+                                    onClick={(e) => { e.preventDefault(); alert(`Visualizando selfie simulada: ${req.selfieUrl}`); }}
+                                    className="bg-[#09090b] hover:bg-[#18181b] border border-[#18181b] p-2 rounded text-center block text-[#a1a1aa] transition"
+                                  >
+                                    📸 Selfie KYC
+                                    <span className="text-[8px] text-[#71717a] block truncate mt-0.5">{req.selfieUrl}</span>
+                                  </a>
+                                  <a 
+                                    href="#" 
+                                    onClick={(e) => { e.preventDefault(); alert(`Visualizando foto do paquímetro simulada: ${req.benchmarkImageUrl}`); }}
+                                    className="bg-[#09090b] hover:bg-[#18181b] border border-[#18181b] p-2 rounded text-center block text-[#a1a1aa] transition"
+                                  >
+                                    📏 Paquímetro
+                                    <span className="text-[8px] text-[#71717a] block truncate mt-0.5">{req.benchmarkImageUrl}</span>
+                                  </a>
+                                </div>
+                              </div>
+
+                              {/* Ações de Auditoria */}
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => approveMakerRequest(req.id, req.name)}
+                                  className="flex-grow py-2 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                >
+                                  ✅ Aprovar e Homologar
+                                </button>
+                                <button
+                                  onClick={() => rejectMakerRequest(req.id, req.name)}
+                                  className="px-4 py-2 border border-red-500/30 text-red-500 bg-red-500/5 hover:bg-red-500/10 text-[10px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                >
+                                  ❌ Rejeitar
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>

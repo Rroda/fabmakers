@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
 }
 
 // Modelagem Inicial do Ecossistema Multilateral FabMakers
@@ -18,6 +17,11 @@ model User {
   email         String    @unique
   passwordHash  String
   role          String    // "CLIENT", "MAKER", "DESIGNER", "ADMIN"
+  
+  // Confirmação de E-mail
+  emailVerified    Boolean   @default(false)
+  verificationToken String?
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
@@ -40,6 +44,19 @@ model MakerProfile {
   isApproved     Boolean   @default(false) // Homologação de qualidade
   penaltiesCount Int       @default(0)     // Contagem de penalidades acumuladas por desistência
   isBanned       Boolean   @default(false) // Flag de banimento automático em faltas graves
+  
+  // Onboarding Anti-Fraude e Contrato SLA
+  contractAccepted Boolean   @default(false)
+  kycStatus        String    @default("PENDING") // PENDING, APPROVED, REJECTED
+  makerStatus      String    @default("UNVERIFIED") // UNVERIFIED, PENDING_APPROVAL, SANDBOX, HOMOLOGATED, BANNED
+  kycDocumentUrl   String?
+  kycSelfieUrl     String?
+  
+  // Medições físicas da Calibração técnica
+  calibX           Float?
+  calibY           Float?
+  calibZ           Float?
+  calibImageUrl    String?
   
   ordersAsMaker  Order[]   @relation("MakerOrders")
 }
@@ -90,4 +107,28 @@ model Order {
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model PrinterModel {
+  id                String   @id @default(uuid())
+  brand             String   // Fabricante (ex: "Bambu Lab")
+  modelName         String   // Modelo (ex: "P1S")
+  technology        String   // Tecnologia (ex: "FDM", "SLA", "SLS")
+  volumeX           Float    // Volume útil X em mm
+  volumeY           Float    // Volume útil Y em mm
+  volumeZ           Float    // Volume útil Z em mm
+  hasEnclosure      Boolean  // Câmara fechada (Sim/Não)
+  hasMulticolor     Boolean  // Suporte a cores/AMS/MMU
+  maxNozzleTemp     Int      // Temperatura máxima do bico (°C)
+  maxBedTemp        Int      // Temperatura máxima da mesa (°C)
+  compatibleMaterials String // Lista de materiais compatíveis serializados (ex: "PLA,PETG,ABS,ASA,TPU")
+  supportedNozzles  String   // Diâmetros de bicos suportados (ex: "0.2,0.4,0.6,0.8")
+  typicalPrecision  Float    // Precisão típica em mm (ex: 0.05)
+  maxSpeed          Int      // Velocidade máxima em mm/s (ex: 500)
+  maxPartWeightG    Float    // Peso máximo recomendado da peça em gramas (ex: 3000)
+  releaseYear       Int      // Ano de lançamento (ex: 2023)
+  status            String   // Status (ex: "ACTIVE", "DISCONTINUED")
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }

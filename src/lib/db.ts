@@ -7,7 +7,7 @@ const libsql = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN as string,
 })
 
-const adapter = new PrismaLibSql(libsql)
+const adapter = new PrismaLibSql(libsql as any)
 
 // Evita a criação de múltiplas conexões com o PrismaClient no Next.js em ambiente de desenvolvimento
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
