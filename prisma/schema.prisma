@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Modelagem Inicial do Ecossistema Multilateral FabMakers
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  passwordHash  String
+  role          String    // "CLIENT", "MAKER", "DESIGNER", "ADMIN"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relações
+  makerProfile  MakerProfile?
+  designerProfile DesignerProfile?
+  ordersAsClient Order[]  @relation("ClientOrders")
+}
+
+model MakerProfile {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city           String
+  state          String
+  machines       String    // JSON string listando as impressoras e especificações
+  materials      String    // JSON string listando cores e tipos de filamento (PLA, ABS, PETG)
+  availability   String    @default("{}") // JSON string com calendário de disponibilidade (horas, dias, meses)
+  rating         Float     @default(5.0)
+  isApproved     Boolean   @default(false) // Homologação de qualidade
+  penaltiesCount Int       @default(0)     // Contagem de penalidades acumuladas por desistência
+  isBanned       Boolean   @default(false) // Flag de banimento automático em faltas graves
+  
+  ordersAsMaker  Order[]   @relation("MakerOrders")
+}
+
+model DesignerProfile {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paypalEmail   String?
+  rating        Float     @default(5.0)
+  
+  models        Model3D[]
+}
+
+model Model3D {
+  id            String    @id @default(uuid())
+  title         String
+  description   String
+  fileUrl       String    // Caminho do STL na nuvem
+  gcodeStream   Boolean   @default(true) // Se obriga streaming de G-code sem download
+  royaltyPrice  Float     // Valor fixo de royalty por impressão
+  designerId    String
+  designer      DesignerProfile @relation(fields: [designerId], references: [id], onDelete: Cascade)
+  
+  orders        Order[]
+}
+
+model Order {
+  id            String    @id @default(uuid())
+  status        String    // "PENDING_QUOTATION", "PAID", "PRINTING", "SHIPPED", "DELIVERED", "COMPLETED"
+  totalPrice    Float
+  makerPrice    Float
+  royaltyPaid   Float
+  platformFee   Float
+  
+  // Geolocalização e entrega
+  shippingZip   String
+  shippingAddress String
+  
+  clientId      String
+  client        User      @relation("ClientOrders", fields: [clientId], references: [id])
+  
+  makerId       String?
+  maker         MakerProfile? @relation("MakerOrders", fields: [makerId], references: [id])
+  
+  modelId       String?
+  model         Model3D?      @relation(fields: [modelId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}

@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAB MAKERS - O Futuro da Manufatura Distribuída</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050506;
+            --surface-color: #09090b;
+            --surface-border: #18181b;
+            --accent-primary: #d44d00;
+            --accent-secondary: #ff5c00;
+            --accent-glow: rgba(212, 77, 0, 0.04);
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --success: #10b981;
+            --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            --zinc-800: #18181b;
+            --zinc-700: #27272a;
+            --zinc-600: #3f3f46;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(212, 77, 0, 0.04) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(255, 92, 0, 0.02) 0%, transparent 45%);
+            background-attachment: fixed;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header & Navigation */
+        header {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--surface-border);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(5, 5, 6, 0.9);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 44px;
+            width: auto;
+            display: block;
+        }
+
+        .tagline-badge {
+            background: rgba(212, 77, 0, 0.05);
+            border: 1px solid var(--accent-primary);
+            color: var(--text-main);
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: monospace;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 90px 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 450px;
+            height: 450px;
+            background: var(--accent-glow);
+            filter: blur(100px);
+            border-radius: 50%;
+            z-index: -1;
+        }
+
+        .hero h1 {
+            font-size: 54px;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            letter-spacing: -2px;
+            background: linear-gradient(135deg, #ffffff 50%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: var(--text-muted);
+            max-width: 720px;
+            margin: 0 auto 40px;
+            font-weight: 300;
+        }
+
+        .cta-group {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(212, 77, 0, 0.25);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(212, 77, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--surface-border);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--zinc-600);
+            transform: translateY(-2px);
+        }
+
+        /* Value Pillars */
+        .pillars {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            margin-bottom: 80px;
+        }
+
+        .pillar-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 4px;
+            padding: 32px;
+            box-shadow: var(--card-shadow);
+            backdrop-filter: blur(10px);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pillar-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--zinc-600);
+        }
+
+        .pillar-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 4px;
+            background: rgba(212, 77, 0, 0.05);
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 20px;
+            border: 1px solid rgba(212, 77, 0, 0.15);
+        }
+
+        .pillar-card h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .pillar-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+
+        /* Problem vs Solution */
+        .comparison-section {
+            padding: 80px 0;
+            border-top: 1px solid var(--surface-border);
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header h2 {
+            font-size: 32px;
+            margin-bottom: 16px;
+            letter-spacing: -1px;
+            font-weight: 800;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-size: 16px;
+            max-width: 580px;
+            margin: 0 auto;
+            font-weight: 300;
+        }
+
+        .side-by-side {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .comp-box {
+            border-radius: 4px;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--surface-border);
+            position: relative;
+            overflow: hidden;
+            background: var(--surface-color);
+        }
+
+        .comp-box.problem {
+            border-left: 3px solid #ef4444;
+        }
+
+        .comp-box.solution {
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .comp-box h3 {
+            font-size: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-transform: uppercase;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+
+        .comp-box.problem h3 { color: #ef4444; }
+        .comp-box.solution h3 { color: var(--accent-primary); }
+
+        .comp-list {
+            list-style: none;
+        }
+
+        .comp-list li {
+            margin-bottom: 18px;
+            padding-left: 24px;
+            position: relative;
+            font-size: 15px;
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        .comp-box.problem .comp-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 20px;
+            line-height: 18px;
+        }
+
+        .comp-box.solution .comp-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--accent-primary);
+            font-weight: bold;
+            font-size: 20px;
+            line-height: 18px;
+        }
+
+        /* Competitor Benchmarking */
+        .benchmarking {
+            padding: 80px 0;
+            background: #09090b;
+            border-top: 1px solid var(--surface-border);
+            border-bottom: 1px solid var(--surface-border);
+        }
+
+        .benchmark-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .competitor-card {
+            background: var(--bg-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 4px;
+            padding: 32px;
+            box-shadow: var(--card-shadow);
+            transition: border-color 0.2s;
+        }
+
+        .competitor-card:hover {
+            border-color: var(--zinc-700);
+        }
+
+        .competitor-card.featured {
+            border-color: var(--accent-primary);
+            background: linear-gradient(135deg, rgba(9, 9, 11, 0.9) 0%, rgba(212, 77, 0, 0.02) 100%);
+            position: relative;
+        }
+
+        .badge-premium {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--accent-primary);
+            color: white;
+            font-size: 9px;
+            font-family: monospace;
+            text-transform: uppercase;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .competitor-card h3 {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+
+        .competitor-card .comp-origin {
+            font-size: 11px;
+            color: var(--accent-primary);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: monospace;
+        }
+
+        .competitor-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 20px;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+
+        .stats-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 6px 12px;
+            border-radius: 2px;
+            font-size: 12px;
+            font-family: monospace;
+            color: #ffffff;
+            margin-bottom: 16px;
+            border: 1px solid var(--surface-border);
+        }
+
+        /* Ecosystem Quadrilateral */
+        .ecosystem-section {
+            padding: 80px 0;
+        }
+
+        .quad-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin-top: 50px;
+        }
+
+        .quad-card {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 4px;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+            position: relative;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .quad-card:hover {
+            border-color: var(--zinc-600);
+            transform: translateY(-2px);
+        }
+
+        .quad-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--surface-border);
+            border-radius: 4px 0 0 4px;
+            transition: background-color 0.2s;
+        }
+
+        .quad-card:hover::before {
+            background: var(--accent-primary);
+        }
+
+        .quad-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+        }
+
+        .quad-features {
+            list-style: none;
+        }
+
+        .quad-features li {
+            font-size: 14.5px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            padding-left: 20px;
+            position: relative;
+            font-weight: 300;
+        }
+
+        .quad-features li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-primary);
+            font-weight: bold;
+        }
+
+        /* Technical Differentiation */
+        .tech-section {
+            padding: 80px 0;
+            background: #020203;
+            border-top: 1px solid var(--surface-border);
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .tech-desc h3 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--text-main) 50%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tech-desc p {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 24px;
+            font-weight: 300;
+        }
+
+        .tech-list-items {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .tech-item {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            padding: 20px;
+            border-radius: 4px;
+            display: flex;
+            gap: 16px;
+            transition: border-color 0.2s;
+        }
+
+        .tech-item:hover {
+            border-color: var(--zinc-700);
+        }
+
+        .tech-item-num {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--accent-primary);
+            font-family: monospace;
+        }
+
+        .tech-item-content h4 {
+            font-size: 16px;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .tech-item-content p {
+            font-size: 13.5px;
+            color: var(--text-muted);
+            margin: 0;
+            font-weight: 300;
+            line-height: 1.5;
+        }
+
+        /* Simulation Canvas (Interactive SVG representation) */
+        .tech-visual {
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 4px;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+
+        .tech-visual::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(to right, var(--surface-border) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--surface-border) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.25;
+        }
+
+        .visual-circle {
+            width: 240px;
+            height: 240px;
+            border: 1px dashed rgba(212, 77, 0, 0.3);
+            border-radius: 50%;
+            position: absolute;
+            animation: spin 30s linear infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .visual-circle-inner {
+            width: 140px;
+            height: 140px;
+            border: 1px solid rgba(212, 77, 0, 0.15);
+            border-radius: 50%;
+            position: absolute;
+            animation: spin-reverse 15s linear infinite;
+        }
+
+        .node-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            background: var(--accent-primary);
+            box-shadow: 0 0 8px var(--accent-primary);
+        }
+
+        .node-dot:nth-child(1) { top: -4px; left: 50%; transform: translateX(-50%); }
+        .node-dot:nth-child(2) { bottom: -4px; left: 50%; transform: translateX(-50%); }
+        .node-dot:nth-child(3) { left: -4px; top: 50%; transform: translateY(-50%); }
+        .node-dot:nth-child(4) { right: -4px; top: 50%; transform: translateY(-50%); }
+
+        .center-core {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 11px;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+            box-shadow: 0 0 25px rgba(212, 77, 0, 0.35);
+            z-index: 2;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes spin-reverse {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        /* Financial Simulator Section */
+        .simulator-section {
+            padding: 80px 0;
+            border-top: 1px solid var(--surface-border);
+        }
+
+        .sim-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+            background: var(--surface-color);
+            border: 1px solid var(--surface-border);
+            border-radius: 4px;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+        }
+
+        .sim-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            justify-content: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            text-transform: uppercase;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
+        .control-label span:last-child {
+            color: var(--accent-primary);
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--zinc-800);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-primary);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .sim-results {
+            background: #050506;
+            border-radius: 4px;
+            padding: 30px;
+            border: 1px solid var(--surface-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 24px;
+        }
+
+        .result-box {
+            text-align: center;
+        }
+
+        .result-val {
+            font-family: monospace;
+            font-size: 38px;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .result-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 6px;
+            font-family: monospace;
+        }
+
+        .sub-results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            border-top: 1px solid var(--surface-border);
+            padding-top: 20px;
+        }
+
+        /* Expansion Timeline */
+        .timeline-section {
+            padding: 80px 0;
+            border-top: 1px solid var(--surface-border);
+            margin-bottom: 80px;
+        }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-top: 60px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: var(--surface-border);
+            z-index: 1;
+        }
+
+        .timeline-progress {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 50%;
+            height: 1px;
+            background: var(--accent-primary);
+            z-index: 2;
+        }
+
+        .timeline-step {
+            width: 30%;
+            position: relative;
+            z-index: 3;
+            text-align: center;
+        }
+
+        .timeline-dot {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-color);
+            border: 1px solid var(--surface-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-family: monospace;
+            font-weight: 700;
+            color: var(--text-muted);
+            transition: all 0.2s;
+        }
+
+        .timeline-step.active .timeline-dot {
+            background: var(--bg-color);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            box-shadow: 0 0 10px rgba(212, 77, 0, 0.2);
+        }
+
+        .timeline-step.current .timeline-dot {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+            box-shadow: 0 0 12px rgba(212, 77, 0, 0.35);
+        }
+
+        .timeline-step h4 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .timeline-step p {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 300;
+            line-height: 1.5;
+        }
+
+        /* Footer */
+        footer {
+            background: #020203;
+            border-top: 1px solid var(--surface-border);
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        footer p {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* Responsive Breakpoints */
+        @media (max-width: 900px) {
+            .side-by-side, .tech-grid, .sim-grid {
+                grid-template-columns: 1fr;
+            }
+            .benchmark-grid {
+                grid-template-columns: 1fr;
+            }
+            .quad-grid {
+                grid-template-columns: 1fr;
+            }
+            .timeline {
+                flex-direction: column;
+                gap: 40px;
+                align-items: flex-start;
+                padding-left: 30px;
+            }
+            .timeline::before {
+                left: 20px;
+                top: 0;
+                width: 1px;
+                height: 100%;
+            }
+            .timeline-progress {
+                left: 20px;
+                top: 0;
+                width: 1px;
+                height: 50%;
+            }
+            .timeline-step {
+                width: 100%;
+                text-align: left;
+                display: flex;
+                gap: 20px;
+                align-items: center;
+            }
+            .timeline-dot {
+                margin: 0;
+                flex-shrink: 0;
+            }
+            .hero h1 {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="container nav-container">
+            <div class="logo">
+                <img src="logo.png" alt="FAB MAKERS" />
+            </div>
+            <div class="tagline-badge">
+                Manufatura Distribuída
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Pitch Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>A Maior Rede de <span>Fabricação Sob Demanda</span> do Brasil</h1>
+            <p>Conectamos capacidade ociosa de impressoras 3D com a demanda reprimida de indústrias, designers e consumidores finais. Sem custos fixos com maquinário, sem fábricas lentas. Apenas manufatura instantânea e geolocalizada.</p>
+            <div class="cta-group">
+                <a href="#simulator" class="btn btn-primary">Simular Receita da Rede</a>
+                <a href="#competitors" class="btn btn-secondary">Ver Estudo de Concorrentes</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Strategic Pillars -->
+    <section class="container">
+        <div class="pillars">
+            <div class="pillar-card">
+                <div class="pillar-icon">⚡</div>
+                <h3>Cotação Instantânea IA</h3>
+                <p>Nossa inteligência artificial analisa os arquivos STL/STEP em segundos, fatiando na nuvem e calculando o preço final sem necessidade de intervenção humana.</p>
+            </div>
+            <div class="pillar-card">
+                <div class="pillar-icon">🌐</div>
+                <h3>Ativos Compartilhados</h3>
+                <p>Assim como o Airbnb e o Uber, não compramos frotas de impressoras. Monetizamos as milhares de máquinas já instaladas no Brasil que hoje trabalham abaixo da capacidade.</p>
+            </div>
+            <div class="pillar-card">
+                <div class="pillar-icon">🔒</div>
+                <h3>Proteção de Arquivos (DRM)</h3>
+                <p>Designers vendem royalties com segurança. A máquina do maker recebe o G-Code pré-fatiado diretamente via nuvem. O arquivo de design 3D de origem nunca é baixado pelo parceiro.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Problem vs Solution -->
+    <section class="comparison-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>O Grande Abismo do Mercado</h2>
+                <p>A discrepância entre a capacidade instalada e quem precisa de fabricação física rápida no Brasil.</p>
+            </div>
+            <div class="side-by-side">
+                <div class="comp-box problem">
+                    <h3>O Problema Atual</h3>
+                    <ul class="comp-list">
+                        <li>MakerWorld, Thingiverse e Printables têm milhões de modelos, mas 95% do público não tem impressora para fabricá-los.</li>
+                        <li>Empresas que precisam de peças de reposição rápidas ou protótipos enfrentam orçamentos manuais lentos que demoram dias.</li>
+                        <li>Fabricação própria centralizada requer investimento inicial gigante, manutenção física e alta imobilização de capital (Capex).</li>
+                        <li>Logística centralizada nacional encarece e atrasa o frete para fora do eixo Rio-SP.</li>
+                    </ul>
+                </div>
+                <div class="comp-box solution">
+                    <h3>A Solução FAB MAKERS</h3>
+                    <ul class="comp-list">
+                        <li>Qualquer pessoa navega, escolhe um modelo licenciado, faz o upload e o compra impresso na sua região metropolitana.</li>
+                        <li>Empresas fazem upload de arquivos CAD/STEP e recebem orçamento dinâmico em segundos, com faturamento simplificado.</li>
+                        <li>Rede descentralizada de Makers cadastrados, gerando renda com equipamentos que já foram pagos.</li>
+                        <li>O algoritmo distribui a impressão ao parceiro mais próximo, viabilizando entrega rápida e reduzindo custos logísticos à metade.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Global Benchmark Section -->
+    <section class="benchmarking" id="competitors">
+        <div class="container">
+            <div class="section-header">
+                <h2>Os Concorrentes de Bilhões no Exterior</h2>
+                <p>Esse modelo já foi validado fora do Brasil por grandes unicórnios de manufatura em nuvem.</p>
+            </div>
+            <div class="benchmark-grid">
+                <div class="competitor-card">
+                    <h3>Xometry</h3>
+                    <div class="comp-origin">Estados Unidos / Global</div>
+                    <div class="stats-badge">Capital Aberto (NASDAQ: XMTR)</div>
+                    <p>O maior marketplace de fabricação sob demanda do mundo. Conecta indústrias a mais de 5.000 fabricantes parceiros de CNC, moldes e impressão 3D por meio de um algoritmo inteligente de precificação instantânea.</p>
+                </div>
+                <div class="competitor-card featured">
+                    <span class="badge-premium">Destaque</span>
+                    <h3>Protolabs / Hubs</h3>
+                    <div class="comp-origin">Europa / Estados Unidos</div>
+                    <div class="stats-badge">Adquirida por $280M (Hubs)</div>
+                    <p>A Hubs começou como uma comunidade de impressão 3D distribuída ("3D Hubs") e cresceu tanto que foi adquirida pela gigante de manufatura Protolabs. Hoje operam um modelo híbrido de manufatura em escala gigante.</p>
+                </div>
+                <div class="competitor-card">
+                    <h3>Fictiv</h3>
+                    <div class="comp-origin">Estados Unidos / Ásia</div>
+                    <div class="stats-badge">+$190M em Captação VC</div>
+                    <p>Focada em "Managed Manufacturing Network". Garante controle rigoroso de qualidade em rede e engenharia de suporte integrada para grandes empresas como NASA e Ford que terceirizam sua fabricação.</p>
+                </div>
+            </div>
+            <div style="margin-top: 40px; text-align: center; color: var(--accent-secondary); font-weight: 600; font-size: 15px;">
+                💡 Oportunidade: O mercado brasileiro e sul-americano de fabricação digital sob demanda está fragmentado e carece de um player unificador de tecnologia equivalente. A FAB MAKERS é o oceano azul no continente.
+            </div>
+        </div>
+    </section>
+
+    <!-- Quadrilateral Ecosystem -->
+    <section class="ecosystem-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Ecossistema Quadrilateral</h2>
+                <p>Uma engrenagem onde todos ganham e retroalimentam a plataforma.</p>
+            </div>
+            <div class="quad-grid">
+                <div class="quad-card">
+                    <h3 class="quad-title">💼 Para Clientes & Empresas</h3>
+                    <ul class="quad-features">
+                        <li>Compra rápida de produtos físicos sem precisar ter impressora.</li>
+                        <li>Cotação automática e instantânea de arquivos STL, STEP e OBJ.</li>
+                        <li>Orçamento ágil para peças de reposição e prototipagem industrial.</li>
+                        <li>Faturamento unificado e entrega expressa local.</li>
+                    </ul>
+                </div>
+                <div class="quad-card">
+                    <h3 class="quad-title">⚙️ Para os Makers (Fabricantes)</h3>
+                    <ul class="quad-features">
+                        <li>Monetização de impressoras 3D paradas (capacidade ociosa).</li>
+                        <li>Recebimento de pedidos pré-pagos e fatiados prontos para rodar.</li>
+                        <li>Filamento padronizado enviado ou subsidiado pela plataforma.</li>
+                        <li>Retorno rápido do investimento em hardware.</li>
+                    </ul>
+                </div>
+                <div class="quad-card">
+                    <h3 class="quad-title">🎨 Para os Designers 3D</h3>
+                    <ul class="quad-features">
+                        <li>Distribuição comercial de modelos licenciados sem dor de cabeça física.</li>
+                        <li>Pagamento de royalties automáticos por cada peça impressa na rede.</li>
+                        <li>Segurança cibernética contra pirataria de arquivos fonte.</li>
+                        <li>Painel de controle com acompanhamento de vendas em tempo real.</li>
+                    </ul>
+                </div>
+                <div class="quad-card">
+                    <h3 class="quad-title">🧠 A Inteligência Artificial</h3>
+                    <ul class="quad-features">
+                        <li>Análise instantânea de geometrias para aprovação de fatiamento.</li>
+                        <li>Modelagem generativa e conversão de foto em arquivo 3D.</li>
+                        <li>Distribuição automática do pedido baseado em CEP, tipo de máquina e reputação.</li>
+                        <li>Previsão dinâmica de fretes e prazos de entrega.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technical & Visual Simulation -->
+    <section class="tech-section">
+        <div class="container">
+            <div class="tech-grid">
+                <div class="tech-desc">
+                    <h3>Arquitetura Tecnológica Proprietária</h3>
+                    <p>O que nos protege de sermos apenas um site comum é a nossa camada de software que orquestra a manufatura fisicamente distribuída.</p>
+                    <div class="tech-list-items">
+                        <div class="tech-item">
+                            <span class="tech-item-num">01</span>
+                            <div class="tech-item-content">
+                                <h4>Cloud Slicing Engine</h4>
+                                <p>Fatiadores de código aberto compilados em WebAssembly/Docker rodando no servidor. Analisam peso, tempo e quantidade de material em tempo real.</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-num">02</span>
+                            <div class="tech-item-content">
+                                <h4>G-Code Streaming (DRM)</h4>
+                                <p>Conexão com Klipper e OctoPrint nas máquinas dos makers. O arquivo de impressão é processado e disparado diretamente sem passar pelo disco local do maker.</p>
+                            </div>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-item-num">03</span>
+                            <div class="tech-item-content">
+                                <h4>Algoritmo de Roteamento de Carga</h4>
+                                <p>Roteia pedidos baseados na menor distância e custos logísticos, otimizando prazos e maximizando o lucro do maker parceiro.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tech-visual">
+                    <div class="visual-circle">
+                        <div class="node-dot"></div>
+                        <div class="node-dot"></div>
+                        <div class="node-dot"></div>
+                        <div class="node-dot"></div>
+                        <div class="visual-circle-inner"></div>
+                    </div>
+                    <div class="center-core">API CORE</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Interactive Financial Simulator -->
+    <section class="simulator-section" id="simulator">
+        <div class="container">
+            <div class="section-header">
+                <h2>Simulador Financeiro: Ganhos em Rede</h2>
+                <p>Veja o potencial financeiro da plataforma ao escalar o número de pedidos e makers ativos sem investir em novas impressoras.</p>
+            </div>
+            <div class="sim-grid">
+                <div class="sim-controls">
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Pedidos por Dia (Rede)</span>
+                            <span id="label-orders">500</span>
+                        </div>
+                        <input type="range" id="input-orders" min="10" max="10000" step="50" value="500">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Valor Médio do Pedido (R$)</span>
+                            <span id="label-ticket">85</span>
+                        </div>
+                        <input type="range" id="input-ticket" min="20" max="500" step="5" value="85">
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Taxa de Comissão FAB MAKERS (%)</span>
+                            <span id="label-commission">20</span>
+                        </div>
+                        <input type="range" id="input-commission" min="10" max="35" step="1" value="20">
+                    </div>
+                </div>
+                <div class="sim-results">
+                    <div class="result-box">
+                        <div class="result-val" id="result-monthly-revenue">R$ 255.000</div>
+                        <div class="result-label">Faturamento Mensal da Rede</div>
+                    </div>
+                    <div class="sub-results">
+                        <div class="result-box">
+                            <div class="result-val" style="font-size: 24px; color: var(--success);" id="result-platform-cut">R$ 51.000</div>
+                            <div class="result-label">Comissão FAB MAKERS (Mensal)</div>
+                        </div>
+                        <div class="result-box">
+                            <div class="result-val" style="font-size: 24px; color: var(--text-main);" id="result-maker-payout">R$ 204.000</div>
+                            <div class="result-label">Pago aos Makers/Designers</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Roadmap timeline -->
+    <section class="timeline-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Roteiro de Execução de Baixo Risco</h2>
+                <p>Nossa abordagem modular para validar o mercado antes do ganho de escala.</p>
+            </div>
+            <div class="timeline">
+                <div class="timeline-step active">
+                    <div class="timeline-dot">1</div>
+                    <h4>Fase 1: MVP Controlado</h4>
+                    <p>Validação da tecnologia de fatiamento automático. Produção concentrada na nossa própria fazenda inicial de impressão (TEKNA) para blindar a qualidade de entrega.</p>
+                </div>
+                <div class="timeline-step current">
+                    <div class="timeline-dot">2</div>
+                    <h4>Fase 2: Beta Distribuído</h4>
+                    <p>Abertura do cadastro para os primeiros 100 makers certificados em SP e RJ. Início do roteamento geolocalizado de pedidos e testes do DRM.</p>
+                </div>
+                <div class="timeline-step">
+                    <div class="timeline-dot">3</div>
+                    <h4>Fase 3: Automação Total</h4>
+                    <p>Distribuição 100% autônoma por algoritmo para todo o Brasil. Lançamento da API corporativa para prototipagem instantânea B2B.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container" style="display: flex; flex-direction: column; align-items: center; gap: 20px;">
+            <img src="logo.png" alt="FAB MAKERS" style="height: 36px; width: auto; opacity: 0.8;" />
+            <p>&copy; 2026 FAB MAKERS. Todos os direitos reservados. Projeto Conceitual e Confidencial.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Interactive financial simulator calculations
+        const inputOrders = document.getElementById('input-orders');
+        const inputTicket = document.getElementById('input-ticket');
+        const inputCommission = document.getElementById('input-commission');
+
+        const labelOrders = document.getElementById('label-orders');
+        const labelTicket = document.getElementById('label-ticket');
+        const labelCommission = document.getElementById('label-commission');
+
+        const resultMonthlyRevenue = document.getElementById('result-monthly-revenue');
+        const resultPlatformCut = document.getElementById('result-platform-cut');
+        const resultMakerPayout = document.getElementById('result-maker-payout');
+
+        function formatCurrency(val) {
+            return 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function calculateResults() {
+            const orders = parseInt(inputOrders.value);
+            const ticket = parseInt(inputTicket.value);
+            const commission = parseInt(inputCommission.value) / 100;
+
+            // Monthly calculation (30 days)
+            const monthlyRevenue = orders * ticket * 30;
+            const platformCut = monthlyRevenue * commission;
+            const makerPayout = monthlyRevenue - platformCut;
+
+            // Update Labels
+            labelOrders.textContent = orders.toLocaleString('pt-BR');
+            labelTicket.textContent = ticket;
+            labelCommission.textContent = inputCommission.value;
+
+            // Update Results
+            resultMonthlyRevenue.textContent = formatCurrency(monthlyRevenue);
+            resultPlatformCut.textContent = formatCurrency(platformCut);
+            resultMakerPayout.textContent = formatCurrency(makerPayout);
+        }
+
+        inputOrders.addEventListener('input', calculateResults);
+        inputTicket.addEventListener('input', calculateResults);
+        inputCommission.addEventListener('input', calculateResults);
+
+        // Initial trigger
+        calculateResults();
+    </script>
+</body>
+</html>

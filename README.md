@@ -1,36 +1,60 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FabMakers3D — Plataforma de Manufatura Digital Distribuída
 
-## Getting Started
+A **FabMakers3D** é um ecossistema digital que conecta a capacidade ociosa de impressoras 3D instaladas em todo o país com a demanda reprimida de indústrias, designers 3D e consumidores finais (modelo multilateral semelhante a Uber, Airbnb e iFood).
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🚀 Visão do Ecossistema
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+O mercado de manufatura sob demanda está em plena expansão global (liderado por empresas bilionárias como Xometry e Protolabs). A FabMakers3D preenche a lacuna do mercado brasileiro e latino-americano, criando uma infraestrutura descentralizada onde:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* **Clientes B2B / B2C**: Solicitam orçamentos instantâneos através do upload de arquivos STL/STEP e recebem a peça acabada impressa localmente na sua região metropolitana com baixo custo de frete.
+* **Makers (Fabricantes)**: Monetizam suas impressoras 3D paradas, recebendo pedidos pré-pagos e pré-fatiados com instruções automáticas de envio de forma geolocalizada.
+* **Designers 3D**: Disponibilizam seus designs em nosso catálogo e recebem royalties automáticos sobre cada impressão física realizada na rede.
+* **Modeladores & IA**: IA generativa e modeladores autônomos prestam serviços de modelagem a partir de fotografias enviadas de peças quebradas que necessitam de reposição.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🛠️ Arquitetura Técnica & Tecnologias
 
-To learn more about Next.js, take a look at the following resources:
+Para atingir escalabilidade extrema e preparar a plataforma tanto para Desktop quanto para Aplicativos de Celular (smartphones), a arquitetura adotada é:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Next.js 15+ (TypeScript / Tailwind CSS / App Router)**:
+   * **Responsabilidade**: Servir a plataforma Web Desktop (essencial para clientes corporativos realizarem uploads de arquivos pesados CAD) e funcionar como a **API REST/GraphQL Centralizada** para Web e Apps de Smartphone.
+   * **Benefício**: SEO de altíssima performance para atração orgânica de leads no Google buscando "peças de reposição 3D".
+2. **React Native com Expo (Fase Posterior)**:
+   * **Responsabilidade**: Aplicativo oficial móvel para smartphones iOS e Android focado na ponta de fornecimento (Makers acompanharem pedidos e enviarem fotos para validação de qualidade) e clientes B2C.
+   * **Benefício**: Compartilhamento de cerca de **70% do código** de lógica de negócios, tipos TypeScript e chamadas de API do Next.js.
+3. **Prisma ORM & Banco de Dados (SQLite/LibSQL para Dev - MySQL/Postgres para Prod)**:
+   * Gerenciamento das transações bilaterais e perfis dos agentes (Clientes, Makers, Designers e Administradores).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 📁 Estrutura do Novo Projeto
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+* `prisma/schema.prisma`: Modelagem do banco de dados multilateral (Usuários, Perfis de Maker/Designer, Catálogo 3D e Pedidos).
+* `public/pitch_fabmakers.html`: Apresentação comercial de Pitch Interativo e Simulador Financeiro para investidores e clientes.
+* `src/app/`: Lógica das rotas do Next.js (App Router).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 💾 Modelagem de Banco de Dados (Prisma)
+
+Nosso esquema modela as seguintes entidades principais:
+* **User**: Contém credenciais e atribuição de papel (`CLIENT`, `MAKER`, `DESIGNER`, `ADMIN`).
+* **MakerProfile**: Especificações das máquinas disponíveis, materiais em estoque (PLA, ABS, PETG), reputação do Maker e status de homologação de qualidade.
+* **DesignerProfile**: Portfólio de designs 3D protegidos.
+* **Model3D**: Arquivos 3D cadastrados com seu valor de royalty de licenciamento e opção de streaming de G-code.
+* **Order**: Acompanhamento de status de produção (`PENDING_QUOTATION`, `PAID`, `PRINTING`, `SHIPPED`, `DELIVERED`, `COMPLETED`), divisão financeira de pagamentos e dados logísticos.
+
+---
+
+## ⚡ Próximos Passos Recomendados
+
+1. **Testes de Roteamento de API**: Criar os primeiros endpoints no Next.js (`src/app/api/`) para cotação e upload de arquivos.
+2. **Motor de Fatiamento (Cloud Slicing CLI)**: Integrar bibliotecas em python/node para fatiar arquivos STL em segundo plano e retornar gramatura e tempo estimados para cotação instantânea.
+3. **Validação de Qualidade de Makers**: Desenhar o teste admissional padrão de impressão de tolerância mecânica.
+
+---
+
+*Projeto FabMakers3D — Todos os direitos reservados.*

@@ -1,26 +1,72 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050506;
+  --foreground: #f4f4f5;
+  --accent-primary: #d44d00;
+  --accent-secondary: #27272a;
+  --success: #10b981;
+  --zinc-900: #09090b;
+  --zinc-800: #18181b;
+  --zinc-700: #27272a;
+  --zinc-600: #3f3f46;
+  --zinc-400: #a1a1aa;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-secondary: var(--accent-secondary);
+  --color-success: var(--success);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
+
+/* Estilo Técnico Industrial - Sem Neons */
+.technical-border {
+  border: 1px solid var(--zinc-800);
+}
+
+.technical-border-hover {
+  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.technical-border-hover:hover {
+  border-color: var(--zinc-600);
+}
+
+.technical-panel {
+  background: var(--zinc-900);
+  border: 1px solid var(--zinc-800);
+}
+
+.mono-text {
+  font-family: var(--font-geist-mono), monospace;
+}
+
+/* Custom scrollbar para visual técnico */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--zinc-800);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--zinc-700);
+}
+
+
