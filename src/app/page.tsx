@@ -46,6 +46,7 @@ interface SimulatedOrder {
   zipCode: string;
   makerId?: string;
   makerName?: string;
+  infill?: number;
   createdAt: string;
 }
 
@@ -131,6 +132,20 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; makerStatus?: string } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [homeMode, setHomeMode] = useState<"client" | "maker">("client");
+  const [contratoAceito, setContratoAceito] = useState<boolean>(false);
+  
+  const [lojaInsumos, setLojaInsumos] = useState<Array<{ id: string; title: string; price: number; link: string; affiliateCommissionPercent: number; image: string; deliveryTime: string }>>([
+    { id: "ins1", title: "Filamento PLA Premium 1kg - GTMax3D", price: 119.90, link: "https://shopee.com.br/filamento-pla-gtmax", affiliateCommissionPercent: 5, image: "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?w=300&auto=format&fit=crop&q=60", deliveryTime: "3 a 7 dias úteis" },
+    { id: "ins2", title: "Bico Extrusor de Latão V6 0.4mm", price: 15.00, link: "https://shopee.com.br/bico-extrusor-latao-v6", affiliateCommissionPercent: 10, image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60", deliveryTime: "2 a 5 dias úteis" },
+    { id: "ins3", title: "Resina Standard UV 1kg - Creality", price: 189.00, link: "https://shopee.com.br/resina-standard-uv-creality", affiliateCommissionPercent: 4, image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", deliveryTime: "4 a 8 dias úteis" }
+  ]);
+  const [novoInsumoTitle, setNovoInsumoTitle] = useState<string>("");
+  const [novoInsumoPrice, setNovoInsumoPrice] = useState<string>("");
+  const [novoInsumoLink, setNovoInsumoLink] = useState<string>("");
+  const [novoInsumoCommission, setNovoInsumoCommission] = useState<string>("");
+  const [novoInsumoImage, setNovoInsumoImage] = useState<string>("");
+  const [novoInsumoDelivery, setNovoInsumoDelivery] = useState<string>("");
   
   // --- ESTADOS DA ÁREA DO CLIENTE EXPANDIDA ---
   const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "search" | "ai">("upload");
@@ -648,6 +663,15 @@ export default function Home() {
 
   // Enviar ordem para fabricação local
   const dispatchOrder = () => {
+    if (!currentUser) {
+      setLoginRole("CLIENT");
+      setLoginEmail("");
+      setLoginPassword("");
+      setLoginError("");
+      setShowLoginModal(true);
+      alert("Para confirmar o seu pedido e rotear a manufatura para os fabricantes locais, por favor faça login ou cadastre-se na plataforma.");
+      return;
+    }
     if (!quote) return;
     if (!clientZip || clientZip.replace(/\D/g, "").length !== 8) {
       alert("Por favor, informe um CEP válido para cotação de frete e roteamento.");
@@ -664,6 +688,7 @@ export default function Home() {
       progress: 0,
       material: material,
       zipCode: clientZip,
+      infill: infill,
       createdAt: new Date().toLocaleDateString("pt-BR") + " " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
     };
 
@@ -1211,149 +1236,309 @@ export default function Home() {
 
         {/* TAB 1: HOME (APRESENTAÇÃO CORPORATIVA E PORTAIS DE ACESSO) */}
         {activeTab === "home" && (
-          <div className="max-w-7xl mx-auto px-6 py-12 space-y-16">
+          <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
             
-            {/* HERO SECTION PRINCIPAL */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-8">
-              <div className="lg:col-span-6 space-y-8">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#09090b] border border-[#18181b] rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
-                  <span className="text-[9px] mono-text uppercase tracking-widest text-[#a1a1aa]">Rede de Manufatura Digital Distribuída</span>
-                </div>
-                
-                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-none">
-                  A maior infraestrutura de <span className="text-[#d44d00]">impressão 3D</span> do Brasil.
-                </h1>
-                
-                <p className="text-[#a1a1aa] font-light text-base leading-relaxed max-w-xl">
-                  Roteamos ordens de fabricação 3D sob demanda de forma geolocalizada. Conectamos clientes a fabricantes (Makers) homologados que cumprem um controle de calibração ultra-estrito com tolerância física de até <span className="text-white font-bold">±0.05mm</span>.
-                </p>
-                
-                <div className="pt-4 grid grid-cols-3 gap-6 border-t border-[#18181b]/50">
-                  <div>
-                    <div className="text-lg font-bold text-white mono-text">0.12s</div>
-                    <div className="text-[9px] uppercase tracking-widest text-[#71717a] mt-1">Cotação STL</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-white mono-text">350+</div>
-                    <div className="text-[9px] uppercase tracking-widest text-[#71717a] mt-1">Makers Online</div>
-                  </div>
-                  <div>
-                    <div className="text-lg font-bold text-white mono-text">100%</div>
-                    <div className="text-[9px] uppercase tracking-widest text-[#71717a] mt-1">Auditado & Seguro</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Wireframe interativo SVG */}
-              <div className="lg:col-span-6 flex justify-center">
-                <div className="w-full max-w-[420px] aspect-square bg-[#09090b] border border-[#18181b] rounded p-6 relative overflow-hidden flex items-center justify-center">
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#18181b_1px,transparent_1px),linear-gradient(to_bottom,#18181b_1px,transparent_1px)] bg-[size:32px_32px] opacity-30"></div>
-                  <svg viewBox="0 0 200 200" className="w-60 h-60 z-10 text-white select-none">
-                    <circle cx="100" cy="100" r="80" stroke="#18181b" strokeWidth="0.5" fill="none" />
-                    <g className="origin-center animate-[spin_40s_linear_infinite]">
-                      <path d="M 100,50 L 135,70 L 135,110 L 100,130 L 65,110 L 65,70 Z" fill="none" stroke="#71717a" strokeWidth="0.75" />
-                      <circle cx="100" cy="50" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
-                      <circle cx="135" cy="70" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
-                      <circle cx="135" cy="110" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
-                    </g>
-                    <line x1="20" y1="100" x2="180" y2="100" stroke="#d44d00" strokeWidth="0.75" className="animate-[bounce_4s_ease-in-out_infinite]" />
-                    <text x="102" y="96" fill="#d44d00" fontSize="6" className="mono-text tracking-widest animate-[bounce_4s_ease-in-out_infinite]">GRID OPERACIONAL</text>
-                  </svg>
-                  <div className="absolute bottom-4 left-4 right-4 flex justify-between text-[9px] mono-text text-[#71717a]">
-                    <span>FAB: 345 ONLINE</span>
-                    <span>PRECISÃO: ±0.05mm</span>
-                  </div>
-                </div>
+            {/* SWITCH DE VISÃO PRINCIPAL (MKT DUAL) */}
+            <div className="flex justify-center pb-4 border-b border-[#18181b]/45">
+              <div className="bg-[#09090b] border border-[#18181b] rounded-lg p-1.5 flex flex-wrap gap-2">
+                <button
+                  onClick={() => setHomeMode("client")}
+                  className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer flex items-center gap-2 ${
+                    homeMode === "client" 
+                      ? "bg-[#d44d00] text-white" 
+                      : "text-[#a1a1aa] hover:text-white"
+                  }`}
+                >
+                  🛍️ Comprar Serviços de Impressão (Cliente)
+                </button>
+                <button
+                  onClick={() => setHomeMode("maker")}
+                  className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer flex items-center gap-2 ${
+                    homeMode === "maker" 
+                      ? "bg-[#d44d00] text-white" 
+                      : "text-[#a1a1aa] hover:text-white"
+                  }`}
+                >
+                  ⚙️ Produzir Serviços / Ver Loja (Maker/Empresa)
+                </button>
               </div>
             </div>
 
-            {/* SEÇÃO PORTAIS DE ACESSO */}
-            <div className="space-y-8 pt-8 border-t border-[#18181b]/50">
-              <div className="text-center max-w-xl mx-auto space-y-3">
-                <h2 className="text-2xl font-bold text-white mono-text uppercase tracking-wider">Como deseja acessar a plataforma?</h2>
-                <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                  Selecione abaixo o portal correspondente ao seu perfil para entrar ou se credenciar na rede FabMakers.
-                </p>
+            {/* MODO CLIENTE: VITRINE DE PROJETOS E PROPOSTAS STL */}
+            {homeMode === "client" && (
+              <div className="space-y-16">
+                {/* Hero do Cliente */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-4">
+                  <div className="lg:col-span-7 space-y-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d44d00]/10 border border-[#d44d00]/20 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#d44d00] mono-text">Impressão 3D Despachada Localmente</span>
+                    </div>
+                    <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-none">
+                      Não tem impressora? <br />
+                      <span className="text-[#d44d00]">Nós fabricamos e entregamos para você.</span>
+                    </h1>
+                    <p className="text-xs text-[#a1a1aa] leading-relaxed max-w-xl">
+                      Cote seu modelo 3D em segundos. Roteamos sua peça para a rede de makers locais (hobbistas e bureaus industriais). O primeiro fabricante disponível aceita a cotação e inicia a produção imediatamente. Intermediação segura estilo Uber!
+                    </p>
+                    <div className="flex flex-wrap gap-4 pt-2">
+                      <button
+                        onClick={() => {
+                          if (currentUser) {
+                            setActiveTab("client");
+                            setClientSubTab("upload");
+                          } else {
+                            setLoginRole("CLIENT");
+                            setLoginEmail("");
+                            setLoginPassword("");
+                            setLoginError("");
+                            setShowLoginModal(true);
+                          }
+                        }}
+                        className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                      >
+                        ⚡ Enviar STL & Cotar Agora
+                      </button>
+                      <button
+                        onClick={() => {
+                          const element = document.getElementById("populares-makerworld");
+                          if (element) element.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="px-6 py-3 border border-[#18181b] text-white hover:bg-[#18181b]/50 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                      >
+                        🔍 Ver Modelos Populares
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-5">
+                    <div className="bg-[#09090b] border border-[#18181b] rounded-lg p-6 space-y-4 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-[#d44d00]/5 rounded-full blur-3xl"></div>
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Como Funciona o Fluxo</h3>
+                      <div className="space-y-4 text-xs">
+                        <div className="flex gap-3">
+                          <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">1</span>
+                          <div>
+                            <h4 className="font-bold text-white">Escolha ou Envie o Arquivo</h4>
+                            <p className="text-[10px] text-[#71717a] mt-0.5">Importe do MakerWorld ou envie seu arquivo de engenharia STL.</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">2</span>
+                          <div>
+                            <h4 className="font-bold text-white">Orçamento Fatiado na Hora</h4>
+                            <p className="text-[10px] text-[#71717a] mt-0.5">Calculamos peso, tempo de máquina e custo exato em 0.12 segundos.</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">3</span>
+                          <div>
+                            <h4 className="font-bold text-white">Disparo estilo Uber</h4>
+                            <p className="text-[10px] text-[#71717a] mt-0.5">Ao confirmar o pedido logado, a ordem vai para o radar e o primeiro maker local aceita e produz.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid Integrado do MakerWorld / Printables */}
+                <div id="populares-makerworld" className="space-y-6 pt-6 border-t border-[#18181b]/50">
+                  <div>
+                    <h2 className="text-lg font-bold text-white uppercase tracking-tight mono-text">Ideias e Modelos Populares (MakerWorld & Printables)</h2>
+                    <p className="text-xs text-[#a1a1aa] mt-1">
+                      Pesquise ou clique em qualquer modelo abaixo para importá-lo instantaneamente e receber seu orçamento físico.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[
+                      { id: "mw1", title: "Suporte de Fone Minimalista", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", weightG: 45.0, author: "Bambu_User", source: "MakerWorld", stlName: "fone_minimalista.stl", price: 32.50 },
+                      { id: "mw2", title: "Organizador Modular de Gavetas", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", weightG: 68.0, author: "Print_Lab", source: "Printables", stlName: "gaveta_modular.stl", price: 44.90 },
+                      { id: "mw3", title: "Vaso Espiral Geométrico", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", weightG: 55.0, author: "VaseDesign", source: "MakerWorld", stlName: "vaso_espiral.stl", price: 38.00 },
+                      { id: "mw4", title: "Gancho de Bicicleta Reforçado", image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=300&auto=format&fit=crop&q=60", weightG: 120.0, author: "Tough3D", source: "MakerWorld", stlName: "gancho_bike.stl", price: 85.00 }
+                    ].map((item) => (
+                      <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
+                        <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
+                          <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                          <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">{item.source}</span>
+                        </div>
+                        <div className="p-4 flex-grow flex flex-col justify-between space-y-4">
+                          <div>
+                            <h4 className="font-bold text-white text-xs leading-snug truncate">{item.title}</h4>
+                            <p className="text-[9px] text-[#71717a] mt-0.5">Criado por: {item.author}</p>
+                          </div>
+                          <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
+                            <span className="text-xs font-bold text-[#d44d00] mono-text">Est. R$ {item.price.toFixed(2)}</span>
+                            <button
+                              onClick={() => {
+                                // Injeta os dados da galeria no Quote
+                                setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
+                                setMaterial("PLA");
+                                setQuote({
+                                  success: true,
+                                  filename: item.stlName,
+                                  trianglesCount: 15420,
+                                  boundingBox: { width: 120, depth: 80, height: 160 },
+                                  metrics: {
+                                    rawVolumeMm3: item.weightG * 1000,
+                                    realVolumeCm3: item.weightG / 1.2,
+                                    weightG: item.weightG,
+                                    timeHours: item.weightG / 18,
+                                    timeFormatted: "2h 15min"
+                                  },
+                                  pricing: {
+                                    materialCost: item.weightG * 0.12,
+                                    machineCost: (item.weightG / 18) * 12,
+                                    makerProfit: (item.weightG * 0.12 + (item.weightG / 18) * 12) * 0.40,
+                                    makerPayout: item.price * 0.95, // desconta 5% da plataforma
+                                    platformFee: item.price * 0.05, // comissão 5%
+                                    royaltyPrice: 0.0,
+                                    totalPrice: item.price
+                                  }
+                                });
+                                setClientZip("01001-000"); // CEP Padrão para facilitar
+                                if (currentUser) {
+                                  setActiveTab("client");
+                                  setClientSubTab("upload");
+                                } else {
+                                  setLoginRole("CLIENT");
+                                  setLoginEmail("");
+                                  setLoginPassword("");
+                                  setLoginError("");
+                                  setShowLoginModal(true);
+                                }
+                              }}
+                              className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-[9px] font-bold text-white uppercase rounded transition cursor-pointer"
+                            >
+                              Imprimir Peça
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
+            )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Portal Cliente */}
-                <div className="bg-[#09090b] border border-[#18181b] p-8 rounded-lg hover:border-[#d44d00]/30 transition group flex flex-col justify-between space-y-6">
-                  <div className="space-y-4">
-                    <div className="w-10 h-10 rounded bg-[#d44d00]/10 flex items-center justify-center text-[#d44d00] font-bold">
-                      📦
+            {/* MODO MAKER: LOJA DE INSUMOS E RENTABILIZAÇÃO DE IMPRESSORAS */}
+            {homeMode === "maker" && (
+              <div className="space-y-16">
+                {/* Hero do Maker */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-4">
+                  <div className="lg:col-span-7 space-y-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d44d00]/10 border border-[#d44d00]/20 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#d44d00] mono-text">Adesão Gratuita & 5% de Comissão</span>
                     </div>
-                    <h3 className="text-base font-bold text-white mono-text uppercase tracking-wider">Portal do Cliente</h3>
-                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                      Precisa encomendar a impressão de projetos 3D? Envie seu arquivo STL, faça a análise geométrica, obtenha cotações e gerencie seus pedidos locais.
+                    <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white leading-none">
+                      Sua impressora 3D está ociosa? <br />
+                      <span className="text-[#d44d00]">Ganhe dinheiro produzindo na nossa rede.</span>
+                    </h1>
+                    <p className="text-xs text-[#a1a1aa] leading-relaxed max-w-xl">
+                      Seja você uma pessoa física com uma máquina no quarto ou uma empresa/bureau com dezenas de equipamentos. A FabMakers conecta você a clientes locais de forma inteligente. Sem taxas fixas: cobramos apenas 5% de intermediação sobre os pedidos que você produzir!
                     </p>
+                    <div className="flex flex-wrap gap-4 pt-2">
+                      <button
+                        onClick={() => {
+                          if (currentUser && currentUser.role === "MAKER") {
+                            setActiveTab("maker");
+                          } else {
+                            setLoginRole("MAKER");
+                            setLoginEmail("");
+                            setLoginPassword("");
+                            setLoginError("");
+                            setShowLoginModal(true);
+                          }
+                        }}
+                        className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                      >
+                        🚀 Quero Produzir / Credenciar Máquina
+                      </button>
+                      <button
+                        onClick={() => {
+                          const element = document.getElementById("insumos-shopee");
+                          if (element) element.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="px-6 py-3 border border-[#18181b] text-white hover:bg-[#18181b]/50 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                      >
+                        🛒 Comprar/Revender Insumos
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setLoginRole("CLIENT");
-                      setLoginEmail("");
-                      setLoginPassword("");
-                      setLoginError("");
-                      setShowLoginModal(true);
-                    }}
-                    className="w-full py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center"
-                  >
-                    Área do Cliente (STL)
-                  </button>
+
+                  <div className="lg:col-span-5 bg-[#09090b] border border-[#18181b] rounded-lg p-6 space-y-4">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Oportunidade Comercial</h3>
+                    <ul className="space-y-3 text-xs text-[#a1a1aa] list-disc pl-4 leading-relaxed">
+                      <li><strong className="text-white">Taxa Fixa Zero:</strong> Sem custo de filiação mensal.</li>
+                      <li><strong className="text-white">Taxa Amigável de 5%:</strong> Cobrada apenas do valor do serviço repassado.</li>
+                      <li><strong className="text-white">Programa de Afiliados:</strong> Divulgue produtos da nossa loja de insumos e receba comissões diretas de até 10% do valor do produto sem precisar de estoque!</li>
+                      <li><strong className="text-white">Empresas e Físicas:</strong> Aceitamos cadastros CPF e CNPJ com repasse bancário quinzenal.</li>
+                    </ul>
+                  </div>
                 </div>
 
-                {/* Portal Maker */}
-                <div className="bg-[#09090b] border border-[#18181b] p-8 rounded-lg hover:border-[#d44d00]/30 transition group flex flex-col justify-between space-y-6">
-                  <div className="space-y-4">
-                    <div className="w-10 h-10 rounded bg-[#d44d00]/10 flex items-center justify-center text-[#d44d00] font-bold">
-                      ⚙️
-                    </div>
-                    <h3 className="text-base font-bold text-white mono-text uppercase tracking-wider">Painel do Maker</h3>
-                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                      Tem impressora 3D e quer rentabilizar seu hardware? Faça o Onboarding de Segurança, assine o SLA de rede e passe no teste de calibração física.
+                {/* Loja de Insumos & Afiliados */}
+                <div id="insumos-shopee" className="space-y-6 pt-6 border-t border-[#18181b]/50">
+                  <div>
+                    <h2 className="text-lg font-bold text-white uppercase tracking-tight mono-text">Loja de Insumos & Dropshipping de Parceiros</h2>
+                    <p className="text-xs text-[#a1a1aa] mt-1">
+                      Compre insumos com desconto de fornecedores homologados (Shopee/TikTok Shop) ou gere links de afiliados para revender.
                     </p>
                   </div>
-                  <button
-                    onClick={() => {
-                      setLoginRole("MAKER");
-                      setLoginEmail("");
-                      setLoginPassword("");
-                      setLoginError("");
-                      setShowLoginModal(true);
-                    }}
-                    className="w-full py-3 border border-[#18181b] text-white hover:bg-[#18181b]/50 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center"
-                  >
-                    Seja um Maker Parceiro
-                  </button>
-                </div>
 
-                {/* Portal Admin */}
-                <div className="bg-[#09090b] border border-[#18181b] p-8 rounded-lg hover:border-[#d44d00]/30 transition group flex flex-col justify-between space-y-6">
-                  <div className="space-y-4">
-                    <div className="w-10 h-10 rounded bg-[#d44d00]/10 flex items-center justify-center text-[#d44d00] font-bold">
-                      🔑
-                    </div>
-                    <h3 className="text-base font-bold text-white mono-text uppercase tracking-wider">Gestão de Rede</h3>
-                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                      Área de uso exclusivo interno para administradores e auditores técnicos. Permite homologar equipamentos, verificar KYC e aplicar penalidades.
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {lojaInsumos.map((prod) => (
+                      <div key={prod.id} className="bg-[#09090b] border border-[#18181b] rounded-lg p-5 flex flex-col justify-between space-y-4 hover:border-[#d44d00]/30 transition group">
+                        <div className="space-y-3">
+                          <div className="aspect-square w-full rounded bg-[#18181b] overflow-hidden">
+                            <img src={prod.image} alt={prod.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                          </div>
+                          <div>
+                            <span className="text-[8px] bg-[#18181b] text-[#d44d00] border border-[#d44d00]/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider mono-text inline-block">Dropshipping Parceiro</span>
+                            <h4 className="font-bold text-white text-xs leading-snug mt-1.5">{prod.title}</h4>
+                            <p className="text-[10px] text-[#71717a] mt-0.5">Prazo: {prod.deliveryTime}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 pt-2 border-t border-[#18181b]/50">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-extrabold text-white mono-text">R$ {prod.price.toFixed(2)}</span>
+                            <span className="text-[9px] text-[#10b981] font-bold">Comissão: {prod.affiliateCommissionPercent}%</span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <a
+                              href={prod.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="py-1.5 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-center text-[9px] font-bold text-white uppercase rounded transition"
+                            >
+                              🛒 Comprar
+                            </a>
+                            <button
+                              onClick={() => {
+                                if (currentUser && currentUser.role === "MAKER") {
+                                  const customLink = `${prod.link}?affiliateId=maker_${currentUser.name.replace(/\s+/g, "_").toLowerCase()}`;
+                                  navigator.clipboard.writeText(customLink);
+                                  alert(`Link de Afiliado copiado! Envie este link e ganhe ${prod.affiliateCommissionPercent}% de comissão quando alguém comprar: \n${customLink}`);
+                                } else {
+                                  alert("Apenas makers cadastrados e logados podem gerar links de afiliados para revenda. Faça o login de Maker!");
+                                }
+                              }}
+                              className="py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-[9px] font-bold text-white uppercase rounded transition cursor-pointer"
+                            >
+                              🔗 Revender
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <button
-                    onClick={() => {
-                      setLoginRole("ADMIN");
-                      setLoginEmail("");
-                      setLoginPassword("");
-                      setLoginError("");
-                      setShowLoginModal(true);
-                    }}
-                    className="w-full py-3 border border-[#18181b] text-[#71717a] hover:text-white hover:bg-[#18181b]/30 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center"
-                  >
-                    Acesso Admin
-                  </button>
                 </div>
               </div>
-            </div>
+            )}
 
           </div>
         )}
@@ -2105,31 +2290,36 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* PASSO 2: CONTRATO SLA (UBER-STYLE) */}
+                  {/* PASSO 2: CONTRATO SLA (UBER/AIRBNB-STYLE) */}
                   {wizardStep === 2 && (
                     <div className="space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Contrato de Credenciamento e Nível de Serviço (SLA)</h3>
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Contrato de Credenciamento, Parceria & Isenção Tributária (Taxa 5%)</h3>
                       
                       {/* Corpo do Contrato */}
                       <div className="h-64 overflow-y-auto border border-[#18181b] p-4 bg-[#050506] rounded space-y-4 text-[10px] text-[#a1a1aa] leading-relaxed">
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">1. DO OBJETO DO CREDENCIAMENTO</h4>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">1. DA NATUREZA DA INTERMEDIAÇÃO (AIRBNB-STYLE)</h4>
                         <p>
-                          Este termo regula o credenciamento de colaboradores autônomos de fabricação digital (Makers) na plataforma FAB MAKERS. O Maker atua como fornecedor terceirizado, assumindo inteira responsabilidade técnica e civil sobre a integridade das peças fabricadas.
+                          A FAB MAKERS atua exclusivamente como provedora de infraestrutura tecnológica e de intermediação comercial. A plataforma conecta de forma algorítmica a lei da oferta e da procura: de um lado, clientes demandantes de peças customizadas; de outro, Makers (Pessoas Físicas operando hardware ocioso doméstico ou Empresas/Bureaus corporativos de manufatura). O Maker declara estar ciente de que não há qualquer vínculo empregatício ou societário com a FAB MAKERS.
                         </p>
                         
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">2. DO COMPROMISSO DE CANAL E EXCLUSIVIDADE</h4>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">2. DA TAXA DE COMISSÃO DE 5%</h4>
                         <p className="text-white font-semibold">
-                          Fica terminantemente proibido ao Maker negociar diretamente, captar ou fechar serviços por fora com os clientes que foram apresentados por intermédio da plataforma FAB MAKERS. O descumprimento desta regra acarretará em multa contratual e no banimento permanente e irreversível da rede, sem direito a saques de comissões pendentes.
+                          O credenciamento na plataforma é 100% gratuito. Pela intermediação tecnológica e facilitação de cobrança, a FAB MAKERS reterá o percentual fixo de 5% (cinco por cento) sobre o valor bruto de cada serviço de manufatura executado e faturado na plataforma. O repasse financeiro de 95% do valor líquido será depositado de forma digital e quinzenal na conta bancária do parceiro cadastrado.
                         </p>
 
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">3. DA HOMOLOGAÇÃO TÉCNICA E TOLERÂNCIA</h4>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">3. DA ISENÇÃO DE RESPONSABILIDADE FISCAL E HARDWARE</h4>
                         <p>
-                          O Maker obriga-se a manter seus equipamentos devidamente calibrados. A plataforma exige a conformidade física a partir da impressão de peças de calibração padrão. Tolerâncias dimensionais maiores que ±0.05mm constatadas em auditoria ensejarão a suspensão da conta para readequação de hardware.
+                          O Maker assume inteira e exclusiva responsabilidade pelos custos de hardware de sua operação (energia elétrica, depreciação física de bicos/extrusoras, compra de filamentos, falhas de impressão e perdas de material). A FAB MAKERS atua apenas na facilitação do pagamento. A nota fiscal dos insumos e produtos comprados via dropshipping é de responsabilidade do fornecedor original, cabendo ao Maker a regularização de seus serviços de fabricação perante os órgãos tributários.
                         </p>
 
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">4. DAS PENALIDADES E ACORDO DE SLA</h4>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">4. DO SIGILO DOS ARQUIVOS E PROPRIEDADE INTELECTUAL</h4>
+                        <p className="text-white font-semibold">
+                          Os arquivos geométricos (STL, OBJ, STEP, etc.) enviados pelos clientes são de propriedade intelectual exclusiva dos mesmos. O Maker obriga-se a manter sigilo absoluto sobre tais arquivos, comprometendo-se a deletá-los de seus sistemas e fatiadores locais logo após a conclusão física e despacho da ordem. É expressamente proibido revender, distribuir, arquivar ou reproduzir as peças dos clientes para fins comerciais próprios. O descumprimento gera banimento imediato e instauração de responsabilidade civil e criminal.
+                        </p>
+
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">5. DA NÃO CONCORRÊNCIA E CANAL EXCLUSIVO</h4>
                         <p>
-                          Atrasos não justificados deduzirão a reputação do Maker. Desistências de jobs já aceitos somam penalidades automáticas. O acúmulo de 3 penalidades ou a queda da nota média geral de qualidade para patamar inferior a 4.0 estrelas resultará na suspensão sumária e exclusão da rede de parceiros da FAB MAKERS.
+                          Fica vedado ao Maker negociar diretamente ou receber pagamentos por fora dos clientes apresentados originalmente pela FAB MAKERS. O desvio de canal ensejará multa correspondente ao triplo da média de faturamento mensal do parceiro, além do bloqueio permanente e retenção de saldos para indenização de prejuízos.
                         </p>
                       </div>
 
@@ -2141,7 +2331,7 @@ export default function Home() {
                           className="mt-0.5 accent-[#d44d00]" 
                         />
                         <span className="text-[10px] text-[#71717a] leading-tight">
-                          Declaro que li, compreendi e concordo com todos os termos do Contrato de Credenciamento e SLA de Manufatura Responsável da FAB MAKERS, incluindo as penalidades de exclusividade de canal e banimento por descumprimento de prazos.
+                          Declaro que li, compreendi e concordo com todos os termos do Contrato de Credenciamento de 5% da FAB MAKERS, assumindo total responsabilidade pelo sigilo das peças 3D e calibração dimensional.
                         </span>
                       </label>
 
@@ -2711,7 +2901,7 @@ export default function Home() {
                           
                           <div className="flex justify-between items-start">
                             <div>
-                              <span className="text-[9px] uppercase tracking-widest text-[#d44d00] font-bold mono-text block">TRABALHO DISPONÍVEL PRÓXIMO CEP</span>
+                              <span className="text-[9px] uppercase tracking-widest text-[#d44d00] font-bold mono-text block">TRABALHO DIRECIONADO DISPONÍVEL (RADAR CEP)</span>
                               <h3 className="text-base font-bold text-white mono-text mt-1">{activeJobOffer.filename}</h3>
                               <p className="text-[11px] text-[#a1a1aa] mt-1">Material exigido: <span className="text-white font-bold">{activeJobOffer.material}</span> | Peso: {activeJobOffer.weightG}g</p>
                             </div>
@@ -2729,12 +2919,12 @@ export default function Home() {
                               <span className="font-bold text-white">{activeJobOffer.timeFormatted}</span>
                             </div>
                             <div>
-                              <span className="text-[9px] text-[#71717a] uppercase block">Seu Ganho Líquido</span>
-                              <span className="font-bold text-[#10b981]">R$ {(activeJobOffer.totalPrice * 0.8).toFixed(2).replace(".", ",")}</span>
+                              <span className="text-[9px] text-[#71717a] uppercase block">Seu Ganho Líquido (95%)</span>
+                              <span className="font-bold text-[#10b981]">R$ {(activeJobOffer.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
                             </div>
                             <div>
-                              <span className="text-[9px] text-[#71717a] uppercase block">CEP do Cliente</span>
-                              <span className="font-bold text-white">{activeJobOffer.zipCode}</span>
+                              <span className="text-[9px] text-[#71717a] uppercase block">Comissão Intermediação (5%)</span>
+                              <span className="font-bold text-red-400">R$ {(activeJobOffer.totalPrice * 0.05).toFixed(2).replace(".", ",")}</span>
                             </div>
                           </div>
 
@@ -2754,17 +2944,74 @@ export default function Home() {
                           </div>
                         </div>
                       ) : (
-                        <div className="technical-panel p-10 rounded text-center space-y-3">
-                          <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] flex items-center justify-center mx-auto animate-spin">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00]"></span>
+                        /* RADAR GERAL UBER-STYLE (LEI DA OFERTA E DA PROCURA) */
+                        <div className="technical-panel rounded overflow-hidden space-y-4">
+                          <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b] flex justify-between items-center">
+                            <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Radar Geral de Ofertas (Uber-Style)</h3>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping"></span>
+                              <span className="text-[9px] text-[#a1a1aa] font-bold uppercase tracking-wider mono-text">Buscando...</span>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Status: Buscando Ofertas de Produção...</h4>
-                            <p className="text-[10px] text-[#71717a] mt-1 leading-relaxed">
-                              {makerProfile.isApproved 
-                                ? "Você está online na rede. Pedidos despachados por clientes próximos aparecerão aqui com 30s para aceitação."
-                                : "Aguarde sua homologação de qualidade pelo Administrador para começar a receber ofertas de fabricação."}
-                            </p>
+
+                          <div className="divide-y divide-[#18181b] text-xs">
+                            {orders.filter(o => o.status === "WAITING_MAKER").length === 0 ? (
+                              <div className="p-10 text-center text-[#71717a] space-y-2">
+                                <div className="w-8 h-8 rounded-full border border-dashed border-[#18181b] flex items-center justify-center mx-auto">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#71717a]"></span>
+                                </div>
+                                <h4 className="font-bold text-white uppercase text-[10px] tracking-wider mono-text">Sem pedidos pendentes no radar</h4>
+                                <p className="text-[9px] text-[#71717a] max-w-xs mx-auto leading-relaxed">
+                                  {makerProfile.makerStatus === "HOMOLOGATED" || makerProfile.makerStatus === "SANDBOX"
+                                    ? "Você está online. Novas ordens de serviço geradas por clientes locais aparecerão no seu radar instantaneamente."
+                                    : "Aguarde a aprovação e homologação técnica de sua conta pelo administrador para acessar o radar."}
+                                </p>
+                              </div>
+                            ) : (
+                              orders.filter(o => o.status === "WAITING_MAKER").map((ord) => (
+                                <div key={ord.id} className="p-5 bg-[#09090b]/10 hover:bg-[#09090b]/20 transition flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-white mono-text">OFERTA #{ord.id}</span>
+                                      <span className="text-[8px] bg-[#d44d00]/15 text-[#d44d00] border border-[#d44d00]/20 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider mono-text">Aguardando Impressão</span>
+                                    </div>
+                                    <p className="text-[11px] text-[#a1a1aa]">Peça: <span className="text-white">{ord.filename}</span> | CEP: {ord.zipCode}</p>
+                                    <div className="text-[10px] text-[#71717a] mono-text flex gap-4">
+                                      <span>Peso: {ord.weightG}g</span>
+                                      <span>Material: {ord.material}</span>
+                                      <span>Infill: {ord.infill || 20}%</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="sm:text-right space-y-2">
+                                    <div>
+                                      <span className="text-[8px] text-[#71717a] block uppercase tracking-wider mono-text">Seu Ganho Líquido (95%)</span>
+                                      <span className="text-sm font-extrabold text-[#10b981] mono-text">R$ {(ord.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
+                                      <span className="text-[9px] text-[#71717a] block">Taxa Intermediação (5%): R$ {(ord.totalPrice * 0.05).toFixed(2)}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        if (makerProfile.makerStatus === "PENDING_APPROVAL") {
+                                          alert("Sua conta ainda está em análise! Aguarde aprovação técnica antes de fabricar.");
+                                          return;
+                                        }
+                                        // Aceita o pedido do radar
+                                        setOrders(prev => prev.map(o => {
+                                          if (o.id === ord.id) {
+                                            return { ...o, status: "PRINTING", makerName: makerProfile.name, progress: 15 };
+                                          }
+                                          return o;
+                                        }));
+                                        alert(`Você assumiu a fabricação da Ordem de Serviço #${ord.id}! Verifique a aba 'Seus Trabalhos Alocados' para acompanhar.`);
+                                      }}
+                                      className="px-4 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer"
+                                    >
+                                      Aceitar Serviço
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
                       )}
@@ -2867,8 +3114,8 @@ export default function Home() {
                 <span className="text-2xl font-bold text-white block mt-1 mono-text">R$ {orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0).toFixed(2).replace(".", ",")}</span>
               </div>
               <div className="technical-panel p-5 rounded">
-                <span className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Comissão Plataforma (20%)</span>
-                <span className="text-2xl font-bold text-[#d44d00] block mt-1 mono-text">R$ {(orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0) * 0.2).toFixed(2).replace(".", ",")}</span>
+                <span className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Comissão Plataforma (5%)</span>
+                <span className="text-2xl font-bold text-[#d44d00] block mt-1 mono-text">R$ {(orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0) * 0.05).toFixed(2).replace(".", ",")}</span>
               </div>
               <div className="technical-panel p-5 rounded">
                 <span className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text block">Makers Ativos no Grid</span>
@@ -3038,6 +3285,121 @@ export default function Home() {
                 </div>
               </div>
 
+            </div>
+
+            {/* Seção ADM: Gerenciamento da Loja de Insumos (Dropshipping) */}
+            <div className="technical-panel rounded overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b] flex justify-between items-center">
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Gerenciamento da Loja de Insumos (Dropshipping)</h3>
+                <span className="text-[8px] bg-[#d44d00]/15 text-[#d44d00] px-2 py-0.5 rounded font-bold tracking-widest">EXCLUSIVO ADMIN</span>
+              </div>
+              
+              <div className="p-6 space-y-6">
+                {/* Formulário de Cadastro de Novo Produto */}
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (!novoInsumoTitle || !novoInsumoPrice || !novoInsumoLink) {
+                      alert("Preencha título, preço e link do produto!");
+                      return;
+                    }
+                    const nov = {
+                      id: `ins_${Date.now()}`,
+                      title: novoInsumoTitle,
+                      price: parseFloat(novoInsumoPrice),
+                      link: novoInsumoLink,
+                      affiliateCommissionPercent: parseInt(novoInsumoCommission) || 5,
+                      image: novoInsumoImage || "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?w=300&auto=format&fit=crop&q=60",
+                      deliveryTime: novoInsumoDelivery || "3 a 7 dias úteis"
+                    };
+                    setLojaInsumos(prev => [...prev, nov]);
+                    setNovoInsumoTitle("");
+                    setNovoInsumoPrice("");
+                    setNovoInsumoLink("");
+                    setNovoInsumoCommission("");
+                    setNovoInsumoImage("");
+                    setNovoInsumoDelivery("");
+                    alert(`Produto "${nov.title}" cadastrado com sucesso na loja!`);
+                  }}
+                  className="space-y-4 border border-[#18181b] p-4 rounded bg-[#050506]"
+                >
+                  <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text">Cadastrar Novo Produto para Revenda / Dropshipping</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Nome do Produto</label>
+                      <input 
+                        type="text" value={novoInsumoTitle} onChange={(e) => setNovoInsumoTitle(e.target.value)} placeholder="Filamento PLA 1kg"
+                        className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Preço de Venda (R$)</label>
+                      <input 
+                        type="number" step="0.01" value={novoInsumoPrice} onChange={(e) => setNovoInsumoPrice(e.target.value)} placeholder="119.90"
+                        className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Link do Fornecedor (Shopee/Ali)</label>
+                      <input 
+                        type="text" value={novoInsumoLink} onChange={(e) => setNovoInsumoLink(e.target.value)} placeholder="https://shopee..."
+                        className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Comissão de Afiliado (%)</label>
+                      <input 
+                        type="number" value={novoInsumoCommission} onChange={(e) => setNovoInsumoCommission(e.target.value)} placeholder="5"
+                        className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">URL da Imagem</label>
+                      <input 
+                        type="text" value={novoInsumoImage} onChange={(e) => setNovoInsumoImage(e.target.value)} placeholder="https://images.unsplash..."
+                        className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] uppercase tracking-wider text-[#71717a] mono-text">Prazo de Entrega Estimado</label>
+                      <input 
+                        type="text" value={novoInsumoDelivery} onChange={(e) => setNovoInsumoDelivery(e.target.value)} placeholder="3 a 7 dias úteis"
+                        className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    type="submit" 
+                    className="w-full py-2 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                  >
+                    Adicionar Produto ao Dropshipping
+                  </button>
+                </form>
+
+                {/* Lista de Produtos Cadastrados */}
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text">Produtos Ativos na Loja</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    {lojaInsumos.map(prod => (
+                      <div key={prod.id} className="border border-[#18181b] p-3 rounded bg-[#09090b] flex justify-between items-center">
+                        <div>
+                          <strong className="text-white block truncate max-w-[150px]">{prod.title}</strong>
+                          <span className="text-[10px] text-[#71717a] mono-text">R$ {prod.price.toFixed(2)} | Prazo: {prod.deliveryTime}</span>
+                        </div>
+                        <button 
+                          onClick={() => {
+                            setLojaInsumos(prev => prev.filter(p => p.id !== prod.id));
+                            alert(`Produto "${prod.title}" removido da loja.`);
+                          }}
+                          className="text-[10px] text-red-500 hover:text-red-400 font-bold uppercase cursor-pointer"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>
