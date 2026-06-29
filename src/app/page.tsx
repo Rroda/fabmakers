@@ -1168,7 +1168,7 @@ export default function Home() {
               <Image 
                 src={logoImg} 
                 alt="FAB MAKERS" 
-                className={`h-16 w-auto select-none transition-all duration-300 ${theme === "dark" ? "invert" : ""}`}
+                className={`h-16 w-auto select-none transition-all duration-300 ${theme === "light" ? "invert" : ""}`}
                 priority 
               />
             </div>
@@ -3415,7 +3415,7 @@ export default function Home() {
               <Image 
                 src={logoImg} 
                 alt="FAB MAKERS" 
-                className="h-14 w-auto select-none invert" 
+                className="h-14 w-auto select-none" 
               />
             </div>
             <p className="text-[11px] text-[#71717a] leading-relaxed">
