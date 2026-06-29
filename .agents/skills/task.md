@@ -1,0 +1,27 @@
+# Lista de Tarefas: Persistência Real, Onboarding Anti-Fraude e Calibração Física
+
+- `[x]` Criar o banco de presets de impressoras estruturado em [src/lib/printerPresets.ts](file:///c:/Users/mailr/Documents/GitHub/fabmakers/src/lib/printerPresets.ts).
+- `[x]` Atualizar o [page.tsx](file:///c:/Users/mailr/Documents/GitHub/fabmakers/src/app/page.tsx):
+    - `[x]` Integrar a busca automática de endereços (ViaCEP) no formulário do Cliente e do Maker.
+    - `[x]` Integrar o banco de presets de impressoras no cadastro de equipamentos do Maker.
+    - `[x]` Desenvolver o Radar de Proximidade animado no painel lateral de cotação do Cliente.
+- `[x]` Desenvolver o Onboarding Anti-Fraude do Maker (5 Passos):
+    - `[x]` **Passo 1:** Validação SMTP simulada Zoho.
+    - `[x]` **Passo 2:** Assinatura digital do contrato de SLA, regras e direitos.
+    - `[x]` **Passo 3:** Preset de impressoras enriquecido e ViaCEP.
+    - `[x]` **Passo 4:** Cadastro de filamento.
+    - `[x]` **Passo 5:** Capacidade horária, anexo de KYC (RG/CNH, selfie e paquímetro) e calibração dimensional do cubo de teste.
+- `[x]` Implementar as Faixas de Status do Maker:
+    - `[x]` **Sandbox**: Restrição técnica a 1 job por vez por 3 entregas.
+    - `[x]` **Aguardando Auditoria**: Tela bloqueada informando a análise do Administrador.
+- `[x]` Desenvolver o Painel Administrativo de Homologações:
+    - `[x]` Exibir detalhes da calibração informada e calcular o desvio máximo com tolerância de ±0.05mm.
+    - `[x]` Exibir anexos de documentos e paquímetro.
+    - `[x]` Adicionar ações para **Homologar Máquina (Aprovar para Sandbox)** e **Rejeitar Cadastro (Resetar status)**.
+- `[x]` Implementar a Persistência de Dados e APIs Reais no Backend:
+    - `[x]` Configurar o `prisma.config.ts` compatível com o Prisma v7 para gerenciar conexões híbridas (SQLite/Turso).
+    - `[x]` Criar a rota `/api/maker` para persistir e buscar perfis de Maker no banco.
+    - `[x]` Criar a rota `/api/orders` para criar, listar e persistir Ordens de Serviço reais no banco.
+    - `[x]` Criar a rota `/api/admin` para aprovação, rejeição, banimento e desbanimento de makers de forma persistente.
+    - `[x]` Sincronizar o frontend (`page.tsx`) com `useEffect` e requisições `fetch` para as APIs reais de backend.
+- `[x]` Executar typecheck e build de validação para certificar que o Next.js está operacional.

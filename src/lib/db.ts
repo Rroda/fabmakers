@@ -2,6 +2,8 @@ import { PrismaClient } from '@prisma/client'
 import { createClient } from '@libsql/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 
+// Conexão unificada do Banco de Dados FAB MAKERS (Local via dev.db ou Nuvem via Turso)
+
 const libsql = createClient({
   url: process.env.TURSO_DATABASE_URL || "file:./dev.db",
   authToken: process.env.TURSO_AUTH_TOKEN || undefined,
