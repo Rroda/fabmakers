@@ -126,6 +126,15 @@ interface HomologationRequest {
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"home" | "client" | "maker" | "admin">("home");
+  
+  // --- ESTADOS DE SESSÃO E AUTENTICAÇÃO REAL ---
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; makerStatus?: string } | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [loginRole, setLoginRole] = useState<"CLIENT" | "MAKER" | "ADMIN">("CLIENT");
+  const [loginEmail, setLoginEmail] = useState<string>("");
+  const [loginPassword, setLoginPassword] = useState<string>("");
+  const [loginLoading, setLoginLoading] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string>("");
   const uniqueBrands = Array.from(new Set(PRINTER_PRESETS.map(p => p.brand))).sort();
 
   // --- ESTADOS COMPARTILHADOS (SIMULAÇÃO DE BANCO DE DADOS) ---
@@ -944,6 +953,61 @@ export default function Home() {
     });
   };
 
+  // Realizar o login na plataforma
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError("");
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: loginEmail,
+          password: loginPassword,
+          role: loginRole
+        })
+      });
+
+      const data = await res.json();
+
+      if (data.success && data.user) {
+        setCurrentUser(data.user);
+        setShowLoginModal(false);
+        setLoginEmail("");
+        setLoginPassword("");
+        
+        if (data.user.role === "CLIENT") {
+          setActiveTab("client");
+        } else if (data.user.role === "MAKER") {
+          setActiveTab("maker");
+          if (data.user.profile) {
+            setMakerProfile(data.user.profile);
+          } else {
+            setMakerProfile(null);
+          }
+        } else if (data.user.role === "ADMIN") {
+          setActiveTab("admin");
+        }
+      } else {
+        setLoginError(data.error || "Erro ao realizar o login.");
+      }
+    } catch (err: any) {
+      setLoginError("Erro de conexão com o servidor.");
+      console.error(err);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // Realizar o logout
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setActiveTab("home");
+    setMakerProfile(null);
+  };
+
   return (
     <div className="min-h-screen bg-[#050506] text-[#f4f4f5] flex flex-col font-sans selection:bg-[#d44d00]/30 selection:text-white">
       
@@ -953,7 +1017,15 @@ export default function Home() {
           <div className="flex items-center gap-8">
             <div 
               className="flex items-center cursor-pointer"
-              onClick={() => setActiveTab("home")}
+              onClick={() => {
+                if (currentUser) {
+                  if (currentUser.role === "CLIENT") setActiveTab("client");
+                  else if (currentUser.role === "MAKER") setActiveTab("maker");
+                  else if (currentUser.role === "ADMIN") setActiveTab("admin");
+                } else {
+                  setActiveTab("home");
+                }
+              }}
             >
               <Image 
                 src={logoImg} 
@@ -963,175 +1035,201 @@ export default function Home() {
               />
             </div>
 
-            {/* Abas do Next.js de Navegação Reativa */}
-            <nav className="hidden md:flex items-center gap-1 bg-[#09090b] border border-[#18181b] p-1 rounded-lg">
-              <button
-                onClick={() => setActiveTab("home")}
-                className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                  activeTab === "home"
-                    ? "bg-[#18181b] text-white"
-                    : "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]/30"
-                }`}
-              >
-                Início
-              </button>
-              <button
-                onClick={() => setActiveTab("client")}
-                className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                  activeTab === "client"
-                    ? "bg-[#18181b] text-white"
-                    : "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]/30"
-                }`}
-              >
-                Painel Cliente
-              </button>
-              <button
-                onClick={() => setActiveTab("maker")}
-                className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                  activeTab === "maker"
-                    ? "bg-[#18181b] text-white"
-                    : "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]/30"
-                }`}
-              >
-                Painel do Maker
-              </button>
-              <button
-                onClick={() => setActiveTab("admin")}
-                className={`px-3 py-1.5 rounded text-xs font-medium transition ${
-                  activeTab === "admin"
-                    ? "bg-[#18181b] text-white"
-                    : "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]/30"
-                }`}
-              >
-                Painel Admin
-              </button>
-            </nav>
+            {/* Perfil do usuário logado (exibido em vez das abas de navegação globais) */}
+            {currentUser && (
+              <div className="hidden md:flex items-center gap-2.5">
+                <span className="text-[9px] px-2 py-0.5 bg-[#18181b] border border-[#27272a] text-[#a1a1aa] rounded uppercase font-bold tracking-wider mono-text">
+                  {currentUser.role === "ADMIN" ? "ADMIN" : currentUser.role === "MAKER" ? "MAKER PARTNER" : "CLIENTE"}
+                </span>
+                <span className="text-xs text-[#27272a]">|</span>
+                <span className="text-xs text-[#a1a1aa] font-medium">Logado como: <span className="text-white font-bold">{currentUser.name}</span></span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setActiveTab("client")}
-              className="text-xs bg-[#d44d00] hover:bg-[#b04000] text-white px-4 py-2 font-medium transition rounded-md"
-            >
-              Cote seu STL
-            </button>
-            <a
-              href="/pitch_fabmakers.html"
-              target="_blank"
-              className="hidden sm:inline-block text-xs font-medium border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b] hover:bg-[#18181b] px-4 py-2 transition rounded-md"
-            >
-              Apresentação & Pitch
-            </a>
+            {!currentUser ? (
+              <>
+                <button
+                  onClick={() => {
+                    setLoginRole("CLIENT");
+                    setLoginEmail("");
+                    setLoginPassword("");
+                    setLoginError("");
+                    setShowLoginModal(true);
+                  }}
+                  className="text-xs bg-[#d44d00] hover:bg-[#b04000] text-white px-4 py-2 font-medium transition rounded-md cursor-pointer"
+                >
+                  Entrar na Plataforma
+                </button>
+                <a
+                  href="/pitch_fabmakers.html"
+                  target="_blank"
+                  className="hidden sm:inline-block text-xs font-medium border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b] hover:bg-[#18181b] px-4 py-2 transition rounded-md"
+                >
+                  Apresentação & Pitch
+                </a>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleLogout}
+                  className="text-xs border border-red-500/20 text-red-400 hover:text-white hover:bg-red-500/20 px-4 py-2 font-medium transition rounded-md cursor-pointer"
+                >
+                  Sair (Logout)
+                </button>
+              </>
+            )}
           </div>
         </div>
         
-        {/* Navegação Mobile */}
-        <div className="md:hidden flex justify-between border-t border-[#18181b] px-4 py-2 bg-[#09090b]">
-          <button
-            onClick={() => setActiveTab("home")}
-            className={`flex-1 text-center py-2 text-[11px] font-medium transition ${
-              activeTab === "home" ? "text-[#d44d00]" : "text-[#71717a]"
-            }`}
-          >
-            Início
-          </button>
-          <button
-            onClick={() => setActiveTab("client")}
-            className={`flex-1 text-center py-2 text-[11px] font-medium transition ${
-              activeTab === "client" ? "text-[#d44d00]" : "text-[#71717a]"
-            }`}
-          >
-            Cliente
-          </button>
-          <button
-            onClick={() => setActiveTab("maker")}
-            className={`flex-1 text-center py-2 text-[11px] font-medium transition ${
-              activeTab === "maker" ? "text-[#d44d00]" : "text-[#71717a]"
-            }`}
-          >
-            Maker
-          </button>
-          <button
-            onClick={() => setActiveTab("admin")}
-            className={`flex-1 text-center py-2 text-[11px] font-medium transition ${
-              activeTab === "admin" ? "text-[#d44d00]" : "text-[#71717a]"
-            }`}
-          >
-            Admin
-          </button>
-        </div>
       </header>
 
       {/* CONTEÚDO DINÂMICO DE ABAS */}
       <main className="flex-grow">
 
-        {/* TAB 1: HOME (APRESENTAÇÃO MINIMALISTA) */}
+        {/* TAB 1: HOME (APRESENTAÇÃO CORPORATIVA E PORTAIS DE ACESSO) */}
         {activeTab === "home" && (
-          <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          <div className="max-w-7xl mx-auto px-6 py-12 space-y-16">
             
-            <div className="lg:col-span-6 space-y-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#09090b] border border-[#18181b] rounded-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
-                <span className="text-[10px] mono-text uppercase tracking-widest text-[#a1a1aa]">Rede de Manufatura Local</span>
-              </div>
-              
-              <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-none">
-                Transformamos ideias em <span className="text-[#d44d00]">objetos</span>.
-              </h1>
-              
-              <p className="text-[#a1a1aa] font-light text-lg leading-relaxed max-w-xl">
-                Infraestrutura descentralizada de fabricação digital sob demanda no Brasil. Cote peças, gerencie impressoras ociosas e roteie ordens de produção geolocalizadas em tempo real.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button
-                  onClick={() => setActiveTab("client")}
-                  className="px-6 py-3.5 bg-white text-[#050506] font-bold text-sm rounded transition hover:bg-[#e4e4e7] flex items-center justify-center gap-2 shadow-lg cursor-pointer"
-                >
-                  Área do Cliente (STL)
-                </button>
-                <button
-                  onClick={() => setActiveTab("maker")}
-                  className="px-6 py-3.5 border border-[#18181b] text-white hover:bg-[#09090b] font-medium text-sm rounded transition flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  Área do Maker (Colaborador)
-                </button>
+            {/* HERO SECTION PRINCIPAL */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-8">
+              <div className="lg:col-span-6 space-y-8">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#09090b] border border-[#18181b] rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
+                  <span className="text-[9px] mono-text uppercase tracking-widest text-[#a1a1aa]">Rede de Manufatura Digital Distribuída</span>
+                </div>
+                
+                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-none">
+                  A maior infraestrutura de <span className="text-[#d44d00]">impressão 3D</span> do Brasil.
+                </h1>
+                
+                <p className="text-[#a1a1aa] font-light text-base leading-relaxed max-w-xl">
+                  Roteamos ordens de fabricação 3D sob demanda de forma geolocalizada. Conectamos clientes a fabricantes (Makers) homologados que cumprem um controle de calibração ultra-estrito com tolerância física de até <span className="text-white font-bold">±0.05mm</span>.
+                </p>
+                
+                <div className="pt-4 grid grid-cols-3 gap-6 border-t border-[#18181b]/50">
+                  <div>
+                    <div className="text-lg font-bold text-white mono-text">0.12s</div>
+                    <div className="text-[9px] uppercase tracking-widest text-[#71717a] mt-1">Cotação STL</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-white mono-text">350+</div>
+                    <div className="text-[9px] uppercase tracking-widest text-[#71717a] mt-1">Makers Online</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-bold text-white mono-text">100%</div>
+                    <div className="text-[9px] uppercase tracking-widest text-[#71717a] mt-1">Auditado & Seguro</div>
+                  </div>
+                </div>
               </div>
 
-              <div className="pt-12 grid grid-cols-3 gap-6 border-t border-[#18181b]">
-                <div>
-                  <div className="text-xl font-bold text-white mono-text">0.12s</div>
-                  <div className="text-[10px] uppercase tracking-widest text-[#71717a] mt-1">Cotação STL</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-white mono-text">350+</div>
-                  <div className="text-[10px] uppercase tracking-widest text-[#71717a] mt-1">Makers Ativos</div>
-                </div>
-                <div>
-                  <div className="text-xl font-bold text-white mono-text">100%</div>
-                  <div className="text-[10px] uppercase tracking-widest text-[#71717a] mt-1">Roteamento Geolocalizado</div>
+              {/* Wireframe interativo SVG */}
+              <div className="lg:col-span-6 flex justify-center">
+                <div className="w-full max-w-[420px] aspect-square bg-[#09090b] border border-[#18181b] rounded p-6 relative overflow-hidden flex items-center justify-center">
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#18181b_1px,transparent_1px),linear-gradient(to_bottom,#18181b_1px,transparent_1px)] bg-[size:32px_32px] opacity-30"></div>
+                  <svg viewBox="0 0 200 200" className="w-60 h-60 z-10 text-white select-none">
+                    <circle cx="100" cy="100" r="80" stroke="#18181b" strokeWidth="0.5" fill="none" />
+                    <g className="origin-center animate-[spin_40s_linear_infinite]">
+                      <path d="M 100,50 L 135,70 L 135,110 L 100,130 L 65,110 L 65,70 Z" fill="none" stroke="#71717a" strokeWidth="0.75" />
+                      <circle cx="100" cy="50" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
+                      <circle cx="135" cy="70" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
+                      <circle cx="135" cy="110" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
+                    </g>
+                    <line x1="20" y1="100" x2="180" y2="100" stroke="#d44d00" strokeWidth="0.75" className="animate-[bounce_4s_ease-in-out_infinite]" />
+                    <text x="102" y="96" fill="#d44d00" fontSize="6" className="mono-text tracking-widest animate-[bounce_4s_ease-in-out_infinite]">GRID OPERACIONAL</text>
+                  </svg>
+                  <div className="absolute bottom-4 left-4 right-4 flex justify-between text-[9px] mono-text text-[#71717a]">
+                    <span>FAB: 345 ONLINE</span>
+                    <span>PRECISÃO: ±0.05mm</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Wireframe interativo SVG */}
-            <div className="lg:col-span-6 flex justify-center">
-              <div className="w-full max-w-[450px] aspect-square bg-[#09090b] border border-[#18181b] rounded p-6 relative overflow-hidden flex items-center justify-center">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#18181b_1px,transparent_1px),linear-gradient(to_bottom,#18181b_1px,transparent_1px)] bg-[size:32px_32px] opacity-30"></div>
-                <svg viewBox="0 0 200 200" className="w-64 h-64 z-10 text-white select-none">
-                  <circle cx="100" cy="100" r="80" stroke="#18181b" strokeWidth="0.5" fill="none" />
-                  <g className="origin-center animate-[spin_40s_linear_infinite]">
-                    <path d="M 100,50 L 135,70 L 135,110 L 100,130 L 65,110 L 65,70 Z" fill="none" stroke="#71717a" strokeWidth="0.75" />
-                    <circle cx="100" cy="50" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
-                    <circle cx="135" cy="70" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
-                    <circle cx="135" cy="110" r="3" fill="#050506" stroke="#d44d00" strokeWidth="1" />
-                  </g>
-                  <line x1="20" y1="100" x2="180" y2="100" stroke="#d44d00" strokeWidth="0.75" className="animate-[bounce_4s_ease-in-out_infinite]" />
-                  <text x="102" y="96" fill="#d44d00" fontSize="6" className="mono-text tracking-widest animate-[bounce_4s_ease-in-out_infinite]">GRID ATIVO</text>
-                </svg>
-                <div className="absolute bottom-4 left-4 right-4 flex justify-between text-[9px] mono-text text-[#71717a]">
-                  <span>FAB: 345 ONLINE</span>
-                  <span>CALIBRATION: ±0.05mm</span>
+            {/* SEÇÃO PORTAIS DE ACESSO */}
+            <div className="space-y-8 pt-8 border-t border-[#18181b]/50">
+              <div className="text-center max-w-xl mx-auto space-y-3">
+                <h2 className="text-2xl font-bold text-white mono-text uppercase tracking-wider">Como deseja acessar a plataforma?</h2>
+                <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                  Selecione abaixo o portal correspondente ao seu perfil para entrar ou se credenciar na rede FabMakers.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {/* Portal Cliente */}
+                <div className="bg-[#09090b] border border-[#18181b] p-8 rounded-lg hover:border-[#d44d00]/30 transition group flex flex-col justify-between space-y-6">
+                  <div className="space-y-4">
+                    <div className="w-10 h-10 rounded bg-[#d44d00]/10 flex items-center justify-center text-[#d44d00] font-bold">
+                      📦
+                    </div>
+                    <h3 className="text-base font-bold text-white mono-text uppercase tracking-wider">Portal do Cliente</h3>
+                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                      Precisa encomendar a impressão de projetos 3D? Envie seu arquivo STL, faça a análise geométrica, obtenha cotações e gerencie seus pedidos locais.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setLoginRole("CLIENT");
+                      setLoginEmail("");
+                      setLoginPassword("");
+                      setLoginError("");
+                      setShowLoginModal(true);
+                    }}
+                    className="w-full py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center"
+                  >
+                    Área do Cliente (STL)
+                  </button>
+                </div>
+
+                {/* Portal Maker */}
+                <div className="bg-[#09090b] border border-[#18181b] p-8 rounded-lg hover:border-[#d44d00]/30 transition group flex flex-col justify-between space-y-6">
+                  <div className="space-y-4">
+                    <div className="w-10 h-10 rounded bg-[#d44d00]/10 flex items-center justify-center text-[#d44d00] font-bold">
+                      ⚙️
+                    </div>
+                    <h3 className="text-base font-bold text-white mono-text uppercase tracking-wider">Painel do Maker</h3>
+                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                      Tem impressora 3D e quer rentabilizar seu hardware? Faça o Onboarding de Segurança, assine o SLA de rede e passe no teste de calibração física.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setLoginRole("MAKER");
+                      setLoginEmail("");
+                      setLoginPassword("");
+                      setLoginError("");
+                      setShowLoginModal(true);
+                    }}
+                    className="w-full py-3 border border-[#18181b] text-white hover:bg-[#18181b]/50 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center"
+                  >
+                    Seja um Maker Parceiro
+                  </button>
+                </div>
+
+                {/* Portal Admin */}
+                <div className="bg-[#09090b] border border-[#18181b] p-8 rounded-lg hover:border-[#d44d00]/30 transition group flex flex-col justify-between space-y-6">
+                  <div className="space-y-4">
+                    <div className="w-10 h-10 rounded bg-[#d44d00]/10 flex items-center justify-center text-[#d44d00] font-bold">
+                      🔑
+                    </div>
+                    <h3 className="text-base font-bold text-white mono-text uppercase tracking-wider">Gestão de Rede</h3>
+                    <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                      Área de uso exclusivo interno para administradores e auditores técnicos. Permite homologar equipamentos, verificar KYC e aplicar penalidades.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setLoginRole("ADMIN");
+                      setLoginEmail("");
+                      setLoginPassword("");
+                      setLoginError("");
+                      setShowLoginModal(true);
+                    }}
+                    className="w-full py-3 border border-[#18181b] text-[#71717a] hover:text-white hover:bg-[#18181b]/30 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center"
+                  >
+                    Acesso Admin
+                  </button>
                 </div>
               </div>
             </div>
@@ -2526,9 +2624,9 @@ export default function Home() {
           <div>
             <h4 className="text-[10px] font-bold text-white uppercase tracking-wider mono-text mb-3">Plataforma</h4>
             <ul className="space-y-2 text-[11px] text-[#71717a]">
-              <li><button onClick={() => setActiveTab("client")} className="hover:text-white transition">Cotação STL</button></li>
-              <li><button onClick={() => setActiveTab("maker")} className="hover:text-white transition">Fila de Makers</button></li>
-              <li><button onClick={() => setActiveTab("admin")} className="hover:text-white transition">Administração</button></li>
+              <li><button onClick={() => { if (currentUser?.role === "CLIENT") setActiveTab("client"); else { setLoginRole("CLIENT"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Cotação STL</button></li>
+              <li><button onClick={() => { if (currentUser?.role === "MAKER") setActiveTab("maker"); else { setLoginRole("MAKER"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Portal do Maker</button></li>
+              <li><button onClick={() => { if (currentUser?.role === "ADMIN") setActiveTab("admin"); else { setLoginRole("ADMIN"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Administração</button></li>
             </ul>
           </div>
           <div>
@@ -2552,6 +2650,102 @@ export default function Home() {
           <p>&copy; {new Date().getFullYear()} FAB MAKERS. Todos os direitos reservados. Projeto Conceitual e Confidencial.</p>
         </div>
       </footer>
+
+      {/* MODAL DE LOGIN MODULAR E SEGURO */}
+      {showLoginModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050506]/85 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-[#09090b] border border-[#18181b] rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header do Modal */}
+            <div className="px-6 py-4 border-b border-[#18181b] flex justify-between items-center">
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">
+                {loginRole === "ADMIN" ? "Gestão de Rede (Admin)" : loginRole === "MAKER" ? "Acesso do Fabricante (Maker)" : "Acesso do Cliente (STL)"}
+              </h3>
+              <button 
+                onClick={() => setShowLoginModal(false)}
+                className="text-[#71717a] hover:text-white transition text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Formulário */}
+            <form onSubmit={handleLogin} className="p-6 space-y-4">
+              {loginError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-xs font-medium">
+                  ⚠️ {loginError}
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Endereço de E-mail</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="exemplo@seuprovedor.com"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                />
+              </div>
+
+              {loginRole !== "CLIENT" && (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Senha de Acesso</label>
+                    {loginRole === "ADMIN" && (
+                      <span className="text-[9px] text-[#71717a] lowercase italic">dica: admin123</span>
+                    )}
+                  </div>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                  />
+                </div>
+              )}
+
+              {loginRole === "CLIENT" && (
+                <p className="text-[10px] text-[#71717a] leading-relaxed italic">
+                  * Para fins de testes e demonstração da cotação STL, se o e-mail digitado não existir, uma conta de cliente será criada automaticamente sem necessidade de senha.
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center flex items-center justify-center gap-2"
+              >
+                {loginLoading ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                    Autenticando...
+                  </>
+                ) : (
+                  "Acessar Plataforma"
+                )}
+              </button>
+              
+              <div className="pt-2 text-center">
+                <span 
+                  onClick={() => {
+                    // Alterna o perfil dentro do próprio modal
+                    setLoginRole(prev => prev === "CLIENT" ? "MAKER" : prev === "MAKER" ? "ADMIN" : "CLIENT");
+                    setLoginEmail("");
+                    setLoginPassword("");
+                    setLoginError("");
+                  }}
+                  className="text-[10px] text-[#71717a] hover:text-white transition cursor-pointer underline"
+                >
+                  Alternar tipo de perfil de acesso
+                </span>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       
     </div>
   );
