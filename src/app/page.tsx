@@ -354,6 +354,51 @@ export default function Home() {
   const [calibZ, setCalibZ] = useState<number>(20.00);
   const [calibImageName, setCalibImageName] = useState<string>("");
 
+  // --- LÓGICA DE PERSISTÊNCIA EM BANCO DE DADOS REAL ---
+  useEffect(() => {
+    // 1. Carrega makers do banco de dados
+    fetch("/api/maker")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.makers) {
+          setSystemMakers(prev => {
+            const existingNames = new Set(prev.map(m => m.name));
+            const newMakers = data.makers.filter((m: any) => !existingNames.has(m.name));
+            return [...prev, ...newMakers];
+          });
+        }
+      })
+      .catch(err => console.error("Erro ao carregar makers do banco:", err));
+
+    // 2. Carrega ordens do banco de dados
+    fetch("/api/orders")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.orders) {
+          setOrders(prev => {
+            const existingIds = new Set(prev.map(o => o.id));
+            const newOrders = data.orders.filter((o: any) => !existingIds.has(o.id));
+            return [...prev, ...newOrders];
+          });
+        }
+      })
+      .catch(err => console.error("Erro ao carregar ordens do banco:", err));
+
+    // 3. Carrega homologações do banco de dados
+    fetch("/api/admin")
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.homologations) {
+          setHomologations(prev => {
+            const existingNames = new Set(prev.map(h => h.name));
+            const newHomologations = data.homologations.filter((h: any) => !existingNames.has(h.name));
+            return [...prev, ...newHomologations];
+          });
+        }
+      })
+      .catch(err => console.error("Erro ao carregar homologações do banco:", err));
+  }, []);
+
   // --- LÓGICA DE SIMULAÇÃO EM SEGUNDO PLANO ---
   
   // Simulação de Progresso de Impressão (Fila)
@@ -598,6 +643,14 @@ export default function Home() {
     };
 
     setOrders(prev => [newOrder, ...prev]);
+
+    // Persistência real no banco de dados
+    fetch("/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newOrder)
+    }).catch(err => console.error("Erro ao salvar ordem no banco:", err));
+
     handleClear();
     setClientZip("");
     setClientAddress("");
@@ -657,6 +710,16 @@ export default function Home() {
     };
 
     setMakerProfile(newProfile);
+
+    // Persistência real no banco de dados
+    fetch("/api/maker", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...newProfile,
+        email: wizardEmail
+      })
+    }).catch(err => console.error("Erro ao salvar perfil no banco:", err));
 
     // Enviar solicitação de homologação completa para o Admin
     const newRequest: HomologationRequest = {
@@ -807,6 +870,14 @@ export default function Home() {
         prev.map(m => m.name === name ? { ...m, isApproved: true, makerStatus: "SANDBOX" as const } : m)
       );
     }
+
+    // Persistência real no banco de dados
+    fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "APPROVE", name })
+    }).catch(err => console.error("Erro ao aprovar homologação no banco:", err));
+
     alert(`Maker ${name} homologado com sucesso! Agora está habilitado para receber cotações do Grid no período de Sandbox.`);
   };
 
@@ -827,15 +898,24 @@ export default function Home() {
         prev.map(m => m.name === name ? { ...m, isApproved: false, makerStatus: "UNVERIFIED" as const } : m)
       );
     }
+
+    // Persistência real no banco de dados
+    fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "REJECT", name })
+    }).catch(err => console.error("Erro ao rejeitar homologação no banco:", err));
+
     alert(`Homologação do Maker ${name} rejeitada. O status foi resetado para permitir reenvio.`);
   };
 
   // Banir / Desbanir Maker manualmente
   const toggleBanMaker = (name: string) => {
+    let nextBanned = false;
     setSystemMakers(prev => 
       prev.map(m => {
         if (m.name === name) {
-          const nextBanned = !m.isBanned;
+          nextBanned = !m.isBanned;
           if (makerProfile && makerProfile.name === name) {
             setMakerProfile({ ...makerProfile, isBanned: nextBanned });
           }
@@ -844,6 +924,13 @@ export default function Home() {
         return m;
       })
     );
+
+    // Persistência real no banco de dados
+    fetch("/api/admin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: nextBanned ? "BAN" : "UNBAN", name })
+    }).catch(err => console.error("Erro ao alterar banimento no banco:", err));
   };
 
   // Restaurar conta banida de teste
