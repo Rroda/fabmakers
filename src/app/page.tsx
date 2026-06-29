@@ -166,6 +166,9 @@ export default function Home() {
   const [loginPassword, setLoginPassword] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string>("");
+  const [isSignUp, setIsSignUp] = useState<boolean>(false);
+  const [signupName, setSignupName] = useState<string>("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState<string>("");
   const uniqueBrands = Array.from(new Set(PRINTER_PRESETS.map(p => p.brand))).sort();
 
   // --- ESTADOS COMPARTILHADOS (SIMULAÇÃO DE BANCO DE DADOS) ---
@@ -1130,6 +1133,60 @@ export default function Home() {
         }
       } else {
         setLoginError(data.error || "Erro ao realizar o login.");
+      }
+    } catch (err: any) {
+      setLoginError("Erro de conexão com o servidor.");
+      console.error(err);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // Realizar o cadastro
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    
+    if (loginPassword !== signupConfirmPassword) {
+      setLoginError("As senhas não coincidem.");
+      return;
+    }
+    
+    setLoginLoading(true);
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: signupName,
+          email: loginEmail,
+          password: loginPassword,
+          role: loginRole
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (data.success && data.user) {
+        // Realiza o login imediato com a nova conta criada
+        setCurrentUser(data.user);
+        setShowLoginModal(false);
+        setLoginEmail("");
+        setLoginPassword("");
+        setSignupName("");
+        setSignupConfirmPassword("");
+        setIsSignUp(false);
+        
+        if (data.user.role === "CLIENT") {
+          setActiveTab("client");
+          alert("Cadastro de Cliente realizado com sucesso! Bem-vindo à FabMakers.");
+        } else if (data.user.role === "MAKER") {
+          setActiveTab("maker");
+          setMakerProfile(null); // Abre o formulário/wizard de onboarding para preenchimento
+          alert("Cadastro de Maker realizado com sucesso! Preencha agora a calibração técnica e dados para homologação.");
+        }
+      } else {
+        setLoginError(data.error || "Erro ao realizar o cadastro.");
       }
     } catch (err: any) {
       setLoginError("Erro de conexão com o servidor.");
@@ -3459,10 +3516,21 @@ export default function Home() {
             {/* Header do Modal */}
             <div className="px-6 py-4 border-b border-[#18181b] flex justify-between items-center">
               <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">
-                {loginRole === "ADMIN" ? "Gestão de Rede (Admin)" : loginRole === "MAKER" ? "Acesso do Fabricante (Maker)" : "Acesso do Cliente (STL)"}
+                {isSignUp 
+                  ? `Cadastrar ${loginRole === "MAKER" ? "Parceiro Maker" : "Cliente"}` 
+                  : (loginRole === "ADMIN" ? "Gestão de Rede (Admin)" : loginRole === "MAKER" ? "Acesso do Fabricante (Maker)" : "Acesso do Cliente (STL)")
+                }
               </h3>
               <button 
-                onClick={() => setShowLoginModal(false)}
+                onClick={() => {
+                  setShowLoginModal(false);
+                  setIsSignUp(false);
+                  setLoginEmail("");
+                  setLoginPassword("");
+                  setSignupName("");
+                  setSignupConfirmPassword("");
+                  setLoginError("");
+                }}
                 className="text-[#71717a] hover:text-white transition text-sm cursor-pointer"
               >
                 ✕
@@ -3470,10 +3538,24 @@ export default function Home() {
             </div>
 
             {/* Formulário */}
-            <form onSubmit={handleLogin} className="p-6 space-y-4">
+            <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="p-6 space-y-4">
               {loginError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-xs font-medium">
                   ⚠️ {loginError}
+                </div>
+              )}
+
+              {isSignUp && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Nome Completo</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Seu Nome Completo"
+                    value={signupName}
+                    onChange={(e) => setSignupName(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                  />
                 </div>
               )}
 
@@ -3489,11 +3571,24 @@ export default function Home() {
                 />
               </div>
 
-              {loginRole !== "CLIENT" && (
+              {(!isSignUp && loginRole === "CLIENT") ? (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Senha (Opcional se conta automática)</label>
+                  </div>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                  />
+                </div>
+              ) : (
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
                     <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Senha de Acesso</label>
-                    {loginRole === "ADMIN" && (
+                    {!isSignUp && loginRole === "ADMIN" && (
                       <span className="text-[9px] text-[#71717a] lowercase italic">dica: admin123</span>
                     )}
                   </div>
@@ -3508,9 +3603,23 @@ export default function Home() {
                 </div>
               )}
 
-              {loginRole === "CLIENT" && (
+              {isSignUp && (
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-[#71717a] uppercase tracking-wider font-bold block">Confirmar Senha</label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="••••••••"
+                    value={signupConfirmPassword}
+                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                  />
+                </div>
+              )}
+
+              {!isSignUp && loginRole === "CLIENT" && (
                 <p className="text-[10px] text-[#71717a] leading-relaxed italic">
-                  * Para fins de testes e demonstração da cotação STL, se o e-mail digitado não existir, uma conta de cliente será criada automaticamente sem necessidade de senha.
+                  * Para fins de testes e demonstração da cotação STL, se o e-mail digitado não existir e nenhuma senha for informada, uma conta de cliente será criada de forma automática.
                 </p>
               )}
 
@@ -3522,23 +3631,42 @@ export default function Home() {
                 {loginLoading ? (
                   <>
                     <span className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-                    Autenticando...
+                    {isSignUp ? "Criando Conta..." : "Autenticando..."}
                   </>
                 ) : (
-                  "Acessar Plataforma"
+                  isSignUp ? "Criar Minha Conta" : "Acessar Plataforma"
                 )}
               </button>
               
-              <div className="pt-2 text-center">
+              <div className="pt-2 flex flex-col items-center gap-2 text-[10px] text-[#71717a] mono-text">
+                {loginRole !== "ADMIN" && (
+                  <span 
+                    onClick={() => {
+                      setIsSignUp(prev => !prev);
+                      setLoginEmail("");
+                      setLoginPassword("");
+                      setSignupName("");
+                      setSignupConfirmPassword("");
+                      setLoginError("");
+                    }}
+                    className="hover:text-white transition cursor-pointer underline font-bold text-[#d44d00]"
+                  >
+                    {isSignUp ? "Já tem uma conta? Faça Login" : "Não tem uma conta? Cadastre-se"}
+                  </span>
+                )}
+                
                 <span 
                   onClick={() => {
                     // Alterna o perfil dentro do próprio modal
                     setLoginRole(prev => prev === "CLIENT" ? "MAKER" : prev === "MAKER" ? "ADMIN" : "CLIENT");
+                    setIsSignUp(false);
                     setLoginEmail("");
                     setLoginPassword("");
+                    setSignupName("");
+                    setSignupConfirmPassword("");
                     setLoginError("");
                   }}
-                  className="text-[10px] text-[#71717a] hover:text-white transition cursor-pointer underline"
+                  className="hover:text-white transition cursor-pointer underline"
                 >
                   Alternar tipo de perfil de acesso
                 </span>

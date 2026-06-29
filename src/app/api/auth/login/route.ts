@@ -53,6 +53,13 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      if (user.passwordHash && user.passwordHash !== "dummy-hash" && user.passwordHash !== password) {
+        return NextResponse.json(
+          { success: false, error: "Senha incorreta para este cadastro de Maker." },
+          { status: 401 }
+        );
+      }
+
       return NextResponse.json({
         success: true,
         user: {
@@ -104,6 +111,11 @@ export async function POST(req: NextRequest) {
             role: "CLIENT"
           }
         });
+      } else if (user.passwordHash && user.passwordHash !== "dummy-hash" && user.passwordHash !== password) {
+        return NextResponse.json(
+          { success: false, error: "Senha incorreta para este cadastro de Cliente." },
+          { status: 401 }
+        );
       }
 
       return NextResponse.json({
