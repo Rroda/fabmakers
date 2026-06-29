@@ -129,7 +129,23 @@ export default function Home() {
   
   // --- ESTADOS DE SESSÃO E AUTENTICAÇÃO REAL ---
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; makerStatus?: string } | null>(null);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  
+  // --- ESTADOS DA ÁREA DO CLIENTE EXPANDIDA ---
+  const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "search" | "ai">("upload");
+  const [webSearchQuery, setWebSearchQuery] = useState<string>("");
+  const [webSearchResults, setWebSearchResults] = useState<Array<{ id: string; title: string; image: string; author: string; likes: number; source: string; stlName: string; weightG: number; timeFormatted: string; totalPrice: number }>>([]);
+  const [webSearchLoading, setWebSearchLoading] = useState<boolean>(false);
+  
+  const [aiChatMessages, setAiChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string; recommendedParams?: { filename: string; material: string; infill: number; weightG: number; timeFormatted: string; totalPrice: number } }>>([
+    {
+      role: "assistant",
+      text: "Olá! Eu sou o FabMakers AI, seu assistente inteligente 3D. Me diga o que você precisa fabricar (ou descreva um objeto que viu na internet) e eu indicarei o modelo ideal, o melhor material (PLA, PETG, ABS) e as configurações ideais de preenchimento para cotação!"
+    }
+  ]);
+  const [aiInputText, setAiInputText] = useState<string>("");
+  const [aiLoading, setAiLoading] = useState<boolean>(false);
   const [loginRole, setLoginRole] = useState<"CLIENT" | "MAKER" | "ADMIN">("CLIENT");
   const [loginEmail, setLoginEmail] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
@@ -942,6 +958,103 @@ export default function Home() {
     }).catch(err => console.error("Erro ao alterar banimento no banco:", err));
   };
 
+  // Simula busca em repositórios 3D (Thingiverse, Printables, MakerWorld)
+  const handleWeb3DSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!webSearchQuery.trim()) return;
+    setWebSearchResults([]);
+    setWebSearchLoading(true);
+    
+    // Simulação com tempo de resposta real e dados rústicos ricos
+    setTimeout(() => {
+      const query = webSearchQuery.toLowerCase().trim();
+      const mockDb = [
+        { id: "w1", title: "Suporte de Fone Minimalista", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", author: "3D_Master", likes: 342, source: "MakerWorld", stlName: "suporte_fone_v2.stl", weightG: 45.2, timeFormatted: "2h 15min", totalPrice: 32.50 },
+        { id: "w2", title: "Suporte de Controle Xbox / PS5", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", author: "GamerPrint", likes: 891, source: "Thingiverse", stlName: "xbox_controller_holder.stl", weightG: 38.0, timeFormatted: "1h 50min", totalPrice: 28.90 },
+        { id: "w3", title: "Vaso de Flores Geométrico", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", author: "Flora3D", likes: 1205, source: "Printables", stlName: "geometric_vase_spiral.stl", weightG: 55.0, timeFormatted: "2h 45min", totalPrice: 38.00 },
+        { id: "w4", title: "Organizador de Cabos de Mesa", image: "https://images.unsplash.com/photo-1558489823-84aac22827d2?w=300&auto=format&fit=crop&q=60", author: "NeatDesk", likes: 532, source: "Creality Cloud", stlName: "desk_cable_clip.stl", weightG: 12.5, timeFormatted: "40 min", totalPrice: 15.80 },
+        { id: "w5", title: "Gancho de Bicicleta Reforçado", image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=300&auto=format&fit=crop&q=60", author: "ToughPrints", likes: 624, source: "Printables", stlName: "bike_wall_hook_heavy.stl", weightG: 120.0, timeFormatted: "6h 10min", totalPrice: 85.00 },
+        { id: "w6", title: "Engrenagem Mecânica M10", image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60", author: "Eng3D", likes: 142, source: "MakerOnline", stlName: "gear_m10_spur.stl", weightG: 22.0, timeFormatted: "1h 10min", totalPrice: 22.40 }
+      ];
+
+      // Filtra os resultados com base na busca
+      const filtered = mockDb.filter(item => 
+        item.title.toLowerCase().includes(query) || 
+        item.stlName.toLowerCase().includes(query)
+      );
+
+      setWebSearchResults(filtered.length > 0 ? filtered : mockDb.slice(0, 3));
+      setWebSearchLoading(false);
+    }, 1200);
+  };
+
+  // Enviar mensagem para o Assistente de IA 3D ("FabMakers AI")
+  const handleSendMessageToAI = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiInputText.trim()) return;
+
+    const userText = aiInputText;
+    setAiChatMessages(prev => [...prev, { role: "user", text: userText }]);
+    setAiInputText("");
+    setAiLoading(true);
+
+    setTimeout(() => {
+      let aiResponseText = "";
+      let recommendedParams = undefined;
+
+      const txt = userText.toLowerCase();
+
+      if (txt.includes("fone") || txt.includes("headset")) {
+        aiResponseText = "Excelente ideia! Encontrei um 'Suporte de Fone Minimalista' ideal na nossa rede. Para suportes de fone, recomendo o material PLA (se for apenas repouso decorativo de mesa) ou PETG (se for um suporte fixado por parafusos sob a mesa, devido à flexibilidade). Sugiro 20% de preenchimento (infill) giroidal.";
+        recommendedParams = {
+          filename: "suporte_fone_ia_recom.stl",
+          material: "PLA",
+          infill: 20,
+          weightG: 45.0,
+          timeFormatted: "2h 15min",
+          totalPrice: 32.50
+        };
+      } else if (txt.includes("xbox") || txt.includes("controle") || txt.includes("playstation") || txt.includes("ps5")) {
+        aiResponseText = "Perfeito! Tenho o modelo perfeito para você: 'Suporte de Controle de Console'. Recomendo a fabricação em PLA por ter acabamento visual premium e excelente fidelidade de encaixe. Preenchimento de 15% a 20% é mais do que suficiente.";
+        recommendedParams = {
+          filename: "suporte_controle_console.stl",
+          material: "PLA",
+          infill: 15,
+          weightG: 38.0,
+          timeFormatted: "1h 50min",
+          totalPrice: 28.90
+        };
+      } else if (txt.includes("gancho") || txt.includes("bicicleta") || txt.includes("suporte de parede") || txt.includes("peso") || txt.includes("resistente")) {
+        aiResponseText = "Atenção: Como se trata de um suporte mecânico de alta carga (como gancho de bicicleta), recomendo fortemente o material PETG ou ABS. O PLA é muito quebradiço para cargas constantes. Recomendo 45% de infill (preenchimento) com padrão cúbico ou giroidal para garantir a segurança estrutural.";
+        recommendedParams = {
+          filename: "bike_wall_hook_reinforced.stl",
+          material: "PETG",
+          infill: 45,
+          weightG: 120.0,
+          timeFormatted: "6h 10min",
+          totalPrice: 85.00
+        };
+      } else {
+        aiResponseText = "Compreendi seu projeto! Para a maioria das peças gerais e decorativas, recomendo o material PLA Preto ou PLA Cinza pela excelente precisão estética e custo-benefício. Se for uma peça mecânica funcional exposta a calor ou atrito, o melhor é optar por PETG. Já montei uma proposta técnica média de cotação para você:";
+        recommendedParams = {
+          filename: "projeto_personalizado_ia.stl",
+          material: "PLA",
+          infill: 20,
+          weightG: 30.0,
+          timeFormatted: "1h 30min",
+          totalPrice: 25.00
+        };
+      }
+
+      setAiChatMessages(prev => [...prev, { 
+        role: "assistant", 
+        text: aiResponseText, 
+        recommendedParams 
+      }]);
+      setAiLoading(false);
+    }, 1500);
+  };
+
   // Restaurar conta banida de teste
   const resetMakerTest = () => {
     if (!makerProfile) return;
@@ -1009,10 +1122,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050506] text-[#f4f4f5] flex flex-col font-sans selection:bg-[#d44d00]/30 selection:text-white">
+    <div className={`min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#d44d00]/30 selection:text-white transition-colors duration-300 ${theme}`}>
       
       {/* HEADER TÉCNICO - Minimalista, com logo PNG calibrado */}
-      <header className="border-b border-[#18181b] bg-[#050506] sticky top-0 z-50">
+      <header className="border-b border-[#18181b] bg-background sticky top-0 z-50 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
           <div className="flex items-center gap-8">
             <div 
@@ -1048,6 +1161,14 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Alternador de Tema Híbrido (Light/Dark) */}
+            <button
+              onClick={() => setTheme(prev => prev === "dark" ? "light" : "dark")}
+              className="p-2 border border-[#18181b] hover:bg-[#18181b]/30 rounded-md transition text-xs font-semibold text-[#a1a1aa] hover:text-white cursor-pointer"
+              title={theme === "dark" ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
             {!currentUser ? (
               <>
                 <button
@@ -1239,104 +1360,422 @@ export default function Home() {
 
         {/* TAB 2: PAINEL CLIENTE (STL + HISTÓRICO + MAPA RASTREAMENTO) */}
         {activeTab === "client" && (
-          <div className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <div className="max-w-7xl mx-auto px-6 py-12 space-y-8">
             
-            {/* Lado Esquerdo: Fatiador STL */}
-            <div className="lg:col-span-7 space-y-8">
-              <div>
-                <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Área de Cotação de Geometria</h2>
-                <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
-                  Faça o upload do seu arquivo STL. Nosso motor calcula instantaneamente o faturamento e inicia o roteamento para a fazenda de impressão mais próxima.
-                </p>
-              </div>
-
-              {/* Upload */}
-              <div
-                onDragEnter={handleDrag}
-                onDragOver={handleDrag}
-                onDragLeave={handleDrag}
-                onDrop={handleDrop}
-                className={`border-2 border-dashed rounded p-10 text-center transition ${
-                  isDragActive 
-                    ? "border-[#d44d00] bg-[#d44d00]/5" 
-                    : file 
-                      ? "border-[#10b981]/30 bg-[#10b981]/2" 
-                      : "border-[#18181b] hover:border-[#27272a] bg-[#09090b]"
+            {/* SUB-ABAS DA JORNADA DO CLIENTE */}
+            <div className="flex flex-wrap gap-2 border-b border-[#18181b]/50 pb-4">
+              <button
+                onClick={() => setClientSubTab("upload")}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                  clientSubTab === "upload"
+                    ? "bg-[#d44d00] text-white"
+                    : "border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b]"
                 }`}
               >
-                <input ref={fileInputRef} type="file" accept=".stl" onChange={handleFileChange} className="hidden" />
+                📁 Fatiador STL
+              </button>
+              <button
+                onClick={() => setClientSubTab("gallery")}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                  clientSubTab === "gallery"
+                    ? "bg-[#d44d00] text-white"
+                    : "border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b]"
+                }`}
+              >
+                🖼️ Galeria de Modelos
+              </button>
+              <button
+                onClick={() => setClientSubTab("search")}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                  clientSubTab === "search"
+                    ? "bg-[#d44d00] text-white"
+                    : "border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b]"
+                }`}
+              >
+                🌐 Buscar na Web 3D
+              </button>
+              <button
+                onClick={() => setClientSubTab("ai")}
+                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                  clientSubTab === "ai"
+                    ? "bg-[#d44d00] text-white"
+                    : "border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b]"
+                }`}
+              >
+                🤖 Assistente de IA 3D
+              </button>
+            </div>
 
-                {!file ? (
-                  <div className="space-y-4">
-                    <div className="w-10 h-10 rounded bg-[#18181b] flex items-center justify-center mx-auto border border-[#27272a]">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#a1a1aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                      </svg>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+              
+              {/* Lado Esquerdo: Ferramenta Dinâmica de acordo com a Sub-Aba selecionada */}
+              <div className="lg:col-span-7 space-y-8">
+                
+                {/* 1. Sub-Aba: UPLOAD STL (Fatiador atual) */}
+                {clientSubTab === "upload" && (
+                  <>
                     <div>
-                      <button onClick={handleBrowseFiles} className="text-[#d44d00] hover:text-[#b04000] font-semibold text-xs cursor-pointer">
-                        Selecione seu arquivo STL
-                      </button>
-                      <p className="text-[10px] text-[#71717a] mt-1">Arraste o arquivo geométrico</p>
+                      <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Área de Cotação de Geometria</h2>
+                      <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
+                        Faça o upload do seu arquivo STL. Nosso motor calcula instantaneamente o faturamento e inicia o roteamento para a fazenda de impressão mais próxima.
+                      </p>
                     </div>
-                    <button onClick={handleSimulateExample} className="text-[9px] mono-text text-[#a1a1aa] hover:text-white bg-[#18181b] px-3 py-1.5 rounded border border-[#27272a] transition">
-                      💡 Usar Engrenagem de Exemplo
-                    </button>
+
+                    {/* Upload */}
+                    <div
+                      onDragEnter={handleDrag}
+                      onDragOver={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDrop={handleDrop}
+                      className={`border-2 border-dashed rounded p-10 text-center transition ${
+                        isDragActive 
+                          ? "border-[#d44d00] bg-[#d44d00]/5" 
+                          : file 
+                            ? "border-[#10b981]/30 bg-[#10b981]/2" 
+                            : "border-[#18181b] hover:border-[#27272a] bg-[#09090b]"
+                      }`}
+                    >
+                      <input ref={fileInputRef} type="file" accept=".stl" onChange={handleFileChange} className="hidden" />
+
+                      {!file ? (
+                        <div className="space-y-4">
+                          <div className="w-10 h-10 rounded bg-[#18181b] flex items-center justify-center mx-auto border border-[#27272a]">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#a1a1aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                          </div>
+                          <div>
+                            <button onClick={handleBrowseFiles} className="text-[#d44d00] hover:text-[#b04000] font-semibold text-xs cursor-pointer">
+                              Selecione seu arquivo STL
+                            </button>
+                            <p className="text-[10px] text-[#71717a] mt-1">Arraste o arquivo geométrico</p>
+                          </div>
+                          <button onClick={handleSimulateExample} className="text-[9px] mono-text text-[#a1a1aa] hover:text-white bg-[#18181b] px-3 py-1.5 rounded border border-[#27272a] transition cursor-pointer">
+                            💡 Usar Engrenagem de Exemplo
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between items-center bg-[#18181b]/50 border border-[#27272a] p-4 rounded">
+                          <div className="flex items-center gap-3 text-left">
+                            <div className="w-8 h-8 rounded bg-[#10b981]/15 text-[#10b981] flex items-center justify-center border border-[#10b981]/20">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-white text-xs truncate max-w-[200px] mono-text">{file.name}</h4>
+                              <p className="text-[9px] text-[#71717a]">Arquivo de engenharia carregado</p>
+                            </div>
+                          </div>
+                          <button onClick={handleClear} className="text-[#71717a] hover:text-red-400 p-1.5 hover:bg-[#18181b] rounded transition">
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Parâmetros */}
+                    <div className="technical-panel rounded p-6 space-y-6">
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">Configurações Físicas</h3>
+                      
+                      <div className="space-y-3">
+                        <label className="text-[10px] font-semibold text-[#a1a1aa] uppercase tracking-wider mono-text">Material do Filamento</label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {["PLA", "ABS", "PETG", "Resina"].map((mat) => (
+                            <button
+                              key={mat}
+                              onClick={() => handleMaterialChange(mat)}
+                              className={`p-2 border text-xs font-semibold transition rounded cursor-pointer ${
+                                material === mat ? "border-[#d44d00] bg-[#d44d00]/5 text-white" : "border-[#18181b] bg-[#050506] text-[#71717a] hover:border-[#27272a]"
+                              }`}
+                            >
+                              {mat}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px] text-[#a1a1aa] uppercase tracking-wider mono-text">
+                          <label>Densidade Interna (Infill)</label>
+                          <span className="text-[#d44d00]">{infill}%</span>
+                        </div>
+                        <input
+                          type="range" min="10" max="100" step="5" value={infill}
+                          onChange={(e) => handleInfillChange(parseInt(e.target.value))}
+                          className="w-full accent-[#d44d00] h-1 bg-[#18181b] rounded-lg appearance-none cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* 2. Sub-Aba: GALERIA DE MODELOS PRONTOS */}
+                {clientSubTab === "gallery" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Galeria da Rede FabMakers</h2>
+                      <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
+                        Escolha um dos modelos homologados e criados por designers da nossa rede para imprimir diretamente.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {[
+                        { id: "g1", title: "Suporte de Fone de Ouvido", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", weightG: 45.0, timeFormatted: "2h 15min", totalPrice: 32.50, material: "PLA", stlName: "suporte_fone_v2.stl" },
+                        { id: "g2", title: "Vaso de Decoração Espiral", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", weightG: 55.0, timeFormatted: "2h 45min", totalPrice: 38.00, material: "PLA", stlName: "geometric_vase.stl" },
+                        { id: "g3", title: "Suporte de Controle Xbox", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", weightG: 38.0, timeFormatted: "1h 50min", totalPrice: 28.90, material: "PLA", stlName: "xbox_stand.stl" },
+                        { id: "g4", title: "Gancho de Parede Reforçado", image: "https://images.unsplash.com/photo-1558489823-84aac22827d2?w=300&auto=format&fit=crop&q=60", weightG: 120.0, timeFormatted: "6h 10min", totalPrice: 85.00, material: "PETG", stlName: "bike_hook.stl" }
+                      ].map((item) => (
+                        <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
+                          <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
+                            <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                            <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">Royalty Zero</span>
+                          </div>
+                          <div className="p-4 space-y-4 flex-grow flex flex-col justify-between">
+                            <div>
+                              <h4 className="font-bold text-white text-sm leading-tight">{item.title}</h4>
+                              <p className="text-[10px] text-[#71717a] mt-1">Material sugerido: <span className="text-[#a1a1aa] font-bold">{item.material}</span> | Peso: {item.weightG}g</p>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
+                              <span className="text-sm font-extrabold text-white mono-text">R$ {item.totalPrice.toFixed(2)}</span>
+                              <button
+                                onClick={() => {
+                                  // Injeta os dados da galeria no Quote
+                                  setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
+                                  setMaterial(item.material);
+                                  setQuote({
+                                    success: true,
+                                    filename: item.stlName,
+                                    trianglesCount: 15420,
+                                    boundingBox: { width: 120, depth: 80, height: 160 },
+                                    metrics: {
+                                      rawVolumeMm3: 36000,
+                                      realVolumeCm3: 36.0,
+                                      weightG: item.weightG,
+                                      timeHours: item.weightG / 18,
+                                      timeFormatted: item.timeFormatted
+                                    },
+                                    pricing: {
+                                      materialCost: item.weightG * 0.12,
+                                      machineCost: (item.weightG / 18) * 12,
+                                      makerProfit: (item.weightG * 0.12 + (item.weightG / 18) * 12) * 0.40,
+                                      makerPayout: item.totalPrice * 0.80,
+                                      platformFee: item.totalPrice * 0.20,
+                                      royaltyPrice: 0.0,
+                                      totalPrice: item.totalPrice
+                                    }
+                                  });
+                                  setClientZip("01001-000"); // CEP padrão para teste rápido
+                                  alert(`Modelo "${item.title}" importado e cotado com sucesso! Agora configure o CEP para fechar o pedido.`);
+                                  setClientSubTab("upload"); // Joga para a cotação fatiador
+                                }}
+                                className="px-3 py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-white text-[10px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                              >
+                                Selecionar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <div className="flex justify-between items-center bg-[#18181b]/50 border border-[#27272a] p-4 rounded">
-                    <div className="flex items-center gap-3 text-left">
-                      <div className="w-8 h-8 rounded bg-[#10b981]/15 text-[#10b981] flex items-center justify-center border border-[#10b981]/20">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-white text-xs truncate max-w-[200px] mono-text">{file.name}</h4>
-                        <p className="text-[9px] text-[#71717a]">Arquivo de engenharia carregado</p>
-                      </div>
+                )}
+
+                {/* 3. Sub-Aba: BUSCA WEB 3D */}
+                {clientSubTab === "search" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Pesquisa Integrada Web 3D</h2>
+                      <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
+                        Pesquise modelos prontos em repositórios abertos mundiais (MakerWorld, Printables, Thingiverse) e importe diretamente para cotação.
+                      </p>
                     </div>
-                    <button onClick={handleClear} className="text-[#71717a] hover:text-red-400 p-1.5 hover:bg-[#18181b] rounded transition">
-                      ✕
-                    </button>
+
+                    <form onSubmit={handleWeb3DSearch} className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Busque por 'suporte xbox', 'gancho', 'vaso'..."
+                        value={webSearchQuery}
+                        onChange={(e) => setWebSearchQuery(e.target.value)}
+                        className="flex-grow bg-[#09090b] border border-[#18181b] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                      />
+                      <button
+                        type="submit"
+                        disabled={webSearchLoading}
+                        className="px-6 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer flex items-center gap-2"
+                      >
+                        {webSearchLoading ? "Buscando..." : "Pesquisar"}
+                      </button>
+                    </form>
+
+                    {webSearchLoading && (
+                      <div className="py-12 text-center">
+                        <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin mx-auto"></div>
+                        <p className="text-[10px] text-[#71717a] mt-3">Agregando resultados das APIs globais 3D...</p>
+                      </div>
+                    )}
+
+                    {!webSearchLoading && webSearchResults.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {webSearchResults.map((item) => (
+                          <div key={item.id} className="bg-[#09090b] border border-[#18181b] p-4 rounded-lg flex gap-4 items-center hover:border-[#d44d00]/30 transition">
+                            <div className="w-20 h-20 rounded bg-[#18181b] overflow-hidden flex-shrink-0">
+                              <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-grow space-y-1.5 min-w-0">
+                              <span className="text-[8px] bg-[#18181b] text-[#a1a1aa] px-1.5 py-0.5 rounded border border-[#27272a] uppercase font-bold tracking-wider mono-text inline-block">{item.source}</span>
+                              <h4 className="font-bold text-white text-xs truncate leading-tight">{item.title}</h4>
+                              <p className="text-[9px] text-[#71717a] truncate">Por: {item.author} | {item.likes} likes</p>
+                              <button
+                                onClick={() => {
+                                  // Injeta os dados da busca no Quote
+                                  setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
+                                  setMaterial("PLA");
+                                  setQuote({
+                                    success: true,
+                                    filename: item.stlName,
+                                    trianglesCount: 12450,
+                                    boundingBox: { width: 100, depth: 100, height: 120 },
+                                    metrics: {
+                                      rawVolumeMm3: item.weightG * 1000,
+                                      realVolumeCm3: item.weightG / 1.2,
+                                      weightG: item.weightG,
+                                      timeHours: item.weightG / 18,
+                                      timeFormatted: item.timeFormatted
+                                    },
+                                    pricing: {
+                                      materialCost: item.weightG * 0.12,
+                                      machineCost: (item.weightG / 18) * 12,
+                                      makerProfit: (item.weightG * 0.12 + (item.weightG / 18) * 12) * 0.40,
+                                      makerPayout: item.totalPrice * 0.80,
+                                      platformFee: item.totalPrice * 0.20,
+                                      royaltyPrice: 0.0,
+                                      totalPrice: item.totalPrice
+                                    }
+                                  });
+                                  setClientZip("01001-000");
+                                  alert(`Modelo "${item.title}" importado com sucesso da ${item.source}! Agora informe o CEP para fechar o pedido.`);
+                                  setClientSubTab("upload"); // Joga para a cotação fatiador
+                                }}
+                                className="text-[10px] text-[#d44d00] hover:text-[#b04000] font-bold uppercase tracking-wider block cursor-pointer"
+                              >
+                                Importar e Cotar →
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 4. Sub-Aba: ASSISTENTE DE IA 3D */}
+                {clientSubTab === "ai" && (
+                  <div className="space-y-6">
+                    <div>
+                      <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Idealizador de Projetos IA</h2>
+                      <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
+                        Descreva em linguagem natural o que você quer fabricar. A IA indicará o material técnico adequado e proporá um orçamento correspondente.
+                      </p>
+                    </div>
+
+                    {/* Janela de Chat */}
+                    <div className="border border-[#18181b] bg-[#09090b] rounded-lg p-4 space-y-4 max-h-[350px] overflow-y-auto">
+                      {aiChatMessages.map((msg, idx) => (
+                        <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                          <div className={`max-w-[85%] rounded p-3 text-xs space-y-3 ${
+                            msg.role === "user" 
+                              ? "bg-[#d44d00]/15 text-[#f4f4f5] border border-[#d44d00]/30" 
+                              : "bg-[#18181b] text-[#a1a1aa] border border-[#27272a]"
+                          }`}>
+                            <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                            
+                            {/* Proposta Paramétrica se houver */}
+                            {msg.recommendedParams && (
+                              <div className="bg-[#050506] border border-[#18181b] p-3 rounded space-y-2 mt-2">
+                                <span className="text-[9px] uppercase tracking-wider font-bold text-[#d44d00] block mono-text">Parâmetros de Fabricação Sugeridos</span>
+                                <div className="grid grid-cols-2 gap-2 text-[10px] text-[#71717a] border-b border-[#18181b] pb-2">
+                                  <div>Arquivo: <span className="text-white font-bold">{msg.recommendedParams.filename}</span></div>
+                                  <div>Material: <span className="text-white font-bold">{msg.recommendedParams.material}</span></div>
+                                  <div>Preenchimento (Infill): <span className="text-white font-bold">{msg.recommendedParams.infill}%</span></div>
+                                  <div>Peso Estimado: <span className="text-white font-bold">{msg.recommendedParams.weightG}g</span></div>
+                                </div>
+                                <div className="flex justify-between items-center pt-1">
+                                  <span className="text-xs font-bold text-white mono-text">Orçamento: R$ {msg.recommendedParams.totalPrice.toFixed(2)}</span>
+                                  <button
+                                    onClick={() => {
+                                      setFile(new File([new ArrayBuffer(100)], msg.recommendedParams!.filename, { type: "application/sla" }));
+                                      setMaterial(msg.recommendedParams!.material);
+                                      setInfill(msg.recommendedParams!.infill);
+                                      setQuote({
+                                        success: true,
+                                        filename: msg.recommendedParams!.filename,
+                                        trianglesCount: 18450,
+                                        boundingBox: { width: 140, depth: 100, height: 80 },
+                                        metrics: {
+                                          rawVolumeMm3: msg.recommendedParams!.weightG * 1000,
+                                          realVolumeCm3: msg.recommendedParams!.weightG / 1.2,
+                                          weightG: msg.recommendedParams!.weightG,
+                                          timeHours: msg.recommendedParams!.weightG / 18,
+                                          timeFormatted: msg.recommendedParams!.timeFormatted
+                                        },
+                                        pricing: {
+                                          materialCost: msg.recommendedParams!.weightG * 0.12,
+                                          machineCost: (msg.recommendedParams!.weightG / 18) * 12,
+                                          makerProfit: (msg.recommendedParams!.weightG * 0.12 + (msg.recommendedParams!.weightG / 18) * 12) * 0.40,
+                                          makerPayout: msg.recommendedParams!.totalPrice * 0.80,
+                                          platformFee: msg.recommendedParams!.totalPrice * 0.20,
+                                          royaltyPrice: 0.0,
+                                          totalPrice: msg.recommendedParams!.totalPrice
+                                        }
+                                      });
+                                      setClientZip("01001-000");
+                                      alert(`Orçamento da IA "${msg.recommendedParams!.filename}" aceito e carregado! Informe o CEP para rotear para o fabricante.`);
+                                      setClientSubTab("upload"); // Joga para a cotação fatiador
+                                    }}
+                                    className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-white text-[9px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                  >
+                                    Aceitar Proposta & Cotar
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+
+                      {aiLoading && (
+                        <div className="flex justify-start">
+                          <div className="bg-[#18181b] border border-[#27272a] rounded p-3 flex gap-2 items-center">
+                            <span className="w-1.5 h-1.5 bg-[#d44d00] rounded-full animate-bounce"></span>
+                            <span className="w-1.5 h-1.5 bg-[#d44d00] rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                            <span className="w-1.5 h-1.5 bg-[#d44d00] rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chat Form */}
+                    <form onSubmit={handleSendMessageToAI} className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Descreva a sua ideia (ex: 'quero um suporte de fone resistente'...)"
+                        value={aiInputText}
+                        onChange={(e) => setAiInputText(e.target.value)}
+                        className="flex-grow bg-[#09090b] border border-[#18181b] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                      />
+                      <button
+                        type="submit"
+                        disabled={aiLoading}
+                        className="px-6 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                      >
+                        Enviar
+                      </button>
+                    </form>
                   </div>
                 )}
               </div>
-
-              {/* Parâmetros */}
-              <div className="technical-panel rounded p-6 space-y-6">
-                <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">Configurações Físicas</h3>
-                
-                <div className="space-y-3">
-                  <label className="text-[10px] font-semibold text-[#a1a1aa] uppercase tracking-wider mono-text">Material do Filamento</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {["PLA", "ABS", "PETG", "Resina"].map((mat) => (
-                      <button
-                        key={mat}
-                        onClick={() => handleMaterialChange(mat)}
-                        className={`p-2 border text-xs font-semibold transition rounded ${
-                          material === mat ? "border-[#d44d00] bg-[#d44d00]/5 text-white" : "border-[#18181b] bg-[#050506] text-[#71717a] hover:border-[#27272a]"
-                        }`}
-                      >
-                        {mat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center text-[10px] text-[#a1a1aa] uppercase tracking-wider mono-text">
-                    <label>Densidade Interna (Infill)</label>
-                    <span className="text-[#d44d00]">{infill}%</span>
-                  </div>
-                  <input
-                    type="range" min="10" max="100" step="5" value={infill}
-                    onChange={(e) => handleInfillChange(parseInt(e.target.value))}
-                    className="w-full accent-[#d44d00] h-1 bg-[#18181b] rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
 
             {/* Lado Direito: Resultados, Histórico de Pedidos e Rastreamento */}
             <div className="lg:col-span-5 space-y-8">
@@ -1557,9 +1996,9 @@ export default function Home() {
                 </div>
               </div>
             </div>
-
           </div>
-        )}
+        </div>
+      )}
 
         {/* TAB 3: PAINEL MAKER (CADASTRO PASSO A PASSO + NOTIFICAÇÕES UBER + REPUTAÇÃO E BANIMENTO) */}
         {activeTab === "maker" && (

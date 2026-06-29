@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 :root {
+  /* Padrão: Tema Escuro (Dark Mode) */
   --background: #050506;
   --foreground: #f4f4f5;
   --accent-primary: #d44d00;
@@ -11,6 +12,28 @@
   --zinc-700: #27272a;
   --zinc-600: #3f3f46;
   --zinc-400: #a1a1aa;
+  --glow-color: 212, 77, 0;
+  --glow-opacity: 0.15;
+  --glass-bg: rgba(9, 9, 11, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Tema Claro (Light Mode) */
+.light {
+  --background: #fafafa;
+  --foreground: #18181b;
+  --accent-primary: #d44d00;
+  --accent-secondary: #e4e4e7;
+  --success: #10b981;
+  --zinc-900: #ffffff;
+  --zinc-800: #e4e4e7;
+  --zinc-700: #d4d4d8;
+  --zinc-600: #a1a1aa;
+  --zinc-400: #71717a;
+  --glow-color: 212, 77, 0;
+  --glow-opacity: 0.05;
+  --glass-bg: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(0, 0, 0, 0.06);
 }
 
 @theme inline {
@@ -26,6 +49,7 @@ body {
   color: var(--foreground);
   min-height: 100vh;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Estilo Técnico Industrial - Sem Neons */
@@ -44,6 +68,14 @@ body {
 .technical-panel {
   background: var(--zinc-900);
   border: 1px solid var(--zinc-800);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mono-text {
@@ -68,5 +100,45 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--zinc-700);
 }
+
+/* Animações Premium chaves */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-12px) rotate(1deg); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(12px) rotate(-1deg); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.1); }
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 8s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
+}
+
+.animate-dash {
+  stroke-dasharray: 6, 12;
+  animation: dash 4s linear infinite;
+}
+
 
 
