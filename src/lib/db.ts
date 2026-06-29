@@ -2,16 +2,21 @@ import { PrismaClient } from '@prisma/client'
 import { createClient } from '@libsql/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 
+// Resolve a URL de conexão com validação estrita contra strings "undefined"
+const rawTursoUrl = process.env.TURSO_DATABASE_URL;
+const dbUrl = (rawTursoUrl && rawTursoUrl !== "undefined" && rawTursoUrl !== "") 
+  ? rawTursoUrl 
+  : "file:./dev.db";
+
 // Injeta fallback de variável de ambiente exigida pelo validador interno do Prisma v7
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = "file:./dev.db"
+if (!process.env.DATABASE_URL || process.env.DATABASE_URL === "undefined" || process.env.DATABASE_URL === "") {
+  process.env.DATABASE_URL = dbUrl;
 }
 
 // Conexão unificada do Banco de Dados FAB MAKERS (Local via dev.db ou Nuvem via Turso)
-
 const libsql = createClient({
-  url: process.env.TURSO_DATABASE_URL || "file:./dev.db",
-  authToken: process.env.TURSO_AUTH_TOKEN || undefined,
+  url: dbUrl,
+  authToken: process.env.TURSO_AUTH_TOKEN && process.env.TURSO_AUTH_TOKEN !== "undefined" ? process.env.TURSO_AUTH_TOKEN : undefined,
 })
 
 const adapter = new PrismaLibSql(libsql as any)
