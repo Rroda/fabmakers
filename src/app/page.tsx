@@ -323,7 +323,7 @@ export default function Home() {
     }
   ]);
 
-  // Push notification simulado para o Maker (estilo Uber)
+  // Push notification simulado para o Maker (Roteamento Descentralizado)
   const [activeJobOffer, setActiveJobOffer] = useState<SimulatedOrder | null>(null);
   const [offerTimer, setOfferTimer] = useState<number>(30);
 
@@ -460,7 +460,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // Simulação do Timer da Oferta UBER no Maker
+  // Simulação do Timer da Oferta de Despacho no Maker
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (activeJobOffer && offerTimer > 0) {
@@ -477,7 +477,7 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [activeJobOffer, offerTimer]);
 
-  // Se um pedido entra em WAITING_MAKER, e temos um Maker logado e aprovado, dispara a oferta estilo Uber
+  // Se um pedido entra em WAITING_MAKER, e temos um Maker logado e aprovado, dispara a oferta sob demanda
   useEffect(() => {
     const pendingOrder = orders.find(o => o.status === "WAITING_MAKER");
     if (pendingOrder && makerProfile && makerProfile.isApproved && !makerProfile.isBanned && !activeJobOffer) {
@@ -708,7 +708,7 @@ export default function Home() {
     alert(`Pedido #${newOrder.id} enviado para o roteador geolocalizado! Os makers nas proximidades receberão o Push.`);
   };
 
-  // --- FUNÇÕES DO MAKER (WIZARD & UBER FLOW) ---
+  // --- FUNÇÕES DO MAKER (WIZARD & DESPACHO SOB DEMANDA) ---
   
   // Concluir cadastro do Maker (Envia solicitação para aprovação do Admin)
   const handleRegisterMaker = () => {
@@ -843,7 +843,7 @@ export default function Home() {
     }
   };
 
-  // Aceitar Job (Uber Flow)
+  // Aceitar Job (Roteamento P2P)
   const acceptJob = () => {
     if (!activeJobOffer || !makerProfile) return;
 
@@ -858,7 +858,7 @@ export default function Home() {
     alert(`Trabalho #${activeJobOffer.id} aceito com sucesso! Iniciando fatiamento e conexão G-Code...`);
   };
 
-  // Rejeitar Job (Uber Flow)
+  // Rejeitar Job (Roteamento P2P)
   const rejectJob = () => {
     if (!activeJobOffer) return;
     setActiveJobOffer(null);
@@ -1279,7 +1279,7 @@ export default function Home() {
                       <span className="text-[#d44d00]">Nós fabricamos e entregamos para você.</span>
                     </h1>
                     <p className="text-xs text-[#a1a1aa] leading-relaxed max-w-xl">
-                      Cote seu modelo 3D em segundos. Roteamos sua peça para a rede de makers locais (hobbistas e bureaus industriais). O primeiro fabricante disponível aceita a cotação e inicia a produção imediatamente. Intermediação segura estilo Uber!
+                      Cote seu modelo 3D em segundos. Roteamos sua peça para a rede de makers locais (hobbistas e bureaus industriais). O primeiro fabricante disponível aceita a cotação e inicia a produção imediatamente. Intermediação digital segura sob demanda!
                     </p>
                     <div className="flex flex-wrap gap-4 pt-2">
                       <button
@@ -1333,8 +1333,8 @@ export default function Home() {
                         <div className="flex gap-3">
                           <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">3</span>
                           <div>
-                            <h4 className="font-bold text-white">Disparo estilo Uber</h4>
-                            <p className="text-[10px] text-[#71717a] mt-0.5">Ao confirmar o pedido logado, a ordem vai para o radar e o primeiro maker local aceita e produz.</p>
+                            <h4 className="font-bold text-white">Despacho sob Demanda</h4>
+                            <p className="text-[10px] text-[#71717a] mt-0.5">Ao confirmar o pedido logado, a ordem vai para o radar geral e o primeiro maker local aceita e inicia a manufatura.</p>
                           </div>
                         </div>
                       </div>
@@ -2185,7 +2185,7 @@ export default function Home() {
         </div>
       )}
 
-        {/* TAB 3: PAINEL MAKER (CADASTRO PASSO A PASSO + NOTIFICAÇÕES UBER + REPUTAÇÃO E BANIMENTO) */}
+        {/* TAB 3: PAINEL MAKER (CADASTRO PASSO A PASSO + NOTIFICAÇÕES SOB DEMANDA + REPUTAÇÃO E BANIMENTO) */}
         {activeTab === "maker" && (
           <div className="max-w-7xl mx-auto px-6 py-12">
 {/* 1. SE O MAKER NÃO ESTÁ CADASTRADO: WIZARD DE CADASTRO DETALHADO */}
@@ -2290,14 +2290,14 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* PASSO 2: CONTRATO SLA (UBER/AIRBNB-STYLE) */}
+                  {/* PASSO 2: CONTRATO SLA (INTERMEDIAÇÃO DESCENTRALIZADA) */}
                   {wizardStep === 2 && (
                     <div className="space-y-6">
                       <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Contrato de Credenciamento, Parceria & Isenção Tributária (Taxa 5%)</h3>
                       
                       {/* Corpo do Contrato */}
                       <div className="h-64 overflow-y-auto border border-[#18181b] p-4 bg-[#050506] rounded space-y-4 text-[10px] text-[#a1a1aa] leading-relaxed">
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">1. DA NATUREZA DA INTERMEDIAÇÃO (AIRBNB-STYLE)</h4>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">1. DA NATUREZA DA INTERMEDIAÇÃO DIGITAL P2P</h4>
                         <p>
                           A FAB MAKERS atua exclusivamente como provedora de infraestrutura tecnológica e de intermediação comercial. A plataforma conecta de forma algorítmica a lei da oferta e da procura: de um lado, clientes demandantes de peças customizadas; de outro, Makers (Pessoas Físicas operando hardware ocioso doméstico ou Empresas/Bureaus corporativos de manufatura). O Maker declara estar ciente de que não há qualquer vínculo empregatício ou societário com a FAB MAKERS.
                         </p>
@@ -2890,10 +2890,10 @@ export default function Home() {
                     
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     
-                    {/* UBER JOB FLOW: NOTIFICAÇÃO PUSH DE TRABALHOS PRÓXIMOS */}
+                    {/* RADAR DE SERVIÇOS: NOTIFICAÇÃO PUSH DE TRABALHOS PRÓXIMOS */}
                     <div className="lg:col-span-8 space-y-6">
                       
-                      {/* Uber Push Alerta */}
+                      {/* Push Alerta Geral */}
                       {activeJobOffer ? (
                         <div className="border-2 border-[#d44d00] bg-[#d44d00]/5 p-6 rounded space-y-4 animate-pulse relative overflow-hidden">
                           {/* Efeito de laser minimalista rodando */}
@@ -2906,7 +2906,7 @@ export default function Home() {
                               <p className="text-[11px] text-[#a1a1aa] mt-1">Material exigido: <span className="text-white font-bold">{activeJobOffer.material}</span> | Peso: {activeJobOffer.weightG}g</p>
                             </div>
                             
-                            {/* Cronômetro estilo Uber */}
+                            {/* Cronômetro de Aceite */}
                             <div className="text-right">
                               <span className="text-[8px] uppercase tracking-widest text-[#71717a] block mono-text">Timer de Aceite</span>
                               <span className="text-2xl font-bold text-red-500 mono-text">{offerTimer}s</span>
@@ -2944,10 +2944,10 @@ export default function Home() {
                           </div>
                         </div>
                       ) : (
-                        /* RADAR GERAL UBER-STYLE (LEI DA OFERTA E DA PROCURA) */
+                        /* RADAR GERAL DESCENTRALIZADO (LEI DA OFERTA E DA PROCURA) */
                         <div className="technical-panel rounded overflow-hidden space-y-4">
                           <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b] flex justify-between items-center">
-                            <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Radar Geral de Ofertas (Uber-Style)</h3>
+                            <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Radar Geral de Demandas</h3>
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping"></span>
                               <span className="text-[9px] text-[#a1a1aa] font-bold uppercase tracking-wider mono-text">Buscando...</span>
