@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+
+export const dynamic = 'force-dynamic';
 
 // POST /api/auth/login - Autenticação baseada em perfis reais
 export async function POST(req: NextRequest) {
   try {
+    // Import dinâmico garante que db.ts só é inicializado em runtime,
+    // com todas as variáveis de ambiente da Vercel já carregadas
+    const { prisma } = await import("@/lib/db");
+    
     const data = await req.json();
     const { email, password, role } = data;
 
@@ -34,16 +39,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. Fluxo do Maker (Precisa existir na tabela User / MakerProfile)
+    // 2. Fluxo do Maker
     if (role === "MAKER") {
       const user = await prisma.user.findFirst({
-        where: {
-          email: cleanEmail,
-          role: "MAKER"
-        },
-        include: {
-          makerProfile: true
-        }
+        where: { email: cleanEmail, role: "MAKER" },
+        include: { makerProfile: true }
       });
 
       if (!user) {
@@ -89,20 +89,15 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. Fluxo do Cliente (Cria a conta automática na primeira cotação se não existir)
+    // 3. Fluxo do Cliente
     if (role === "CLIENT") {
       let user = await prisma.user.findFirst({
-        where: {
-          email: cleanEmail,
-          role: "CLIENT"
-        }
+        where: { email: cleanEmail, role: "CLIENT" }
       });
 
       if (!user) {
-        // Criação automática rápida para demonstração sem atritos
         const baseName = cleanEmail.split("@")[0];
         const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
-        
         user = await prisma.user.create({
           data: {
             name: formattedName,
@@ -120,11 +115,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        user: {
-          name: user.name,
-          email: user.email,
-          role: "CLIENT"
-        }
+        user: { name: user.name, email: user.email, role: "CLIENT" }
       });
     }
 
@@ -133,10 +124,11 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
 
-  } catch (error: any) {
-    console.error("Erro na autenticação de login:", error);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Erro na autenticação:", msg);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: msg },
       { status: 500 }
     );
   }

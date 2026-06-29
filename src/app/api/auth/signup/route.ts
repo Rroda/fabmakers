@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+
+export const dynamic = 'force-dynamic';
 
 // POST /api/auth/signup - Cadastro real de Clientes e Makers
 export async function POST(req: NextRequest) {
   try {
+    const { prisma } = await import("@/lib/db");
+
     const data = await req.json();
     const { name, email, password, role } = data;
 
@@ -16,12 +19,8 @@ export async function POST(req: NextRequest) {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Verifica se já existe um usuário com o mesmo e-mail e perfil
     const existingUser = await prisma.user.findFirst({
-      where: {
-        email: cleanEmail,
-        role: role
-      }
+      where: { email: cleanEmail, role: role }
     });
 
     if (existingUser) {
@@ -31,17 +30,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Cria o usuário
     const user = await prisma.user.create({
       data: {
         name,
         email: cleanEmail,
-        passwordHash: password, // Texto simples por simplicidade no protótipo local
+        passwordHash: password,
         role
       }
     });
 
-    // Se for MAKER, inicializa também o MakerProfile vazio
     let makerProfileData = null;
     if (role === "MAKER") {
       const profile = await prisma.makerProfile.create({
@@ -55,7 +52,6 @@ export async function POST(req: NextRequest) {
           makerStatus: "UNVERIFIED"
         }
       });
-      
       makerProfileData = {
         id: profile.id,
         city: profile.city,
@@ -81,10 +77,11 @@ export async function POST(req: NextRequest) {
       }
     });
 
-  } catch (error: any) {
-    console.error("Erro no cadastro de usuário:", error);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Erro no cadastro:", msg);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: msg },
       { status: 500 }
     );
   }

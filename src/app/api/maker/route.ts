@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+
+export const dynamic = 'force-dynamic';
 
 // GET /api/maker - Lista todos os makers cadastrados no banco
 export async function GET() {
   try {
-    const profiles = await prisma.makerProfile.findMany({
-      include: {
-        user: true
-      }
-    });
+    const { prisma } = await import("@/lib/db");
 
-    // Mapeia para o formato que o frontend espera
+    const profiles = await prisma.makerProfile.findMany({ include: { user: true } });
+
     const formattedMakers = profiles.map(p => ({
       name: p.user.name,
-      zipCode: p.user.verificationToken || p.city, // usa o zipCode salvo ou cidade
+      zipCode: p.user.verificationToken || p.city,
       rating: p.rating,
       penalties: p.penaltiesCount,
       isBanned: p.isBanned,
@@ -31,17 +29,20 @@ export async function GET() {
     }));
 
     return NextResponse.json({ success: true, makers: formattedMakers });
-  } catch (error: any) {
-    console.error("Erro ao listar makers:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Erro ao listar makers:", msg);
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
 
 // POST /api/maker - Salva ou atualiza um cadastro de Maker
 export async function POST(req: NextRequest) {
   try {
+    const { prisma } = await import("@/lib/db");
+
     const data = await req.json();
-    const { 
+    const {
       name, email, zipCode, machines, filaments, availability,
       makerStatus, calibX, calibY, calibZ, calibImageUrl,
       kycDocumentName, kycSelfieName, contractAccepted
@@ -51,35 +52,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Nome e e-mail são obrigatórios." }, { status: 400 });
     }
 
-    // Busca ou cria o usuário
-    let user = await prisma.user.findUnique({
-      where: { email }
-    });
-
+    let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       user = await prisma.user.create({
-        data: {
-          name,
-          email,
-          passwordHash: "dummy-hash", // simplificação para teste local
-          role: "MAKER",
-          verificationToken: zipCode
-        }
+        data: { name, email, passwordHash: "dummy-hash", role: "MAKER", verificationToken: zipCode }
       });
     } else {
-      user = await prisma.user.update({
-        where: { email },
-        data: { name, verificationToken: zipCode }
-      });
+      user = await prisma.user.update({ where: { email }, data: { name, verificationToken: zipCode } });
     }
 
-    // Busca ou cria o perfil de Maker
-    let profile = await prisma.makerProfile.findUnique({
-      where: { userId: user.id }
-    });
+    let profile = await prisma.makerProfile.findUnique({ where: { userId: user.id } });
 
     const profileData = {
-      city: zipCode || "", // usa o CEP no campo city por simplicidade
+      city: zipCode || "",
       state: "SP",
       machines: JSON.stringify(machines || []),
       materials: JSON.stringify(filaments || []),
@@ -96,22 +81,15 @@ export async function POST(req: NextRequest) {
     };
 
     if (!profile) {
-      profile = await prisma.makerProfile.create({
-        data: {
-          userId: user.id,
-          ...profileData
-        }
-      });
+      profile = await prisma.makerProfile.create({ data: { userId: user.id, ...profileData } });
     } else {
-      profile = await prisma.makerProfile.update({
-        where: { userId: user.id },
-        data: profileData
-      });
+      profile = await prisma.makerProfile.update({ where: { userId: user.id }, data: profileData });
     }
 
     return NextResponse.json({ success: true, profileId: profile.id, status: profile.makerStatus });
-  } catch (error: any) {
-    console.error("Erro ao salvar maker:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("Erro ao salvar maker:", msg);
+    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
 }
