@@ -1,18 +1,19 @@
 process.env.TURSO_DATABASE_URL = 'libsql://fabmakers-db-rroda.aws-us-east-2.turso.io';
-process.env.DATABASE_URL = 'file:./dev.db';
+// Sem token - deve dar 401 mas não URL_INVALID
 
-const { createClient } = require('@libsql/client');
 const { PrismaLibSql } = require('@prisma/adapter-libsql');
 const { PrismaClient } = require('@prisma/client');
 
-const libsql = createClient({ url: process.env.TURSO_DATABASE_URL });
-console.log('libsql criado');
-const adapter = new PrismaLibSql(libsql);
-console.log('adapter criado | adapterName:', adapter.adapterName, '| provider:', adapter.provider);
+// FORMA CORRETA: passa a config { url, authToken } não um client pronto
+const adapter = new PrismaLibSql({
+  url: process.env.TURSO_DATABASE_URL,
+});
+
+console.log('adapter criado:', adapter.adapterName, adapter.provider);
 
 const prisma = new PrismaClient({ adapter });
-console.log('PrismaClient criado com sucesso!');
+console.log('PrismaClient criado!');
 
 prisma.user.count()
-  .then(function(n) { console.log('CONECTADO AO TURSO! Total users:', n); process.exit(0); })
-  .catch(function(e) { console.log('ERRO na query:', e.message); process.exit(1); });
+  .then(function(n) { console.log('SUCESSO! Total users:', n); process.exit(0); })
+  .catch(function(e) { console.log('RESULTADO:', e.message.slice(0, 200)); process.exit(e.message.includes('401') || e.message.includes('SERVER_ERROR') ? 0 : 1); });
