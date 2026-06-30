@@ -49,6 +49,8 @@ interface SimulatedOrder {
   makerName?: string;
   infill?: number;
   createdAt: string;
+  makerPayout?: number;
+  platformFee?: number;
 }
 
 // Interface para impressoras cadastradas
@@ -847,7 +849,9 @@ export default function Home() {
       material: material,
       zipCode: clientZip,
       infill: infill,
-      createdAt: new Date().toLocaleDateString("pt-BR") + " " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+      createdAt: new Date().toLocaleDateString("pt-BR") + " " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      makerPayout: quote.pricing.makerPayout,
+      platformFee: quote.pricing.platformFee
     };
 
     setOrders(prev => [newOrder, ...prev]);
@@ -1994,7 +1998,7 @@ export default function Home() {
                   <div className="lg:col-span-7 space-y-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d44d00]/10 border border-[#d44d00]/20 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Adesão Gratuita & 5% de Comissão</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Adesão Gratuita & Sem Taxas Fixas</span>
                     </div>
                     <h1 className={`text-4xl md:text-6xl font-extrabold tracking-tighter leading-none ${
                       theme === "dark" ? "text-white" : "text-black"
@@ -2005,7 +2009,7 @@ export default function Home() {
                     <p className={`text-sm md:text-base leading-relaxed max-w-xl ${
                       theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
                     }`}>
-                      Seja você uma pessoa física com uma máquina no quarto ou uma empresa/bureau com dezenas de equipamentos. A FabMakers conecta você a clientes locais de forma inteligente. Sem taxas fixas: cobramos apenas 5% de intermediação sobre os pedidos que você produzir!
+                      Seja você uma pessoa física com uma máquina no quarto ou uma empresa/bureau com dezenas de equipamentos. A FabMakers conecta você a clientes locais de forma inteligente. Sem taxas fixas: aplicamos planos e comissões flexíveis de acordo com cada proposta de trabalho!
                     </p>
                     <div className="flex flex-wrap gap-4 pt-2">
                       <button
@@ -2050,7 +2054,7 @@ export default function Home() {
                       theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
                     }`}>
                       <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Taxa Fixa Zero:</strong> Sem custo de filiação mensal.</li>
-                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Taxa Amigável de 5%:</strong> Cobrada apenas do valor do serviço repassado.</li>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Planos & Comissões Flexíveis:</strong> Calculados com base no perfil de máquina e tipo de peça, apresentados em cada proposta de trabalho.</li>
                       <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Programa de Afiliados:</strong> Divulgue produtos da nossa loja de insumos e receba comissões diretas de até 10% do valor do produto sem precisar de estoque!</li>
                       <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Empresas e Físicas:</strong> Aceitamos cadastros CPF e CNPJ com repasse bancário quinzenal.</li>
                     </ul>
@@ -3356,7 +3360,7 @@ export default function Home() {
                   {/* PASSO 2: CONTRATO SLA (INTERMEDIAÇÃO DESCENTRALIZADA) */}
                   {wizardStep === 2 && (
                     <div className="space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Contrato de Credenciamento, Parceria & Isenção Tributária (Taxa 5%)</h3>
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Contrato de Credenciamento, Parceria & Isenção Tributária</h3>
                       
                       {/* Corpo do Contrato */}
                       <div className="h-64 overflow-y-auto border border-[#18181b] p-4 bg-[#050506] rounded space-y-4 text-xs text-[#a1a1aa] leading-relaxed">
@@ -3365,9 +3369,9 @@ export default function Home() {
                           A FAB MAKERS atua exclusivamente como provedora de infraestrutura tecnológica e de intermediação comercial. A plataforma conecta de forma algorítmica a lei da oferta e da procura: de um lado, clientes demandantes de peças customizadas; de outro, Makers (Pessoas Físicas operando hardware ocioso doméstico ou Empresas/Bureaus corporativos de manufatura). O Maker declara estar ciente de que não há qualquer vínculo empregatício ou societário com a FAB MAKERS.
                         </p>
                         
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">2. DA TAXA DE COMISSÃO DE 5%</h4>
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">2. DA TAXA DE INTERMEDIAÇÃO E COMISSÃO</h4>
                         <p className="text-white font-semibold">
-                          O credenciamento na plataforma é 100% gratuito. Pela intermediação tecnológica e facilitação de cobrança, a FAB MAKERS reterá o percentual fixo de 5% (cinco por cento) sobre o valor bruto de cada serviço de manufatura executado e faturado na plataforma. O repasse financeiro de 95% do valor líquido será depositado de forma digital e quinzenal na conta bancária do parceiro cadastrado.
+                          O credenciamento na plataforma é 100% gratuito. Pela intermediação tecnológica e facilitação de cobrança, a FAB MAKERS aplicará taxas e comissões flexíveis de acordo com o plano de maker e a complexidade de cada projeto, previamente detalhadas e informadas no momento do aceite de cada proposta de trabalho. O repasse financeiro do valor líquido acordado será depositado de forma digital e quinzenal na conta bancária do parceiro cadastrado.
                         </p>
 
                         <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">3. DA ISENÇÃO DE RESPONSABILIDADE FISCAL E HARDWARE</h4>
@@ -3394,7 +3398,7 @@ export default function Home() {
                           className="mt-0.5 accent-[#d44d00]" 
                         />
                         <span className="text-xs text-[#71717a] leading-tight">
-                          Declaro que li, compreendi e concordo com todos os termos do Contrato de Credenciamento de 5% da FAB MAKERS, assumindo total responsabilidade pelo sigilo das peças 3D e calibração dimensional.
+                          Declaro que li, compreendi e concordo com todos os termos do Contrato de Credenciamento da FAB MAKERS, assumindo total responsabilidade pelo sigilo das peças 3D e calibração dimensional.
                         </span>
                       </label>
 
@@ -3982,12 +3986,12 @@ export default function Home() {
                               <span className="font-bold text-white">{activeJobOffer.timeFormatted}</span>
                             </div>
                             <div>
-                              <span className="text-xs text-[#71717a] uppercase block">Seu Ganho Líquido (95%)</span>
-                              <span className="font-bold text-[#10b981]">R$ {(activeJobOffer.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
+                              <span className="text-xs text-[#71717a] uppercase block">Seu Ganho Líquido</span>
+                              <span className="font-bold text-[#10b981]">R$ {(activeJobOffer.makerPayout || activeJobOffer.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
                             </div>
                             <div>
-                              <span className="text-xs text-[#71717a] uppercase block">Comissão Intermediação (5%)</span>
-                              <span className="font-bold text-red-400">R$ {(activeJobOffer.totalPrice * 0.05).toFixed(2).replace(".", ",")}</span>
+                              <span className="text-xs text-[#71717a] uppercase block">Taxa da Plataforma</span>
+                              <span className="font-bold text-red-400">R$ {(activeJobOffer.platformFee || activeJobOffer.totalPrice * 0.05).toFixed(2).replace(".", ",")}</span>
                             </div>
                           </div>
 
@@ -4048,9 +4052,9 @@ export default function Home() {
 
                                   <div className="sm:text-right space-y-2">
                                     <div>
-                                      <span className="text-[8px] text-[#71717a] block uppercase tracking-wider mono-text">Seu Ganho Líquido (95%)</span>
-                                      <span className="text-sm font-extrabold text-[#10b981] mono-text">R$ {(ord.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
-                                      <span className="text-xs text-[#71717a] block">Taxa Intermediação (5%): R$ {(ord.totalPrice * 0.05).toFixed(2)}</span>
+                                      <span className="text-[8px] text-[#71717a] block uppercase tracking-wider mono-text">Seu Ganho Líquido</span>
+                                      <span className="text-sm font-extrabold text-[#10b981] mono-text">R$ {(ord.makerPayout || ord.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
+                                      <span className="text-xs text-[#71717a] block">Taxa Intermediação: R$ {(ord.platformFee || ord.totalPrice * 0.05).toFixed(2).replace(".", ",")}</span>
                                     </div>
                                     <button
                                       onClick={() => {
@@ -4530,8 +4534,8 @@ export default function Home() {
                 <span className="text-2xl font-bold text-white block mt-1 mono-text">R$ {orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0).toFixed(2).replace(".", ",")}</span>
               </div>
               <div className="technical-panel p-5 rounded">
-                <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Comissão Plataforma (5%)</span>
-                <span className="text-2xl font-bold text-[#d44d00] block mt-1 mono-text">R$ {(orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0) * 0.05).toFixed(2).replace(".", ",")}</span>
+                <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Comissão Plataforma</span>
+                <span className="text-2xl font-bold text-[#d44d00] block mt-1 mono-text">R$ {orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + (curr.platformFee || curr.totalPrice * 0.05), 0).toFixed(2).replace(".", ",")}</span>
               </div>
               <div className="technical-panel p-5 rounded">
                 <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Makers Ativos no Grid</span>
