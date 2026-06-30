@@ -1421,27 +1421,29 @@ export default function Home() {
                 >
                   Entrar na Plataforma
                 </button>
-                <a
-                  href="/pitch_fabmakers.html"
-                  target="_blank"
-                  className={`hidden sm:inline-block text-xs font-medium px-4 py-2 transition rounded-md border ${
-                    theme === "dark" 
-                      ? "border-white/10 text-[#a1a1aa] hover:text-white hover:bg-white/5 bg-transparent" 
-                      : "border-black/10 text-[#52525b] hover:text-black hover:bg-black/5 bg-transparent"
-                  }`}
-                >
-                  Apresentação & Pitch
-                </a>
               </>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
+                {currentUser.role === "ADMIN" && (
+                  <a
+                    href="/pitch_fabmakers.html"
+                    target="_blank"
+                    className={`hidden sm:inline-block text-xs font-medium px-4 py-2 transition rounded-md border ${
+                      theme === "dark" 
+                        ? "border-white/10 text-[#a1a1aa] hover:text-white hover:bg-white/5 bg-transparent" 
+                        : "border-black/10 text-[#52525b] hover:text-black hover:bg-black/5 bg-transparent"
+                    }`}
+                  >
+                    Apresentação & Pitch
+                  </a>
+                )}
                 <button
                   onClick={handleLogout}
                   className="text-xs border border-red-500/20 text-red-400 hover:text-white hover:bg-red-500/20 px-4 py-2 font-medium transition rounded-md cursor-pointer"
                 >
                   Sair (Logout)
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
