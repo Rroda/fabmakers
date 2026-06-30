@@ -193,10 +193,11 @@ export default function Home() {
   const [homeMode, setHomeMode] = useState<"select" | "client" | "maker" | "designer">("select");
   const [contratoAceito, setContratoAceito] = useState<boolean>(false);
   
-  const [lojaInsumos, setLojaInsumos] = useState<Array<{ id: string; title: string; price: number; link: string; affiliateCommissionPercent: number; image: string; deliveryTime: string }>>([
-    { id: "ins1", title: "Filamento PLA Premium 1kg - GTMax3D", price: 119.90, link: "https://shopee.com.br/filamento-pla-gtmax", affiliateCommissionPercent: 5, image: "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?w=300&auto=format&fit=crop&q=60", deliveryTime: "3 a 7 dias úteis" },
-    { id: "ins2", title: "Bico Extrusor de Latão V6 0.4mm", price: 15.00, link: "https://shopee.com.br/bico-extrusor-latao-v6", affiliateCommissionPercent: 10, image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60", deliveryTime: "2 a 5 dias úteis" },
-    { id: "ins3", title: "Resina Standard UV 1kg - Creality", price: 189.00, link: "https://shopee.com.br/resina-standard-uv-creality", affiliateCommissionPercent: 4, image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", deliveryTime: "4 a 8 dias úteis" }
+  const [lojaInsumos, setLojaInsumos] = useState<Array<{ id: string; title: string; price: number; link: string; affiliateCommissionPercent: number; image: string; deliveryTime: string; platform: "SHOPEE" | "TIKTOK" | "AMAZON" | "ALIEXPRESS" }>>([
+    { id: "ins1", title: "Filamento PLA Premium 1kg - GTMax3D", price: 119.90, link: "https://shopee.com.br/filamento-pla-gtmax", affiliateCommissionPercent: 5, image: "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?w=300&auto=format&fit=crop&q=60", deliveryTime: "3 a 7 dias úteis", platform: "SHOPEE" },
+    { id: "ins2", title: "Bico Extrusor de Latão V6 0.4mm", price: 15.00, link: "https://shopee.com.br/bico-extrusor-latao-v6", affiliateCommissionPercent: 10, image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60", deliveryTime: "2 a 5 dias úteis", platform: "TIKTOK" },
+    { id: "ins3", title: "Resina Standard UV 1kg - Creality", price: 189.00, link: "https://shopee.com.br/resina-standard-uv-creality", affiliateCommissionPercent: 4, image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", deliveryTime: "4 a 8 dias úteis", platform: "AMAZON" },
+    { id: "ins4", title: "Bloco Aquecedor Volcano Alumínio", price: 29.90, link: "https://aliexpress.com/block-volcano", affiliateCommissionPercent: 8, image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", deliveryTime: "12 a 20 dias úteis", platform: "ALIEXPRESS" }
   ]);
   const [novoInsumoTitle, setNovoInsumoTitle] = useState<string>("");
   const [novoInsumoPrice, setNovoInsumoPrice] = useState<string>("");
@@ -204,6 +205,7 @@ export default function Home() {
   const [novoInsumoCommission, setNovoInsumoCommission] = useState<string>("");
   const [novoInsumoImage, setNovoInsumoImage] = useState<string>("");
   const [novoInsumoDelivery, setNovoInsumoDelivery] = useState<string>("");
+  const [novoInsumoPlatform, setNovoInsumoPlatform] = useState<"SHOPEE" | "TIKTOK" | "AMAZON" | "ALIEXPRESS">("SHOPEE");
   
   // --- ESTADOS DO PORTAL DO DESIGNER ---
   const [designerAvailability, setDesignerAvailability] = useState<string>("20h por semana (Freelancer)");
@@ -1994,11 +1996,15 @@ export default function Home() {
                       <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
                       <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Adesão Gratuita & 5% de Comissão</span>
                     </div>
-                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-white leading-none">
+                    <h1 className={`text-4xl md:text-6xl font-extrabold tracking-tighter leading-none ${
+                      theme === "dark" ? "text-white" : "text-black"
+                    }`}>
                       Sua impressora 3D está ociosa? <br />
                       <span className="text-[#d44d00]">Ganhe dinheiro produzindo na nossa rede.</span>
                     </h1>
-                    <p className="text-sm md:text-base text-[#a1a1aa] leading-relaxed max-w-xl">
+                    <p className={`text-sm md:text-base leading-relaxed max-w-xl ${
+                      theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
+                    }`}>
                       Seja você uma pessoa física com uma máquina no quarto ou uma empresa/bureau com dezenas de equipamentos. A FabMakers conecta você a clientes locais de forma inteligente. Sem taxas fixas: cobramos apenas 5% de intermediação sobre os pedidos que você produzir!
                     </p>
                     <div className="flex flex-wrap gap-4 pt-2">
@@ -2023,50 +2029,88 @@ export default function Home() {
                           const element = document.getElementById("insumos-shopee");
                           if (element) element.scrollIntoView({ behavior: "smooth" });
                         }}
-                        className="px-6 py-3 border border-[#18181b] text-white hover:bg-[#18181b]/50 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                        className={`px-6 py-3 border font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer ${
+                          theme === "dark" 
+                            ? "border-white/10 text-white hover:bg-white/5 bg-transparent" 
+                            : "border-black/10 text-black hover:bg-black/5 bg-transparent"
+                        }`}
                       >
                         Comprar/Revender Insumos
                       </button>
                     </div>
                   </div>
 
-                  <div className="lg:col-span-5 bg-[#09090b] border border-[#18181b] rounded-lg p-6 space-y-4">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Oportunidade Comercial</h3>
-                    <ul className="space-y-3 text-xs text-[#a1a1aa] list-disc pl-4 leading-relaxed">
-                      <li><strong className="text-white">Taxa Fixa Zero:</strong> Sem custo de filiação mensal.</li>
-                      <li><strong className="text-white">Taxa Amigável de 5%:</strong> Cobrada apenas do valor do serviço repassado.</li>
-                      <li><strong className="text-white">Programa de Afiliados:</strong> Divulgue produtos da nossa loja de insumos e receba comissões diretas de até 10% do valor do produto sem precisar de estoque!</li>
-                      <li><strong className="text-white">Empresas e Físicas:</strong> Aceitamos cadastros CPF e CNPJ com repasse bancário quinzenal.</li>
+                  <div className={`lg:col-span-5 rounded-lg p-6 space-y-4 border ${
+                    theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-white border-[#e4e4e7] shadow-sm"
+                  }`}>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider mono-text border-b pb-2 ${
+                      theme === "dark" ? "text-white border-[#18181b]" : "text-black border-[#e4e4e7]"
+                    }`}>Oportunidade Comercial</h3>
+                    <ul className={`space-y-3 text-xs list-disc pl-4 leading-relaxed ${
+                      theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
+                    }`}>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Taxa Fixa Zero:</strong> Sem custo de filiação mensal.</li>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Taxa Amigável de 5%:</strong> Cobrada apenas do valor do serviço repassado.</li>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Programa de Afiliados:</strong> Divulgue produtos da nossa loja de insumos e receba comissões diretas de até 10% do valor do produto sem precisar de estoque!</li>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Empresas e Físicas:</strong> Aceitamos cadastros CPF e CNPJ com repasse bancário quinzenal.</li>
                     </ul>
                   </div>
                 </div>
 
                 {/* Loja de Insumos & Afiliados */}
-                <div id="insumos-shopee" className="space-y-6 pt-6 border-t border-[#18181b]/50">
+                <div id="insumos-shopee" className={`space-y-6 pt-6 border-t ${
+                  theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"
+                }`}>
                   <div>
-                    <h2 className="text-lg font-bold text-white uppercase tracking-tight mono-text">Loja de Insumos & Dropshipping de Parceiros</h2>
-                    <p className="text-xs text-[#a1a1aa] mt-1">
+                    <h2 className={`text-lg font-bold uppercase tracking-tight mono-text ${
+                      theme === "dark" ? "text-white" : "text-black"
+                    }`}>Loja de Insumos & Dropshipping de Parceiros</h2>
+                    <p className={`text-xs mt-1 ${
+                      theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
+                    }`}>
                       Compre insumos com desconto de fornecedores homologados (Shopee/TikTok Shop) ou gere links de afiliados para revender.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {lojaInsumos.map((prod) => (
-                      <div key={prod.id} className="bg-[#09090b] border border-[#18181b] rounded-lg p-5 flex flex-col justify-between space-y-4 hover:border-[#d44d00]/30 transition group">
+                      <div key={prod.id} className={`rounded-lg p-5 flex flex-col justify-between space-y-4 hover:border-[#d44d00]/30 transition group border ${
+                        theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-white border-[#e4e4e7] shadow-sm"
+                      }`}>
                         <div className="space-y-3">
-                          <div className="aspect-square w-full rounded bg-[#18181b] overflow-hidden">
+                          <div className={`aspect-square w-full rounded overflow-hidden ${
+                            theme === "dark" ? "bg-[#18181b]" : "bg-[#f4f4f5]"
+                          }`}>
                             <img src={prod.image} alt={prod.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                           </div>
                           <div>
-                            <span className="text-[8px] bg-[#18181b] text-[#d44d00] border border-[#d44d00]/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider mono-text inline-block">Dropshipping Parceiro</span>
-                            <h4 className="font-bold text-white text-xs leading-snug mt-1.5">{prod.title}</h4>
-                            <p className="text-xs text-[#71717a] mt-0.5">Prazo: {prod.deliveryTime}</p>
+                            <span className={`text-[8px] border px-2 py-0.5 rounded font-bold uppercase tracking-wider mono-text inline-block ${
+                              prod.platform === "SHOPEE" ? "bg-orange-500/10 border-orange-500/30 text-orange-500" :
+                              prod.platform === "TIKTOK" ? "bg-pink-500/10 border-pink-500/30 text-pink-500" :
+                              prod.platform === "AMAZON" ? "bg-yellow-500/10 border-yellow-500/30 text-yellow-600" :
+                              "bg-red-500/10 border-red-500/30 text-red-500"
+                            }`}>
+                              {prod.platform === "SHOPEE" ? "Shopee Dropshipping" :
+                               prod.platform === "TIKTOK" ? "TikTok Shop Affiliate" :
+                               prod.platform === "AMAZON" ? "Amazon Associate" :
+                               "AliExpress Partner"}
+                            </span>
+                            <h4 className={`font-bold text-xs leading-snug mt-1.5 ${
+                              theme === "dark" ? "text-white" : "text-black"
+                            }`}>{prod.title}</h4>
+                            <p className={`text-xs mt-0.5 ${
+                              theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"
+                            }`}>Prazo: {prod.deliveryTime}</p>
                           </div>
                         </div>
 
-                        <div className="space-y-3 pt-2 border-t border-[#18181b]/50">
+                        <div className={`space-y-3 pt-2 border-t ${
+                          theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"
+                        }`}>
                           <div className="flex justify-between items-center">
-                            <span className="text-sm font-extrabold text-white mono-text">R$ {prod.price.toFixed(2)}</span>
+                            <span className={`text-sm font-extrabold mono-text ${
+                              theme === "dark" ? "text-white" : "text-black"
+                            }`}>R$ {prod.price.toFixed(2)}</span>
                             <span className="text-xs text-[#10b981] font-bold">Comissão: {prod.affiliateCommissionPercent}%</span>
                           </div>
 
@@ -2075,7 +2119,11 @@ export default function Home() {
                               href={prod.link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="py-1.5 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-center text-xs font-bold text-white uppercase rounded transition"
+                              className={`py-1.5 text-center text-xs font-bold uppercase rounded transition border ${
+                                theme === "dark" 
+                                  ? "bg-[#18181b] hover:bg-[#27272a] border-[#27272a] text-white" 
+                                  : "bg-[#f4f4f5] hover:bg-[#e4e4e7] border-[#d4d4d8] text-black"
+                              }`}
                             >
                               Comprar
                             </a>
@@ -4678,7 +4726,8 @@ export default function Home() {
                       link: novoInsumoLink,
                       affiliateCommissionPercent: parseInt(novoInsumoCommission) || 5,
                       image: novoInsumoImage || "https://images.unsplash.com/photo-1615811361523-6bd03d7748e7?w=300&auto=format&fit=crop&q=60",
-                      deliveryTime: novoInsumoDelivery || "3 a 7 dias úteis"
+                      deliveryTime: novoInsumoDelivery || "3 a 7 dias úteis",
+                      platform: novoInsumoPlatform
                     };
                     setLojaInsumos(prev => [...prev, nov]);
                     setNovoInsumoTitle("");
@@ -4734,6 +4783,19 @@ export default function Home() {
                         type="text" value={novoInsumoDelivery} onChange={(e) => setNovoInsumoDelivery(e.target.value)} placeholder="3 a 7 dias úteis"
                         className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
                       />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Plataforma Dropshipping</label>
+                      <select 
+                        value={novoInsumoPlatform} 
+                        onChange={(e) => setNovoInsumoPlatform(e.target.value as any)}
+                        className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-white focus:outline-none focus:border-[#d44d00] transition"
+                      >
+                        <option value="SHOPEE">Shopee Affiliate</option>
+                        <option value="TIKTOK">TikTok Shop Partner</option>
+                        <option value="AMAZON">Amazon Associate</option>
+                        <option value="ALIEXPRESS">AliExpress Partner</option>
+                      </select>
                     </div>
                   </div>
                   <button 
