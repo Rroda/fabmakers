@@ -1428,12 +1428,25 @@ export default function Home() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[
-                      { id: "mw1", title: "Suporte de Fone Minimalista", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", weightG: 45.0, author: "Bambu_User", source: "MakerWorld", stlName: "fone_minimalista.stl", price: 32.50 },
-                      { id: "mw2", title: "Organizador Modular de Gavetas", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", weightG: 68.0, author: "Print_Lab", source: "Printables", stlName: "gaveta_modular.stl", price: 44.90 },
-                      { id: "mw3", title: "Vaso Espiral Geométrico", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", weightG: 55.0, author: "VaseDesign", source: "MakerWorld", stlName: "vaso_espiral.stl", price: 38.00 },
-                      { id: "mw4", title: "Gancho de Bicicleta Reforçado", image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=300&auto=format&fit=crop&q=60", weightG: 120.0, author: "Tough3D", source: "MakerWorld", stlName: "gancho_bike.stl", price: 85.00 }
-                    ].map((item) => (
+                    {(galleryModels && galleryModels.length > 0
+                      ? galleryModels.slice(0, 4).map(m => ({
+                          id: m.id,
+                          title: m.title,
+                          image: m.image,
+                          weightG: m.weightG,
+                          author: m.author || "Bambu_User",
+                          source: m.source,
+                          stlName: m.stlName,
+                          price: m.totalPrice,
+                          timeFormatted: m.timeFormatted
+                        }))
+                      : [
+                          { id: "mw1", title: "Suporte de Fone Minimalista", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", weightG: 45.0, author: "Bambu_User", source: "MakerWorld", stlName: "fone_minimalista.stl", price: 32.50, timeFormatted: "2h 15min" },
+                          { id: "mw2", title: "Organizador Modular de Gavetas", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", weightG: 68.0, author: "Print_Lab", source: "Printables", stlName: "gaveta_modular.stl", price: 44.90, timeFormatted: "1h 50min" },
+                          { id: "mw3", title: "Vaso Espiral Geométrico", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", weightG: 55.0, author: "VaseDesign", source: "MakerWorld", stlName: "vaso_espiral.stl", price: 38.00, timeFormatted: "2h 45min" },
+                          { id: "mw4", title: "Gancho de Bicicleta Reforçado", image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=300&auto=format&fit=crop&q=60", weightG: 120.0, author: "Tough3D", source: "MakerWorld", stlName: "gancho_bike.stl", price: 85.00, timeFormatted: "6h 10min" }
+                        ]
+                    ).map((item) => (
                       <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
                         <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
                           <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
@@ -1441,7 +1454,7 @@ export default function Home() {
                         </div>
                         <div className="p-4 flex-grow flex flex-col justify-between space-y-4">
                           <div>
-                            <h4 className="font-bold text-white text-xs leading-snug truncate">{item.title}</h4>
+                            <h4 className="font-bold text-white text-xs leading-snug truncate" title={item.title}>{item.title}</h4>
                             <p className="text-xs text-[#71717a] mt-0.5">Criado por: {item.author}</p>
                           </div>
                           <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
@@ -1461,7 +1474,7 @@ export default function Home() {
                                     realVolumeCm3: item.weightG / 1.2,
                                     weightG: item.weightG,
                                     timeHours: item.weightG / 18,
-                                    timeFormatted: "2h 15min"
+                                    timeFormatted: item.timeFormatted || "2h 15min"
                                   },
                                   pricing: {
                                     materialCost: item.weightG * 0.12,
