@@ -1398,7 +1398,11 @@ export default function Home() {
             {/* Alternador de Tema Híbrido (Light/Dark) */}
             <button
               onClick={() => setTheme(prev => prev === "dark" ? "light" : "dark")}
-              className="p-2 border border-[#18181b] hover:bg-[#18181b]/30 rounded-md transition text-xs font-semibold text-[#a1a1aa] hover:text-white cursor-pointer"
+              className={`p-2 rounded-md transition text-xs font-semibold cursor-pointer border ${
+                theme === "dark" 
+                  ? "border-white/10 hover:bg-white/5 text-[#a1a1aa] hover:text-white" 
+                  : "border-black/10 hover:bg-black/5 text-[#52525b] hover:text-black"
+              }`}
               title={theme === "dark" ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
             >
               {theme === "dark" ? "☀️" : "🌙"}
@@ -1420,7 +1424,11 @@ export default function Home() {
                 <a
                   href="/pitch_fabmakers.html"
                   target="_blank"
-                  className="hidden sm:inline-block text-xs font-medium border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b] hover:bg-[#18181b] px-4 py-2 transition rounded-md"
+                  className={`hidden sm:inline-block text-xs font-medium px-4 py-2 transition rounded-md border ${
+                    theme === "dark" 
+                      ? "border-white/10 text-[#a1a1aa] hover:text-white hover:bg-white/5 bg-transparent" 
+                      : "border-black/10 text-[#52525b] hover:text-black hover:bg-black/5 bg-transparent"
+                  }`}
                 >
                   Apresentação & Pitch
                 </a>
@@ -1449,13 +1457,15 @@ export default function Home() {
             
             {/* SWITCH DE VISÃO PRINCIPAL (MKT DUAL) */}
             <div className="flex justify-center pb-4 border-b border-[#18181b]/45">
-              <div className="bg-[#09090b] border border-[#18181b] rounded-lg p-1.5 flex flex-wrap gap-2">
+              <div className={`rounded-lg p-1.5 flex flex-wrap gap-2 border ${
+                theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#f4f4f5] border-[#e4e4e7]"
+              }`}>
                 <button
                   onClick={() => setHomeMode("client")}
                   className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer flex items-center gap-2 ${
                     homeMode === "client" 
-                      ? "bg-[#d44d00] text-white" 
-                      : "text-[#a1a1aa] hover:text-white"
+                      ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
+                      : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
                   }`}
                 >
                   🛍️ Comprar Serviços de Impressão (Cliente)
@@ -1464,8 +1474,8 @@ export default function Home() {
                   onClick={() => setHomeMode("maker")}
                   className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer flex items-center gap-2 ${
                     homeMode === "maker" 
-                      ? "bg-[#d44d00] text-white" 
-                      : "text-[#a1a1aa] hover:text-white"
+                      ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
+                      : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
                   }`}
                 >
                   ⚙️ Produzir Serviços / Ver Loja (Maker/Empresa)
@@ -1483,11 +1493,15 @@ export default function Home() {
                       <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
                       <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Impressão 3D Despachada Localmente</span>
                     </div>
-                    <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-white leading-none">
+                    <h1 className={`text-4xl md:text-6xl font-extrabold tracking-tighter leading-none ${
+                      theme === "dark" ? "text-white" : "text-black"
+                    }`}>
                       Não tem impressora? <br />
                       <span className="text-[#d44d00]">Nós fabricamos e entregamos para você.</span>
                     </h1>
-                    <p className="text-sm md:text-base text-[#a1a1aa] leading-relaxed max-w-xl">
+                    <p className={`text-sm md:text-base leading-relaxed max-w-xl ${
+                      theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"
+                    }`}>
                       Cote seu modelo 3D em segundos. Roteamos sua peça para a rede de makers locais (hobbistas e bureaus industriais). O primeiro fabricante disponível aceita a cotação e inicia a produção imediatamente. Intermediação digital segura sob demanda!
                     </p>
                     <div className="flex flex-wrap gap-4 pt-2">
@@ -1504,7 +1518,7 @@ export default function Home() {
                             setShowLoginModal(true);
                           }
                         }}
-                        className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                        className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer animate-pulse"
                       >
                         ⚡ Enviar STL & Cotar Agora
                       </button>
@@ -1513,7 +1527,11 @@ export default function Home() {
                           const element = document.getElementById("populares-makerworld");
                           if (element) element.scrollIntoView({ behavior: "smooth" });
                         }}
-                        className="px-6 py-3 border border-[#18181b] text-white hover:bg-[#18181b]/50 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                        className={`px-6 py-3 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer border ${
+                          theme === "dark" 
+                            ? "border-white/15 text-white hover:bg-white/5 bg-transparent" 
+                            : "border-black/15 text-black hover:bg-black/5 bg-transparent"
+                        }`}
                       >
                         🔍 Ver Modelos Populares
                       </button>
@@ -1521,29 +1539,39 @@ export default function Home() {
                   </div>
 
                   <div className="lg:col-span-5">
-                    <div className="bg-[#09090b] border border-[#18181b] rounded-lg p-6 space-y-4 relative overflow-hidden">
+                    <div className={`rounded-lg p-6 space-y-4 relative overflow-hidden border ${
+                      theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#f4f4f5] border-[#e4e4e7]"
+                    }`}>
                       <div className="absolute top-0 right-0 w-32 h-32 bg-[#d44d00]/5 rounded-full blur-3xl"></div>
-                      <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Como Funciona o Fluxo</h3>
+                      <h3 className={`text-xs font-bold uppercase tracking-wider mono-text border-b pb-2 ${
+                        theme === "dark" ? "text-white border-[#18181b]" : "text-black border-[#e4e4e7]"
+                      }`}>Como Funciona o Fluxo</h3>
                       <div className="space-y-4 text-xs">
                         <div className="flex gap-3">
-                          <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">1</span>
+                          <span className={`w-5 h-5 rounded font-bold flex items-center justify-center flex-shrink-0 border text-[10px] ${
+                            theme === "dark" ? "bg-[#18181b] border-[#27272a] text-[#d44d00]" : "bg-[#e4e4e7] border-[#d4d4d8] text-[#d44d00]"
+                          }`}>1</span>
                           <div>
-                            <h4 className="font-bold text-white">Escolha ou Envie o Arquivo</h4>
-                            <p className="text-xs text-[#71717a] mt-0.5">Importe da nossa galeria ou envie seu arquivo de engenharia STL.</p>
+                            <h4 className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Escolha ou Envie o Arquivo</h4>
+                            <p className={`text-xs mt-0.5 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Importe da nossa galeria ou envie seu arquivo de engenharia STL.</p>
                           </div>
                         </div>
                         <div className="flex gap-3">
-                          <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">2</span>
+                          <span className={`w-5 h-5 rounded font-bold flex items-center justify-center flex-shrink-0 border text-[10px] ${
+                            theme === "dark" ? "bg-[#18181b] border-[#27272a] text-[#d44d00]" : "bg-[#e4e4e7] border-[#d4d4d8] text-[#d44d00]"
+                          }`}>2</span>
                           <div>
-                            <h4 className="font-bold text-white">Orçamento Fatiado na Hora</h4>
-                            <p className="text-xs text-[#71717a] mt-0.5">Calculamos peso, tempo de máquina e custo exato em 0.12 segundos.</p>
+                            <h4 className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Orçamento Fatiado na Hora</h4>
+                            <p className={`text-xs mt-0.5 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Calculamos peso, tempo de máquina e custo exato em 0.12 segundos.</p>
                           </div>
                         </div>
                         <div className="flex gap-3">
-                          <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">3</span>
+                          <span className={`w-5 h-5 rounded font-bold flex items-center justify-center flex-shrink-0 border text-[10px] ${
+                            theme === "dark" ? "bg-[#18181b] border-[#27272a] text-[#d44d00]" : "bg-[#e4e4e7] border-[#d4d4d8] text-[#d44d00]"
+                          }`}>3</span>
                           <div>
-                            <h4 className="font-bold text-white">Despacho sob Demanda</h4>
-                            <p className="text-xs text-[#71717a] mt-0.5">Ao confirmar o pedido logado, a ordem vai para o radar geral e o primeiro maker local aceita e inicia a manufatura.</p>
+                            <h4 className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Despacho sob Demanda</h4>
+                            <p className={`text-xs mt-0.5 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Ao confirmar o pedido logado, a ordem vai para o radar geral e o primeiro maker local aceita e inicia a manufatura.</p>
                           </div>
                         </div>
                       </div>
@@ -1552,11 +1580,11 @@ export default function Home() {
                 </div>
 
                 {/* Grid de Modelos Populares */}
-                <div id="populares-makerworld" className="space-y-6 pt-6 border-t border-[#18181b]/50">
+                <div id="populares-makerworld" className={`space-y-6 pt-6 border-t ${theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"}`}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-bold text-white uppercase tracking-tight mono-text">Ideias e Modelos Populares da Rede</h2>
-                      <p className="text-xs text-[#a1a1aa] mt-1">
+                      <h2 className={`text-lg font-bold uppercase tracking-tight mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Ideias e Modelos Populares da Rede</h2>
+                      <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>
                         Pesquise ou clique em qualquer modelo abaixo para importá-lo instantaneamente e receber seu orçamento físico.
                       </p>
                     </div>
@@ -1569,7 +1597,9 @@ export default function Home() {
                           placeholder="Buscar modelos na rede..."
                           value={homeSearchQuery}
                           onChange={(e) => setHomeSearchQuery(e.target.value)}
-                          className="w-full bg-[#09090b] border border-[#18181b] rounded pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                          className={`w-full border rounded pl-10 pr-3 py-2 text-xs focus:outline-none focus:border-[#d44d00] transition ${
+                            theme === "dark" ? "bg-[#09090b] border-[#18181b] text-white" : "bg-white border-[#d4d4d8] text-black"
+                          }`}
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <svg className="h-4 w-4 text-[#71717a]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1634,16 +1664,18 @@ export default function Home() {
                           return (
                             <>
                               {currentItems.map((item) => (
-                                <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
+                                <div key={item.id} className={`bg-transparent border rounded-lg overflow-hidden flex flex-col justify-between transition group hover:border-[#d44d00]/40 ${
+                                  theme === "dark" ? "border-[#18181b] hover:bg-[#18181b]/30" : "border-[#e4e4e7] hover:bg-[#f4f4f5]"
+                                }`}>
                                   <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
                                     <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                                   </div>
                                   <div className="p-4 flex-grow flex flex-col justify-between space-y-4">
                                     <div>
-                                      <h4 className="font-bold text-white text-xs leading-snug truncate" title={item.title}>{item.title}</h4>
-                                      <p className="text-xs text-[#71717a] mt-0.5">Criado por: {item.author}</p>
+                                      <h4 className={`font-bold text-xs leading-snug truncate ${theme === "dark" ? "text-white" : "text-black"}`} title={item.title}>{item.title}</h4>
+                                      <p className={`text-xs mt-0.5 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Criado por: {item.author}</p>
                                     </div>
-                                    <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
+                                    <div className={`flex justify-between items-center pt-2 border-t ${theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"}`}>
                                       <span className="text-xs font-bold text-[#d44d00] mono-text">Est. R$ {item.price.toFixed(2)}</span>
                                       <button
                                         onClick={() => {
@@ -1886,8 +1918,10 @@ export default function Home() {
                 onClick={() => setClientSubTab("upload")}
                 className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
                   clientSubTab === "upload"
-                    ? "bg-[#d44d00] text-white"
-                    : "border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b]"
+                    ? theme === "dark" ? "bg-white text-black" : "bg-black text-white"
+                    : theme === "dark"
+                      ? "border border-white/10 text-[#a1a1aa] hover:text-white bg-transparent hover:border-white/30"
+                      : "border border-black/10 text-[#52525b] hover:text-black bg-transparent hover:border-black/30"
                 }`}
               >
                 📁 Fatiador STL
@@ -1896,8 +1930,10 @@ export default function Home() {
                 onClick={() => setClientSubTab("gallery")}
                 className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
                   clientSubTab === "gallery"
-                    ? "bg-[#d44d00] text-white"
-                    : "border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b]"
+                    ? theme === "dark" ? "bg-white text-black" : "bg-black text-white"
+                    : theme === "dark"
+                      ? "border border-white/10 text-[#a1a1aa] hover:text-white bg-transparent hover:border-white/30"
+                      : "border border-black/10 text-[#52525b] hover:text-black bg-transparent hover:border-black/30"
                 }`}
               >
                 🖼️ Galeria de Modelos
@@ -1906,8 +1942,10 @@ export default function Home() {
                 onClick={() => setClientSubTab("ai")}
                 className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
                   clientSubTab === "ai"
-                    ? "bg-[#d44d00] text-white"
-                    : "border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b]"
+                    ? theme === "dark" ? "bg-white text-black" : "bg-black text-white"
+                    : theme === "dark"
+                      ? "border border-white/10 text-[#a1a1aa] hover:text-white bg-transparent hover:border-white/30"
+                      : "border border-black/10 text-[#52525b] hover:text-black bg-transparent hover:border-black/30"
                 }`}
               >
                 🤖 Assistente de IA 3D
@@ -1923,8 +1961,8 @@ export default function Home() {
                 {clientSubTab === "upload" && (
                   <>
                     <div>
-                      <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Área de Cotação de Geometria</h2>
-                      <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
+                      <h2 className={`text-xl font-bold tracking-tight uppercase mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Área de Cotação de Geometria</h2>
+                      <p className={`text-xs mt-1 leading-relaxed ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>
                         Faça o upload do seu arquivo STL. Nosso motor calcula instantaneamente o faturamento e inicia o roteamento para a fazenda de impressão mais próxima.
                       </p>
                     </div>
@@ -1940,14 +1978,18 @@ export default function Home() {
                           ? "border-[#d44d00] bg-[#d44d00]/5" 
                           : file 
                             ? "border-[#10b981]/30 bg-[#10b981]/2" 
-                            : "border-[#18181b] hover:border-[#27272a] bg-[#09090b]"
+                            : theme === "dark"
+                              ? "border-[#18181b] hover:border-[#27272a] bg-[#09090b]"
+                              : "border-[#d4d4d8] hover:border-[#a1a1aa] bg-[#f4f4f5]"
                       }`}
                     >
                       <input ref={fileInputRef} type="file" accept=".stl" onChange={handleFileChange} className="hidden" />
 
                       {!file ? (
                         <div className="space-y-4">
-                          <div className="w-10 h-10 rounded bg-[#18181b] flex items-center justify-center mx-auto border border-[#27272a]">
+                          <div className={`w-10 h-10 rounded flex items-center justify-center mx-auto border ${
+                            theme === "dark" ? "bg-[#18181b] border-[#27272a]" : "bg-[#e4e4e7] border-[#d4d4d8]"
+                          }`}>
                             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-[#a1a1aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                             </svg>
@@ -1956,9 +1998,13 @@ export default function Home() {
                             <button onClick={handleBrowseFiles} className="text-[#d44d00] hover:text-[#b04000] font-semibold text-xs cursor-pointer">
                               Selecione seu arquivo STL
                             </button>
-                            <p className="text-xs text-[#71717a] mt-1">Arraste o arquivo geométrico</p>
+                            <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Arraste o arquivo geométrico</p>
                           </div>
-                          <button onClick={handleSimulateExample} className="text-xs mono-text text-[#a1a1aa] hover:text-white bg-[#18181b] px-3 py-1.5 rounded border border-[#27272a] transition cursor-pointer">
+                          <button onClick={handleSimulateExample} className={`text-xs mono-text px-3 py-1.5 rounded transition cursor-pointer border ${
+                            theme === "dark" 
+                              ? "text-[#a1a1aa] hover:text-white bg-[#18181b] border-[#27272a]" 
+                              : "text-[#52525b] hover:text-black bg-[#e4e4e7] border-[#d4d4d8]"
+                          }`}>
                             💡 Usar Engrenagem de Exemplo
                           </button>
                         </div>
@@ -1993,14 +2039,20 @@ export default function Home() {
                       <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">Configurações Físicas</h3>
                       
                       <div className="space-y-3">
-                        <label className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mono-text">Material do Filamento</label>
+                        <label className={`text-xs font-semibold uppercase tracking-wider mono-text ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>Material do Filamento</label>
                         <div className="grid grid-cols-4 gap-2">
                           {["PLA", "ABS", "PETG", "Resina"].map((mat) => (
                             <button
                               key={mat}
                               onClick={() => handleMaterialChange(mat)}
                               className={`p-2 border text-xs font-semibold transition rounded cursor-pointer ${
-                                material === mat ? "border-[#d44d00] bg-[#d44d00]/5 text-white" : "border-[#18181b] bg-[#050506] text-[#71717a] hover:border-[#27272a]"
+                                material === mat 
+                                  ? theme === "dark" 
+                                    ? "border-[#d44d00] bg-[#d44d00]/10 text-white font-bold" 
+                                    : "border-[#d44d00] bg-[#d44d00]/10 text-black font-bold"
+                                  : theme === "dark"
+                                    ? "border-[#18181b] bg-transparent text-[#71717a] hover:border-[#27272a] hover:text-white"
+                                    : "border-[#e4e4e7] bg-transparent text-[#52525b] hover:border-[#a1a1aa] hover:text-black"
                               }`}
                             >
                               {mat}
@@ -2142,8 +2194,8 @@ export default function Home() {
                 {clientSubTab === "gallery" && (
                   <div className="space-y-6">
                     <div>
-                      <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Galeria da Rede FabMakers</h2>
-                      <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
+                      <h2 className={`text-xl font-bold tracking-tight uppercase mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Galeria da Rede FabMakers</h2>
+                      <p className={`text-xs mt-1 leading-relaxed ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>
                         Escolha um dos modelos homologados e criados por designers da nossa rede para imprimir diretamente.
                       </p>
                     </div>
@@ -2155,7 +2207,9 @@ export default function Home() {
                           placeholder="Pesquise na galeria (ex: 'xbox', 'vaso', 'suporte')..."
                           value={gallerySearchQuery}
                           onChange={(e) => setGallerySearchQuery(e.target.value)}
-                          className="w-full bg-[#09090b] border border-[#18181b] rounded pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                          className={`w-full border rounded pl-10 pr-3 py-2 text-xs focus:outline-none focus:border-[#d44d00] transition ${
+                            theme === "dark" ? "bg-[#09090b] border-[#18181b] text-white" : "bg-white border-[#d4d4d8] text-black"
+                          }`}
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <svg className="h-4 w-4 text-[#71717a]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2180,17 +2234,21 @@ export default function Home() {
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         {galleryModels.map((item) => (
-                          <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
+                          <div key={item.id} className={`bg-transparent border rounded-lg overflow-hidden flex flex-col justify-between transition group hover:border-[#d44d00]/40 ${
+                            theme === "dark" ? "border-[#18181b] hover:bg-[#18181b]/30" : "border-[#e4e4e7] hover:bg-[#f4f4f5]"
+                          }`}>
                             <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
                               <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                             </div>
                             <div className="p-4 space-y-4 flex-grow flex flex-col justify-between">
                               <div>
-                                <h4 className="font-bold text-white text-sm leading-tight line-clamp-2">{item.title}</h4>
-                                <p className="text-xs text-[#71717a] mt-1">Material sugerido: <span className="text-[#a1a1aa] font-bold">{item.material || "PLA"}</span> | Peso: {item.weightG}g</p>
+                                <h4 className={`font-bold text-sm leading-tight line-clamp-2 ${theme === "dark" ? "text-white" : "text-black"}`}>{item.title}</h4>
+                                <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>
+                                  Material sugerido: <span className={`font-bold ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#18181b]"}`}>{item.material || "PLA"}</span> | Peso: {item.weightG}g
+                                </p>
                               </div>
-                              <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
-                                <span className="text-sm font-extrabold text-white mono-text">R$ {item.totalPrice.toFixed(2)}</span>
+                              <div className={`flex justify-between items-center pt-2 border-t ${theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"}`}>
+                                <span className={`text-sm font-extrabold mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>R$ {item.totalPrice.toFixed(2)}</span>
                                 <button
                                   onClick={() => {
                                     // Injeta os dados da galeria no Quote
@@ -2492,19 +2550,23 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="technical-panel rounded p-10 text-center flex flex-col items-center justify-center min-h-[180px]">
-                  <p className="text-xs text-[#71717a]">Aguardando fatiamento para gerar cotação técnica.</p>
+                  <p className={`text-xs ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Aguardando fatiamento para gerar cotação técnica.</p>
                 </div>
               )}
 
               {/* Rastreamento de Pedidos do Cliente */}
               <div className="technical-panel rounded p-6 space-y-6">
-                <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">Seus Pedidos & Rastreamento</h3>
+                <h3 className={`text-xs font-semibold uppercase tracking-wider mono-text border-b pb-3 ${
+                  theme === "dark" ? "text-white border-[#18181b]" : "text-black border-[#e4e4e7]"
+                }`}>Seus Pedidos & Rastreamento</h3>
                 
                 <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
                   {orders.map((ord) => (
-                    <div key={ord.id} className="border border-[#18181b] p-4 rounded space-y-3 bg-[#09090b]/40">
+                    <div key={ord.id} className={`border p-4 rounded space-y-3 ${
+                      theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-[#f4f4f5]/60"
+                    }`}>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-white mono-text">PEDIDO #{ord.id}</span>
+                        <span className={`text-xs font-bold mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>PEDIDO #{ord.id}</span>
                         <span className={`text-[8px] font-bold px-2 py-0.5 rounded mono-text uppercase border ${
                           ord.status === "WAITING_MAKER" ? "border-yellow-500/30 text-yellow-500 bg-yellow-500/5" :
                           ord.status === "PRINTING" ? "border-[#d44d00]/30 text-[#d44d00] bg-[#d44d00]/5 animate-pulse" :
@@ -2519,19 +2581,21 @@ export default function Home() {
                         </span>
                       </div>
                       
-                      <div className="text-xs text-[#71717a] space-y-1">
-                        <p className="truncate">Peça: <span className="text-white">{ord.filename}</span></p>
-                        <p>Fabricado por: <span className="text-white">{ord.makerName || "Procurando parceiro..."}</span></p>
+                      <div className={`text-xs space-y-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>
+                        <p className="truncate">Peça: <span className={theme === "dark" ? "text-white" : "text-black"}>{ord.filename}</span></p>
+                        <p>Fabricado por: <span className={theme === "dark" ? "text-white" : "text-black"}>{ord.makerName || "Procurando parceiro..."}</span></p>
                         <p>Total: <span className="text-[#d44d00] font-bold">R$ {ord.totalPrice.toFixed(2).replace(".", ",")}</span></p>
                       </div>
 
                       {/* Mapa Simulado de Rotas para os pedidos em andamento */}
                       {(ord.status === "PRINTING" || ord.status === "SHIPPED" || ord.status === "WAITING_MAKER") && (
                         <div className="pt-2">
-                          <span className="text-[8px] uppercase tracking-widest text-[#71717a] block mb-1.5 mono-text">Distribuição Regionalizada (Mapa)</span>
-                          <div className="h-16 bg-[#050506] border border-[#18181b] rounded relative overflow-hidden flex items-center justify-center">
-                            {/* Grid do mapa de fundo */}
-                            <div className="absolute inset-0 bg-[linear-gradient(to_right,#18181b_1px,transparent_1px),linear-gradient(to_bottom,#18181b_1px,transparent_1px)] bg-[size:10px_10px] opacity-40"></div>
+                          <span className={`text-[8px] uppercase tracking-widest block mb-1.5 mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Distribuição Regionalizada (Mapa)</span>
+                          <div className={`h-16 rounded relative overflow-hidden flex items-center justify-center border ${
+                            theme === "dark" ? "bg-[#050506] border-[#18181b]" : "bg-[#f4f4f5] border-[#e4e4e7]"
+                          }`}>
+                            {/* Grid do mapa de fundo usando variáveis de tema CSS */}
+                            <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--zinc-800)_1px,transparent_1px),linear-gradient(to_bottom,var(--zinc-800)_1px,transparent_1px)] bg-[size:10px_10px] opacity-40"></div>
                             
                             {/* Conexão da rota */}
                             <svg className="absolute inset-0 w-full h-full">
@@ -2542,19 +2606,21 @@ export default function Home() {
                             
                             {/* Pontos de Roteamento */}
                             <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col items-center">
-                              <span className={`w-2.5 h-2.5 rounded-full ${ord.status === "WAITING_MAKER" ? "bg-yellow-500 animate-ping" : "bg-[#d44d00]"} border border-white/10`}></span>
-                              <span className="text-[7px] text-[#71717a] mt-1 mono-text">Maker</span>
+                              <span className={`w-2.5 h-2.5 rounded-full ${ord.status === "WAITING_MAKER" ? "bg-yellow-500 animate-ping" : "bg-[#d44d00]"} border border-black/10`}></span>
+                              <span className={`text-[7px] mt-1 mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Maker</span>
                             </div>
                             
                             {ord.status !== "WAITING_MAKER" && (
-                              <div className={`absolute left-1/2 top-1/2 -translate-y-1/2 ${ord.status === "PRINTING" ? "text-yellow-500" : "text-[#10b981]"} text-[8px] px-1.5 py-0.5 bg-[#09090b] border border-[#18181b] rounded mono-text z-10`}>
+                              <div className={`absolute left-1/2 top-1/2 -translate-y-1/2 ${ord.status === "PRINTING" ? "text-yellow-500" : "text-[#10b981]"} text-[8px] px-1.5 py-0.5 rounded mono-text z-10 border ${
+                                theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#fafafa] border-[#e4e4e7]"
+                              }`}>
                                 {ord.status === "PRINTING" ? "⚙️ IMPRIMINDO" : "🚚 EM TRÂNSITO"}
                               </div>
                             )}
 
                             <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-center">
-                              <span className="w-2.5 h-2.5 rounded-full bg-white border border-white/10"></span>
-                              <span className="text-[7px] text-[#71717a] mt-1 mono-text">Cliente</span>
+                              <span className="w-2.5 h-2.5 rounded-full bg-white border border-black/10"></span>
+                              <span className={`text-[7px] mt-1 mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Cliente</span>
                             </div>
                           </div>
                         </div>
