@@ -150,7 +150,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       realtime: true,
-      models: rawModels.slice(0, 16) // limita a 16 modelos para otimização de banda
+      models: rawModels.slice(0, 24) // limita a 24 modelos para paginação rica
     });
 
   } catch (error: any) {

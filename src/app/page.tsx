@@ -149,13 +149,15 @@ export default function Home() {
   const [novoInsumoDelivery, setNovoInsumoDelivery] = useState<string>("");
   
   // --- ESTADOS DA ÁREA DO CLIENTE EXPANDIDA ---
-  const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "search" | "ai">("upload");
+  const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "ai">("upload");
   const [webSearchQuery, setWebSearchQuery] = useState<string>("");
-  const [webSearchResults, setWebSearchResults] = useState<Array<{ id: string; title: string; image: string; author: string; likes: number; source: string; stlName: string; weightG: number; timeFormatted: string; totalPrice: number }>>([]);
-  const [webSearchLoading, setWebSearchLoading] = useState<boolean>(false);
+  const [gallerySearchQuery, setGallerySearchQuery] = useState<string>("");
   const [galleryModels, setGalleryModels] = useState<any[]>([]);
   const [galleryLoading, setGalleryLoading] = useState<boolean>(false);
   const [selectedModelImage, setSelectedModelImage] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [homeSearchQuery, setHomeSearchQuery] = useState<string>("");
+  const [homeSearchLoading, setHomeSearchLoading] = useState<boolean>(false);
   
   const [aiChatMessages, setAiChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string; recommendedParams?: { filename: string; material: string; infill: number; weightG: number; timeFormatted: string; totalPrice: number } }>>([
     {
@@ -708,9 +710,15 @@ export default function Home() {
       return;
     }
     
+    // Se o modelo foi selecionado da galeria/busca (possui selectedModelImage),
+    // a extensão do arquivo enviado para fabricação deve ser .3mf
+    const finalFilename = selectedModelImage
+      ? quote.filename.replace(/\.stl$/i, ".3mf")
+      : quote.filename;
+
     const newOrder: SimulatedOrder = {
       id: Math.floor(1000 + Math.random() * 9000).toString(),
-      filename: quote.filename,
+      filename: finalFilename,
       status: "WAITING_MAKER",
       totalPrice: quote.pricing.totalPrice,
       weightG: quote.metrics.weightG,
@@ -735,7 +743,7 @@ export default function Home() {
     setClientZip("");
     setClientAddress("");
     setNearbyMakers([]);
-    alert(`Pedido #${newOrder.id} enviado para o roteador geolocalizado! Os makers nas proximidades receberão o Push.`);
+    alert(`Pedido #${newOrder.id} enviado para o roteador geolocalizado! O modelo .3mf fatiador pronto foi carregado e enviado ao Maker selecionado nas proximidades.`);
   };
 
   // --- FUNÇÕES DO MAKER (WIZARD & DESPACHO SOB DEMANDA) ---
@@ -1013,30 +1021,51 @@ export default function Home() {
     }).catch(err => console.error("Erro ao alterar banimento no banco:", err));
   };
 
-  // Busca real no MakerWorld (via nossa API de proxy integrada com Firecrawl)
-  const handleWeb3DSearch = async (e: React.FormEvent) => {
+  // Busca dinâmica integrada na Galeria da área logada
+  const handleGallerySearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!webSearchQuery.trim()) return;
-    setWebSearchResults([]);
-    setWebSearchLoading(true);
+    if (!gallerySearchQuery.trim()) return;
+    setGalleryLoading(true);
+    setCurrentPage(1); // Reseta a paginação ao fazer uma nova busca
     
     try {
-      const response = await fetch(`/api/makerworld/search?keyword=${encodeURIComponent(webSearchQuery)}`);
+      const response = await fetch(`/api/makerworld/search?keyword=${encodeURIComponent(gallerySearchQuery)}`);
       const data = await response.json();
       
       if (data.success && data.models) {
-        setWebSearchResults(data.models);
-        if (data.warning) {
-          console.warn("[FabMakers] Real-time Search Warning:", data.warning);
-        }
+        setGalleryModels(data.models);
       } else {
-        alert("Erro ao buscar modelos: " + (data.error || "Erro desconhecido"));
+        alert("Erro ao buscar modelos na galeria: " + (data.error || "Erro desconhecido"));
       }
     } catch (err: any) {
-      console.error("Erro na busca Web 3D:", err);
+      console.error("Erro na busca da galeria:", err);
       alert("Falha de conexão ao buscar modelos.");
     } finally {
-      setWebSearchLoading(false);
+      setGalleryLoading(false);
+    }
+  };
+
+  // Busca dinâmica integrada na Landing Page pública
+  const handleHomeSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!homeSearchQuery.trim()) return;
+    setHomeSearchLoading(true);
+    setCurrentPage(1); // Reseta a paginação ao fazer uma nova busca
+    
+    try {
+      const response = await fetch(`/api/makerworld/search?keyword=${encodeURIComponent(homeSearchQuery)}`);
+      const data = await response.json();
+      
+      if (data.success && data.models) {
+        setGalleryModels(data.models);
+      } else {
+        alert("Erro ao buscar modelos na página inicial: " + (data.error || "Erro desconhecido"));
+      }
+    } catch (err: any) {
+      console.error("Erro na busca da home:", err);
+      alert("Falha de conexão ao buscar modelos.");
+    } finally {
+      setHomeSearchLoading(false);
     }
   };
 
@@ -1425,94 +1454,204 @@ export default function Home() {
 
                 {/* Grid de Modelos Populares */}
                 <div id="populares-makerworld" className="space-y-6 pt-6 border-t border-[#18181b]/50">
-                  <div>
-                    <h2 className="text-lg font-bold text-white uppercase tracking-tight mono-text">Ideias e Modelos Populares da Rede</h2>
-                    <p className="text-xs text-[#a1a1aa] mt-1">
-                      Pesquise ou clique em qualquer modelo abaixo para importá-lo instantaneamente e receber seu orçamento físico.
-                    </p>
-                  </div>
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-bold text-white uppercase tracking-tight mono-text">Ideias e Modelos Populares da Rede</h2>
+                      <p className="text-xs text-[#a1a1aa] mt-1">
+                        Pesquise ou clique em qualquer modelo abaixo para importá-lo instantaneamente e receber seu orçamento físico.
+                      </p>
+                    </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {(galleryModels && galleryModels.length > 0
-                      ? galleryModels.slice(0, 4).map(m => ({
-                          id: m.id,
-                          title: m.title,
-                          image: m.image,
-                          weightG: m.weightG,
-                          author: m.author || "Bambu_User",
-                          source: m.source,
-                          stlName: m.stlName,
-                          price: m.totalPrice,
-                          timeFormatted: m.timeFormatted
-                        }))
-                      : [
-                          { id: "mw1", title: "Suporte de Fone Minimalista", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", weightG: 45.0, author: "Bambu_User", source: "MakerWorld", stlName: "fone_minimalista.stl", price: 32.50, timeFormatted: "2h 15min" },
-                          { id: "mw2", title: "Organizador Modular de Gavetas", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", weightG: 68.0, author: "Print_Lab", source: "Printables", stlName: "gaveta_modular.stl", price: 44.90, timeFormatted: "1h 50min" },
-                          { id: "mw3", title: "Vaso Espiral Geométrico", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", weightG: 55.0, author: "VaseDesign", source: "MakerWorld", stlName: "vaso_espiral.stl", price: 38.00, timeFormatted: "2h 45min" },
-                          { id: "mw4", title: "Gancho de Bicicleta Reforçado", image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=300&auto=format&fit=crop&q=60", weightG: 120.0, author: "Tough3D", source: "MakerWorld", stlName: "gancho_bike.stl", price: 85.00, timeFormatted: "6h 10min" }
-                        ]
-                    ).map((item) => (
-                      <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
-                        <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
-                          <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                          <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">Homologado</span>
-                        </div>
-                        <div className="p-4 flex-grow flex flex-col justify-between space-y-4">
-                          <div>
-                            <h4 className="font-bold text-white text-xs leading-snug truncate" title={item.title}>{item.title}</h4>
-                            <p className="text-xs text-[#71717a] mt-0.5">Criado por: {item.author}</p>
-                          </div>
-                          <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
-                            <span className="text-xs font-bold text-[#d44d00] mono-text">Est. R$ {item.price.toFixed(2)}</span>
-                            <button
-                              onClick={() => {
-                                // Injeta os dados da galeria no Quote
-                                setSelectedModelImage(item.image); // Leva a imagem do modelo para a cotação
-                                setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
-                                setMaterial("PLA");
-                                setQuote({
-                                  success: true,
-                                  filename: item.stlName,
-                                  trianglesCount: 15420,
-                                  boundingBox: { width: 120, depth: 80, height: 160 },
-                                  metrics: {
-                                    rawVolumeMm3: item.weightG * 1000,
-                                    realVolumeCm3: item.weightG / 1.2,
-                                    weightG: item.weightG,
-                                    timeHours: item.weightG / 18,
-                                    timeFormatted: item.timeFormatted || "2h 15min"
-                                  },
-                                  pricing: {
-                                    materialCost: item.weightG * 0.12,
-                                    machineCost: (item.weightG / 18) * 12,
-                                    makerProfit: (item.weightG * 0.12 + (item.weightG / 18) * 12) * 0.40,
-                                    makerPayout: item.price * 0.95, // desconta 5% da plataforma
-                                    platformFee: item.price * 0.05, // comissão 5%
-                                    royaltyPrice: 0.0,
-                                    totalPrice: item.price
-                                  }
-                                });
-                                setClientZip("01001-000"); // CEP Padrão para facilitar
-                                if (currentUser) {
-                                  setActiveTab("client");
-                                  setClientSubTab("upload");
-                                } else {
-                                  setLoginRole("CLIENT");
-                                  setLoginEmail("");
-                                  setLoginPassword("");
-                                  setLoginError("");
-                                  setShowLoginModal(true);
-                                }
-                              }}
-                              className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-xs font-bold text-white uppercase rounded transition cursor-pointer"
-                            >
-                              Imprimir Peça
-                            </button>
-                          </div>
+                    {/* Barra de Pesquisa com Lupa na primeira página */}
+                    <form onSubmit={handleHomeSearch} className="flex gap-2 w-full md:max-w-xs">
+                      <div className="relative flex-grow">
+                        <input
+                          type="text"
+                          placeholder="Buscar modelos na rede..."
+                          value={homeSearchQuery}
+                          onChange={(e) => setHomeSearchQuery(e.target.value)}
+                          className="w-full bg-[#09090b] border border-[#18181b] rounded pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-4 w-4 text-[#71717a]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
                         </div>
                       </div>
-                    ))}
+                      <button
+                        type="submit"
+                        disabled={homeSearchLoading}
+                        className="px-4 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer flex items-center gap-2"
+                      >
+                        {homeSearchLoading ? "Buscando..." : "Pesquisar"}
+                      </button>
+                    </form>
                   </div>
+
+                  {homeSearchLoading ? (
+                    <div className="py-12 text-center">
+                      <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin mx-auto"></div>
+                      <p className="text-xs text-[#71717a] mt-3">Pesquisando modelos na rede...</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {(() => {
+                          const homeFallbackModels = [
+                            { id: "mw1", title: "Suporte de Fone Minimalista", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", weightG: 45.0, author: "Bambu_User", source: "MakerWorld", stlName: "fone_minimalista.stl", price: 32.50, timeFormatted: "2h 15min" },
+                            { id: "mw2", title: "Organizador Modular de Gavetas", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", weightG: 68.0, author: "Print_Lab", source: "Printables", stlName: "gaveta_modular.stl", price: 44.90, timeFormatted: "1h 50min" },
+                            { id: "mw3", title: "Vaso Espiral Geométrico", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", weightG: 55.0, author: "VaseDesign", source: "MakerWorld", stlName: "vaso_espiral.stl", price: 38.00, timeFormatted: "2h 45min" },
+                            { id: "mw4", title: "Gancho de Bicicleta Reforçado", image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=300&auto=format&fit=crop&q=60", weightG: 120.0, author: "Tough3D", source: "MakerWorld", stlName: "gancho_bike.stl", price: 85.00, timeFormatted: "6h 10min" },
+                            { id: "mw5", title: "Action Figure Articulada", image: "https://images.unsplash.com/photo-1560942485-b2a11cc13456?w=300&auto=format&fit=crop&q=60", weightG: 32.0, author: "MiniArt", source: "Thingiverse", stlName: "action_figure.stl", price: 25.00, timeFormatted: "1h 30min" },
+                            { id: "mw6", title: "Case Placa Raspberry Pi 4", image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=300&auto=format&fit=crop&q=60", weightG: 28.0, author: "PiMaker", source: "MakerWorld", stlName: "case_pi4.stl", price: 22.00, timeFormatted: "1h 10min" },
+                            { id: "mw7", title: "Luminária de Mesa Art Déco", image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=300&auto=format&fit=crop&q=60", weightG: 110.0, author: "LuxDesign", source: "Printables", stlName: "luminaria_art_deco.stl", price: 78.00, timeFormatted: "5h 40min" },
+                            { id: "mw8", title: "Adaptador de Mangueira Jardim", image: "https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&auto=format&fit=crop&q=60", weightG: 42.0, author: "GardenTech", source: "Thingiverse", stlName: "adaptador_mangueira.stl", price: 35.00, timeFormatted: "2h 05min" },
+                            { id: "mw9", title: "Presilha Organizadora de Cabos", image: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=300&auto=format&fit=crop&q=60", weightG: 8.0, author: "WireOrganizer", source: "MakerWorld", stlName: "presilha_cabos.stl", price: 10.00, timeFormatted: "25min" },
+                            { id: "mw10", title: "Suporte de Copo para Carro", image: "https://images.unsplash.com/photo-1486006920555-c77dce18193b?w=300&auto=format&fit=crop&q=60", weightG: 50.0, author: "CarGadgets", source: "Printables", stlName: "suporte_copo_carro.stl", price: 38.00, timeFormatted: "2h 10min" },
+                            { id: "mw11", title: "Engrenagem Mecânica de Reposição", image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60", weightG: 15.0, author: "MechPart", source: "Thingiverse", stlName: "engrenagem_spur.stl", price: 28.00, timeFormatted: "50min" },
+                            { id: "mw12", title: "Miniatura de Anatomia Humana", image: "https://images.unsplash.com/photo-1530026405186-ed1ea0ac7a63?w=300&auto=format&fit=crop&q=60", weightG: 30.0, author: "Bio3D", source: "MakerWorld", stlName: "miniatura_anatomia.stl", price: 42.00, timeFormatted: "1h 45min" }
+                          ];
+
+                          const activeModels = galleryModels && galleryModels.length > 0
+                            ? galleryModels.map(m => ({
+                                id: m.id,
+                                title: m.title,
+                                image: m.image,
+                                weightG: m.weightG,
+                                author: m.author || "Bambu_User",
+                                source: m.source,
+                                stlName: m.stlName,
+                                price: m.totalPrice,
+                                timeFormatted: m.timeFormatted
+                              }))
+                            : homeFallbackModels;
+
+                          const itemsPerPage = 12;
+                          const totalPages = Math.ceil(activeModels.length / itemsPerPage);
+                          const indexOfLastItem = currentPage * itemsPerPage;
+                          const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+                          const currentItems = activeModels.slice(indexOfFirstItem, indexOfLastItem);
+
+                          return (
+                            <>
+                              {currentItems.map((item) => (
+                                <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
+                                  <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
+                                    <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                                  </div>
+                                  <div className="p-4 flex-grow flex flex-col justify-between space-y-4">
+                                    <div>
+                                      <h4 className="font-bold text-white text-xs leading-snug truncate" title={item.title}>{item.title}</h4>
+                                      <p className="text-xs text-[#71717a] mt-0.5">Criado por: {item.author}</p>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
+                                      <span className="text-xs font-bold text-[#d44d00] mono-text">Est. R$ {item.price.toFixed(2)}</span>
+                                      <button
+                                        onClick={() => {
+                                          // Injeta os dados da galeria no Quote
+                                          setSelectedModelImage(item.image); // Leva a imagem do modelo para a cotação
+                                          setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
+                                          setMaterial("PLA");
+                                          setQuote({
+                                            success: true,
+                                            filename: item.stlName,
+                                            trianglesCount: 15420,
+                                            boundingBox: { width: 120, depth: 80, height: 160 },
+                                            metrics: {
+                                              rawVolumeMm3: item.weightG * 1000,
+                                              realVolumeCm3: item.weightG / 1.2,
+                                              weightG: item.weightG,
+                                              timeHours: item.weightG / 18,
+                                              timeFormatted: item.timeFormatted || "2h 15min"
+                                            },
+                                            pricing: {
+                                              materialCost: item.weightG * 0.12,
+                                              machineCost: (item.weightG / 18) * 12,
+                                              makerProfit: (item.weightG * 0.12 + (item.weightG / 18) * 12) * 0.40,
+                                              makerPayout: item.price * 0.95, // desconta 5% da plataforma
+                                              platformFee: item.price * 0.05, // comissão 5%
+                                              royaltyPrice: 0.0,
+                                              totalPrice: item.price
+                                            }
+                                          });
+                                          setClientZip("01001-000"); // CEP Padrão para facilitar
+                                          if (currentUser) {
+                                            setActiveTab("client");
+                                            setClientSubTab("upload");
+                                          } else {
+                                            setLoginRole("CLIENT");
+                                            setLoginEmail("");
+                                            setLoginPassword("");
+                                            setLoginError("");
+                                            setShowLoginModal(true);
+                                          }
+                                        }}
+                                        className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-xs font-bold text-white uppercase rounded transition cursor-pointer"
+                                      >
+                                        Imprimir Peça
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+
+                              {/* Paginador */}
+                              {totalPages > 1 && (
+                                <div className="col-span-1 sm:col-span-2 lg:col-span-4 flex justify-center items-center gap-2 mt-8 pt-4 border-t border-[#18181b]/50">
+                                  <button
+                                    onClick={() => {
+                                      setCurrentPage(prev => Math.max(prev - 1, 1));
+                                      document.getElementById("populares-makerworld")?.scrollIntoView({ behavior: "smooth" });
+                                    }}
+                                    disabled={currentPage === 1}
+                                    className={`px-3 py-1.5 rounded text-xs font-bold transition cursor-pointer border ${
+                                      currentPage === 1
+                                        ? "border-[#18181b] text-[#71717a] cursor-not-allowed bg-transparent"
+                                        : "border-[#27272a] text-white hover:border-[#d44d00] hover:text-[#d44d00] bg-[#09090b]"
+                                    }`}
+                                  >
+                                    Anterior
+                                  </button>
+                                  
+                                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <button
+                                      key={page}
+                                      onClick={() => {
+                                        setCurrentPage(page);
+                                        document.getElementById("populares-makerworld")?.scrollIntoView({ behavior: "smooth" });
+                                      }}
+                                      className={`px-3 py-1.5 rounded text-xs font-bold transition cursor-pointer border ${
+                                        currentPage === page
+                                          ? "border-[#d44d00] bg-[#d44d00] text-white"
+                                          : "border-[#18181b] text-[#a1a1aa] hover:border-[#27272a] hover:text-white bg-[#09090b]"
+                                      }`}
+                                    >
+                                      {page}
+                                    </button>
+                                  ))}
+                                  
+                                  <button
+                                    onClick={() => {
+                                      setCurrentPage(prev => Math.min(prev + 1, totalPages));
+                                      document.getElementById("populares-makerworld")?.scrollIntoView({ behavior: "smooth" });
+                                    }}
+                                    disabled={currentPage === totalPages}
+                                    className={`px-3 py-1.5 rounded text-xs font-bold transition cursor-pointer border ${
+                                      currentPage === totalPages
+                                        ? "border-[#18181b] text-[#71717a] cursor-not-allowed bg-transparent"
+                                        : "border-[#27272a] text-white hover:border-[#d44d00] hover:text-[#d44d00] bg-[#09090b]"
+                                    }`}
+                                  >
+                                    Próximo
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -1665,16 +1804,6 @@ export default function Home() {
                 🖼️ Galeria de Modelos
               </button>
               <button
-                onClick={() => setClientSubTab("search")}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
-                  clientSubTab === "search"
-                    ? "bg-[#d44d00] text-white"
-                    : "border border-[#18181b] text-[#a1a1aa] hover:text-white bg-[#09090b]"
-                }`}
-              >
-                🌐 Buscar na Web 3D
-              </button>
-              <button
                 onClick={() => setClientSubTab("ai")}
                 className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
                   clientSubTab === "ai"
@@ -1806,6 +1935,30 @@ export default function Home() {
                       </p>
                     </div>
 
+                    <form onSubmit={handleGallerySearch} className="flex gap-2">
+                      <div className="relative flex-grow">
+                        <input
+                          type="text"
+                          placeholder="Pesquise na galeria (ex: 'xbox', 'vaso', 'suporte')..."
+                          value={gallerySearchQuery}
+                          onChange={(e) => setGallerySearchQuery(e.target.value)}
+                          className="w-full bg-[#09090b] border border-[#18181b] rounded pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="h-4 w-4 text-[#71717a]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={galleryLoading}
+                        className="px-6 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer flex items-center gap-2"
+                      >
+                        {galleryLoading ? "Buscando..." : "Pesquisar"}
+                      </button>
+                    </form>
+
                     {galleryLoading ? (
                       <div className="py-12 text-center">
                         <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin mx-auto"></div>
@@ -1817,9 +1970,6 @@ export default function Home() {
                           <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
                             <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
                               <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                              <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">
-                                Homologado
-                              </span>
                             </div>
                             <div className="p-4 space-y-4 flex-grow flex flex-col justify-between">
                               <div>
@@ -1873,94 +2023,7 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* 3. Sub-Aba: BUSCA WEB 3D */}
-                {clientSubTab === "search" && (
-                  <div className="space-y-6">
-                    <div>
-                      <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Pesquisa Integrada Web 3D</h2>
-                      <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
-                        Pesquise modelos prontos em nossa rede integrada e importe diretamente para cotação.
-                      </p>
-                    </div>
 
-                    <form onSubmit={handleWeb3DSearch} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Busque por 'suporte xbox', 'gancho', 'vaso'..."
-                        value={webSearchQuery}
-                        onChange={(e) => setWebSearchQuery(e.target.value)}
-                        className="flex-grow bg-[#09090b] border border-[#18181b] rounded px-3 py-2 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
-                      />
-                      <button
-                        type="submit"
-                        disabled={webSearchLoading}
-                        className="px-6 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer flex items-center gap-2"
-                      >
-                        {webSearchLoading ? "Buscando..." : "Pesquisar"}
-                      </button>
-                    </form>
-
-                    {webSearchLoading && (
-                      <div className="py-12 text-center">
-                        <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin mx-auto"></div>
-                        <p className="text-xs text-[#71717a] mt-3">Agregando resultados das APIs integradas...</p>
-                      </div>
-                    )}
-
-                    {!webSearchLoading && webSearchResults.length > 0 && (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {webSearchResults.map((item) => (
-                          <div key={item.id} className="bg-[#09090b] border border-[#18181b] p-4 rounded-lg flex gap-4 items-center hover:border-[#d44d00]/30 transition">
-                            <div className="w-20 h-20 rounded bg-[#18181b] overflow-hidden flex-shrink-0">
-                              <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-                            </div>
-                            <div className="flex-grow space-y-1.5 min-w-0">
-                              <span className="text-[8px] bg-[#18181b] text-[#a1a1aa] px-1.5 py-0.5 rounded border border-[#27272a] uppercase font-bold tracking-wider mono-text inline-block">Modelo 3D</span>
-                              <h4 className="font-bold text-white text-xs truncate leading-tight">{item.title}</h4>
-                              <p className="text-xs text-[#71717a] truncate">Por: {item.author} | {item.likes} likes</p>
-                              <button
-                                onClick={() => {
-                                  // Injeta os dados da busca no Quote
-                                  setSelectedModelImage(item.image); // Leva a imagem do modelo para a cotação
-                                  setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
-                                  setMaterial("PLA");
-                                  setQuote({
-                                    success: true,
-                                    filename: item.stlName,
-                                    trianglesCount: 12450,
-                                    boundingBox: { width: 100, depth: 100, height: 120 },
-                                    metrics: {
-                                      rawVolumeMm3: item.weightG * 1000,
-                                      realVolumeCm3: item.weightG / 1.2,
-                                      weightG: item.weightG,
-                                      timeHours: item.weightG / 18,
-                                      timeFormatted: item.timeFormatted
-                                    },
-                                    pricing: {
-                                      materialCost: item.weightG * 0.12,
-                                      machineCost: (item.weightG / 18) * 12,
-                                      makerProfit: (item.weightG * 0.12 + (item.weightG / 18) * 12) * 0.40,
-                                      makerPayout: item.totalPrice * 0.80,
-                                      platformFee: item.totalPrice * 0.20,
-                                      royaltyPrice: 0.0,
-                                      totalPrice: item.totalPrice
-                                    }
-                                  });
-                                  setClientZip("01001-000");
-                                  alert(`Modelo "${item.title}" importado com sucesso! Agora informe o CEP para fechar o pedido.`);
-                                  setClientSubTab("upload"); // Joga para a cotação fatiador
-                                }}
-                                className="text-xs text-[#d44d00] hover:text-[#b04000] font-bold uppercase tracking-wider block cursor-pointer"
-                              >
-                                Importar e Cotar →
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {/* 4. Sub-Aba: ASSISTENTE DE IA 3D */}
                 {clientSubTab === "ai" && (
