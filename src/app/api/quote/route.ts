@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
     const material = (formData.get("material") as string || "PLA").toUpperCase();
     const infillPercent = parseInt(formData.get("infill") as string || "20", 10);
     const royaltyPrice = parseFloat(formData.get("royalty") as string || "0.0");
+    const layerHeight = formData.get("layerHeight") as string || "0.20";
+    const infillPattern = formData.get("infillPattern") as string || "grid";
 
     if (!file) {
       return NextResponse.json(
@@ -39,21 +41,32 @@ export async function POST(req: NextRequest) {
     // Roda o analisador geométrico STL
     const analysis = analyzeSTL(buffer);
 
-    // 1. Cálculo do Volume Real com base no Infill (Preenchimento)
+    // 1. Cálculo do Volume Real com base no Infill (Preenchimento) e Padrão
     // Uma peça nunca é impressa 100% oca nem 100% sólida por padrão.
     // Fórmula empírica: cascas e perímetros representam 30% do material do volume total sólido,
     // e o infill representa os 70% restantes.
     const infillRatio = infillPercent / 100;
-    const realVolumeCm3 = (analysis.volume / 1000) * (infillRatio * 0.7 + 0.3);
+    
+    // Multiplicador de padrão de preenchimento (Giroide consome +5%, Colmeia +8% devido às curvas/linhas extras)
+    const patternWeightMultiplier = 
+      infillPattern === "gyroid" ? 1.05 : 
+      infillPattern === "honeycomb" ? 1.08 : 1.00;
+
+    const realVolumeCm3 = (analysis.volume / 1000) * (infillRatio * 0.7 + 0.3) * patternWeightMultiplier;
 
     // 2. Peso Estimado em Gramas (Volume em cm³ * Densidade g/cm³)
     const density = MATERIAL_DENSITIES[material] || 1.24;
     const estimatedWeightG = realVolumeCm3 * density;
 
     // 3. Tempo Estimado de Impressão (Baseado em impressoras modernas como Bambu Lab / K1)
+    // Multiplicador de tempo por altura de camada (0.12mm aumenta o tempo em 60%, 0.28mm reduz o tempo em 30%)
+    const layerTimeMultiplier = 
+      layerHeight === "0.12" ? 1.60 : 
+      layerHeight === "0.28" ? 0.70 : 1.00;
+
     // Velocidade de deposição média de 18 gramas por hora.
     // Adiciona-se 0.5 horas (30 minutos) fixas para aquecimento, setup de mesa e calibração inicial.
-    const timeToPrintHours = Math.max(0.5, estimatedWeightG / 18);
+    const timeToPrintHours = Math.max(0.5, (estimatedWeightG / 18) * layerTimeMultiplier);
 
     // 4. Detalhamento Financeiro (Precificação)
     const costPerGram = MATERIAL_COST_PER_GRAM[material] || 0.12;

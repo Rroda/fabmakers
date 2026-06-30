@@ -401,6 +401,8 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [material, setMaterial] = useState<string>("PLA");
   const [infill, setInfill] = useState<number>(20);
+  const [layerHeight, setLayerHeight] = useState<string>("0.20");
+  const [infillPattern, setInfillPattern] = useState<string>("grid");
   const [loading, setLoading] = useState<boolean>(false);
   const [quote, setQuote] = useState<QuoteData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -577,7 +579,13 @@ export default function Home() {
   }, []);
 
   // --- FUNÇÕES DO CLIENTE (COTAÇÃO & COMPRA) ---
-  const generateQuote = async (uploadedFile: File, selectedMaterial: string, selectedInfill: number) => {
+  const generateQuote = async (
+    uploadedFile: File,
+    selectedMaterial: string,
+    selectedInfill: number,
+    selectedLayerHeight: string = layerHeight,
+    selectedInfillPattern: string = infillPattern
+  ) => {
     setLoading(true);
     setError(null);
 
@@ -585,6 +593,8 @@ export default function Home() {
     formData.append("file", uploadedFile);
     formData.append("material", selectedMaterial);
     formData.append("infill", selectedInfill.toString());
+    formData.append("layerHeight", selectedLayerHeight);
+    formData.append("infillPattern", selectedInfillPattern);
 
     try {
       const response = await fetch("/api/quote", {
@@ -685,6 +695,23 @@ export default function Home() {
 
   const handleInfillChange = (newInfill: number) => {
     setInfill(newInfill);
+    if (file) {
+      generateQuote(file, material, newInfill, layerHeight, infillPattern);
+    }
+  };
+
+  const handleLayerHeightChange = (newLayer: string) => {
+    setLayerHeight(newLayer);
+    if (file) {
+      generateQuote(file, material, infill, newLayer, infillPattern);
+    }
+  };
+
+  const handleInfillPatternChange = (newPattern: string) => {
+    setInfillPattern(newPattern);
+    if (file) {
+      generateQuote(file, material, infill, layerHeight, newPattern);
+    }
   };
 
   // --- FUNÇÕES DE CEP E GEOLOCALIZAÇÃO (ViaCEP) ---
@@ -2187,6 +2214,64 @@ export default function Home() {
                           onChange={(e) => handleInfillChange(parseInt(e.target.value))}
                           className="w-full accent-[#d44d00] h-1 bg-[#18181b] rounded-lg appearance-none cursor-pointer"
                         />
+                      </div>
+
+                      {/* Altura da Camada (Resolução) */}
+                      <div className="space-y-3">
+                        <label className={`text-xs font-semibold uppercase tracking-wider mono-text ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>Altura da Camada (Resolução)</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { value: "0.12", label: "0.12mm (Fina)" },
+                            { value: "0.20", label: "0.20mm (Normal)" },
+                            { value: "0.28", label: "0.28mm (Draft)" }
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => handleLayerHeightChange(opt.value)}
+                              className={`p-2 border text-[10px] font-bold transition rounded cursor-pointer ${
+                                layerHeight === opt.value
+                                  ? theme === "dark"
+                                    ? "border-[#d44d00] bg-[#d44d00]/10 text-white font-bold"
+                                    : "border-[#d44d00] bg-[#d44d00]/10 text-black font-bold"
+                                  : theme === "dark"
+                                    ? "border-[#18181b] bg-transparent text-[#71717a] hover:border-[#27272a] hover:text-white"
+                                    : "border-[#e4e4e7] bg-transparent text-[#52525b] hover:border-[#a1a1aa] hover:text-black"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Padrão de Preenchimento (Infill Pattern) */}
+                      <div className="space-y-3">
+                        <label className={`text-xs font-semibold uppercase tracking-wider mono-text ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>Padrão de Preenchimento (IA/Resistência)</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { value: "grid", label: "Grid (Grade)" },
+                            { value: "gyroid", label: "Giroide" },
+                            { value: "honeycomb", label: "Colmeia" }
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => handleInfillPatternChange(opt.value)}
+                              className={`p-2 border text-[10px] font-bold transition rounded cursor-pointer ${
+                                infillPattern === opt.value
+                                  ? theme === "dark"
+                                    ? "border-[#d44d00] bg-[#d44d00]/10 text-white font-bold"
+                                    : "border-[#d44d00] bg-[#d44d00]/10 text-black font-bold"
+                                  : theme === "dark"
+                                    ? "border-[#18181b] bg-transparent text-[#71717a] hover:border-[#27272a] hover:text-white"
+                                    : "border-[#e4e4e7] bg-transparent text-[#52525b] hover:border-[#a1a1aa] hover:text-black"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </>
