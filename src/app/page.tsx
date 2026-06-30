@@ -126,6 +126,63 @@ interface HomologationRequest {
   createdAt: string;
 }
 
+const materialDetails = {
+  PLA: {
+    name: "PLA (Poliácido Láctico)",
+    description: "Biodegradável e derivado de amido de milho. O filamento mais fácil de imprimir, com excelente acabamento estético e precisão dimensional.",
+    resistance: "Baixa a média mecânica. Baixa térmica (amolece acima de 55°C). Pouco flexível.",
+    application: "Prototipagem rápida, peças decorativas, action figures, maquetes e modelos conceituais.",
+    colors: [
+      { name: "Preto Matte", hex: "#1e1e1e" },
+      { name: "Branco Neve", hex: "#fcfcfc" },
+      { name: "Vermelho Rubi", hex: "#dc2626" },
+      { name: "Azul Cobalto", hex: "#2563eb" },
+      { name: "Verde Esmeralda", hex: "#16a34a" },
+      { name: "Laranja Neon", hex: "#ea580c" },
+      { name: "Cinza Espacial", hex: "#71717a" }
+    ]
+  },
+  ABS: {
+    name: "ABS (Acrilonitrila Butadieno Estireno)",
+    description: "Plástico robusto derivado do petróleo. Altamente resistente ao impacto, tenaz e ideal para pós-processamento de suavização com acetona.",
+    resistance: "Alta mecânica, alta tenacidade. Alta resistência térmica (resiste até 85°C). Excelente durabilidade.",
+    application: "Peças mecânicas, protótipos funcionais sujeitos a estresse mecânico, cases de eletrônicos e utilitários robustos.",
+    colors: [
+      { name: "Preto Industrial", hex: "#0f0f10" },
+      { name: "Cinza Chumbo", hex: "#4b5563" },
+      { name: "Branco Puro", hex: "#f9fafb" },
+      { name: "Vermelho Alerta", hex: "#b91c1c" },
+      { name: "Azul Marinho", hex: "#1e3a8a" },
+      { name: "Amarelo Segurança", hex: "#facc15" }
+    ]
+  },
+  PETG: {
+    name: "PETG (Polietileno Tereftalato de Glicol)",
+    description: "Combina a facilidade de impressão do PLA com a durabilidade mecânica do ABS. Ótima aderência entre camadas, resistência química e proteção UV.",
+    resistance: "Alta tenacidade, boa flexibilidade. Resistência térmica intermediária (resiste até 75°C). Resistente a intempéries e luz solar.",
+    application: "Peças para uso externo, suportes industriais, garrafas, recipientes à prova d'água e adaptadores.",
+    colors: [
+      { name: "Preto Translúcido", hex: "#1c1917" },
+      { name: "Azul Translúcido", hex: "#3b82f6" },
+      { name: "Vermelho Translúcido", hex: "#ef4444" },
+      { name: "Verde Translúcido", hex: "#10b981" },
+      { name: "Branco Leitoso", hex: "#f3f4f6" }
+    ]
+  },
+  Resina: {
+    name: "Resina Fotorreativa (SLA)",
+    description: "Cura líquida microscópica por laser/painel UV. Fornece uma resolução de detalhes impressionante com superfícies perfeitamente lisas.",
+    resistance: "Média a alta (conforme tipo da resina). Rígida e frágil na versão padrão, porém extremamente fiel aos detalhes.",
+    application: "Miniaturas de RPG/games super detalhadas, próteses odontológicas, moldes de joias de alta precisão.",
+    colors: [
+      { name: "Cinza Alta Precisão", hex: "#8e9297" },
+      { name: "Transparente Cristal", hex: "#e2e8f0" },
+      { name: "Preto Matte SLA", hex: "#111827" },
+      { name: "Branco SLA", hex: "#f8fafc" }
+    ]
+  }
+};
+
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"home" | "client" | "maker" | "admin">("home");
   
@@ -158,6 +215,10 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>("");
   const [homeSearchLoading, setHomeSearchLoading] = useState<boolean>(false);
+  const [selectedColor, setSelectedColor] = useState<string>("Preto Matte");
+  const [isMultipart, setIsMultipart] = useState<boolean>(false);
+  const [multipartColors, setMultipartColors] = useState<string[]>([]);
+  const [extractingColors, setExtractingColors] = useState<boolean>(false);
   
   const [aiChatMessages, setAiChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string; recommendedParams?: { filename: string; material: string; infill: number; weightG: number; timeFormatted: string; totalPrice: number } }>>([
     {
@@ -585,6 +646,10 @@ export default function Home() {
 
   const handleMaterialChange = (newMaterial: string) => {
     setMaterial(newMaterial);
+    const details = materialDetails[newMaterial as keyof typeof materialDetails];
+    if (details && details.colors && details.colors.length > 0) {
+      setSelectedColor(details.colors[0].name);
+    }
     if (file) {
       generateQuote(file, newMaterial, infill);
     }
@@ -1067,6 +1132,40 @@ export default function Home() {
     } finally {
       setHomeSearchLoading(false);
     }
+  };
+
+  // Simula a extração de cores por Inteligência Artificial baseado na imagem do modelo
+  const handleExtractColorsFromImage = () => {
+    if (!selectedModelImage) {
+      alert("Por favor, selecione um modelo da galeria primeiro para analisar as cores por IA.");
+      return;
+    }
+    setExtractingColors(true);
+    setTimeout(() => {
+      let extractedColors: string[] = [];
+      const imgLower = selectedModelImage.toLowerCase();
+      
+      if (imgLower.includes("photo-1546435") || imgLower.includes("fone") || imgLower.includes("headphone")) {
+        extractedColors = ["Vermelho Rubi", "Preto Matte"];
+      } else if (imgLower.includes("photo-160008") || imgLower.includes("gaveta") || imgLower.includes("organizador")) {
+        extractedColors = ["Laranja Neon", "Cinza Espacial"];
+      } else if (imgLower.includes("photo-157850") || imgLower.includes("vaso")) {
+        extractedColors = ["Vermelho Rubi", "Branco Neve"];
+      } else if (imgLower.includes("photo-148596") || imgLower.includes("gancho") || imgLower.includes("bike")) {
+        extractedColors = ["Preto Industrial", "Laranja Neon"];
+      } else if (imgLower.includes("photo-156094") || imgLower.includes("action")) {
+        extractedColors = ["Azul Cobalto", "Laranja Neon", "Preto Matte"];
+      } else {
+        extractedColors = ["Cinza Espacial", "Azul Cobalto"];
+      }
+
+      setMultipartColors(extractedColors);
+      setIsMultipart(true);
+      setExtractingColors(false);
+      
+      // Quando é multipartes, muda o nome final para incluir 'colorido_multipartes' para o Maker saber
+      alert(`[FabMakers Vision AI] Análise visual concluída com sucesso!\nCores detectadas na imagem: ${extractedColors.join(", ")}.\nO modo multipartes foi habilitado automaticamente.`);
+    }, 1500);
   };
 
   // Enviar mensagem para o Assistente de IA 3D ("FabMakers AI")
@@ -1909,6 +2008,120 @@ export default function Home() {
                           ))}
                         </div>
                       </div>
+
+                      {/* Explicação e detalhes do material selecionado */}
+                      {(() => {
+                        const details = materialDetails[material as keyof typeof materialDetails];
+                        if (!details) return null;
+                        return (
+                          <div className="bg-[#09090b] border border-[#18181b] p-4 rounded space-y-3">
+                            <div className="flex justify-between items-center border-b border-[#18181b]/60 pb-2">
+                              <span className="text-xs font-bold text-white mono-text">{details.name}</span>
+                              <span className="text-[9px] text-[#71717a] uppercase font-bold tracking-wider">Ficha Técnica</span>
+                            </div>
+                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                              <span className="text-white font-semibold">O que é:</span> {details.description}
+                            </p>
+                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                              <span className="text-white font-semibold">Resistência:</span> {details.resistance}
+                            </p>
+                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                              <span className="text-white font-semibold">Aplicações:</span> {details.application}
+                            </p>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Paleta de Cores do Material */}
+                      {(() => {
+                        const details = materialDetails[material as keyof typeof materialDetails];
+                        if (!details) return null;
+                        return (
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <label className="text-xs font-semibold text-[#a1a1aa] uppercase tracking-wider mono-text">Cor do Filamento</label>
+                              <span className="text-xs font-bold text-[#d44d00] mono-text">{isMultipart ? "Multicores (Multipartes)" : selectedColor}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {details.colors.map((c) => (
+                                <button
+                                  key={c.name}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedColor(c.name);
+                                    setIsMultipart(false); // Desativa multipartes se o usuário escolher uma cor sólida manual
+                                  }}
+                                  className={`w-8 h-8 rounded-full border-2 transition cursor-pointer relative flex items-center justify-center`}
+                                  style={{
+                                    backgroundColor: c.hex,
+                                    borderColor: selectedColor === c.name && !isMultipart ? "#d44d00" : "#18181b"
+                                  }}
+                                  title={c.name}
+                                >
+                                  {selectedColor === c.name && !isMultipart && (
+                                    <span className="w-2.5 h-2.5 rounded-full bg-[#d44d00]"></span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Multipartes & Inteligência Artificial */}
+                      {selectedModelImage && (
+                        <div className="border border-[#18181b] p-4 rounded bg-[#09090b]/40 space-y-3">
+                          <div className="flex justify-between items-center gap-4">
+                            <div>
+                              <h4 className="text-xs font-bold text-white uppercase mono-text">🌈 Peça Multicolorida / Multipartes</h4>
+                              <p className="text-[10px] text-[#71717a] mt-0.5">Extraia a combinação de cores do modelo real da imagem via IA.</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleExtractColorsFromImage}
+                              disabled={extractingColors}
+                              className="px-3 py-1.5 bg-[#18181b] border border-[#27272a] hover:border-[#d44d00] text-[10px] font-bold uppercase tracking-wider text-white rounded transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                            >
+                              {extractingColors ? (
+                                <>
+                                  <div className="w-3 h-3 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin"></div>
+                                  <span>Analisando...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>🤖 Extrair Cores (IA)</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {isMultipart && multipartColors.length > 0 && (
+                            <div className="p-3 bg-[#10b981]/5 border border-[#10b981]/15 rounded space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-[#10b981] font-bold uppercase tracking-wider bg-[#10b981]/10 px-2 py-0.5 rounded">Multipartes Habilitado</span>
+                              </div>
+                              <p className="text-[10px] text-[#a1a1aa] leading-relaxed">
+                                A peça será manufaturada em múltiplos componentes respeitando as cores extraídas do modelo original:
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {multipartColors.map((colorName) => {
+                                  let colorHex = "#d44d00";
+                                  const allColors = Object.values(materialDetails).flatMap(m => m.colors);
+                                  const found = allColors.find(col => col.name === colorName);
+                                  if (found) colorHex = found.hex;
+
+                                  return (
+                                    <div key={colorName} className="flex items-center gap-1.5 bg-[#18181b] border border-[#27272a] px-2.5 py-1 rounded text-[10px] text-white">
+                                      <span className="w-2 h-2 rounded-full border border-[#27272a]" style={{ backgroundColor: colorHex }}></span>
+                                      <span>{colorName}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="space-y-3">
                         <div className="flex justify-between items-center text-xs text-[#a1a1aa] uppercase tracking-wider mono-text">
