@@ -184,13 +184,13 @@ const materialDetails = {
 };
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"home" | "client" | "maker" | "admin">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "client" | "maker" | "designer" | "moderator" | "admin">("home");
   
   // --- ESTADOS DE SESSÃO E AUTENTICAÇÃO REAL ---
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; makerStatus?: string } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
-  const [homeMode, setHomeMode] = useState<"client" | "maker">("client");
+  const [homeMode, setHomeMode] = useState<"select" | "client" | "maker" | "designer">("select");
   const [contratoAceito, setContratoAceito] = useState<boolean>(false);
   
   const [lojaInsumos, setLojaInsumos] = useState<Array<{ id: string; title: string; price: number; link: string; affiliateCommissionPercent: number; image: string; deliveryTime: string }>>([
@@ -205,6 +205,32 @@ export default function Home() {
   const [novoInsumoImage, setNovoInsumoImage] = useState<string>("");
   const [novoInsumoDelivery, setNovoInsumoDelivery] = useState<string>("");
   
+  // --- ESTADOS DO PORTAL DO DESIGNER ---
+  const [designerAvailability, setDesignerAvailability] = useState<string>("20h por semana (Freelancer)");
+  const [designerHourRate, setDesignerHourRate] = useState<number>(65);
+  const [designerSpecialties, setDesignerSpecialties] = useState<string[]>(["Maquetes", "Personagens / Geek"]);
+  const [designerPortfolio, setDesignerPortfolio] = useState<string>("");
+  const [designerLegalAccepted, setDesignerLegalAccepted] = useState<boolean>(false);
+  const [designerStatus, setDesignerStatus] = useState<"NONE" | "PENDING_APPROVAL" | "APPROVED">("NONE");
+  
+  // Obras Autorais do Designer Cadastrado
+  const [designerObras, setDesignerObras] = useState<Array<{ id: string; title: string; category: string; description: string; price: number; image: string }>>([
+    { id: "obra1", title: "Miniatura Guerreiro Bárbaro", category: "Miniaturas", description: "Escultura autoral de alta fantasia com suportes otimizados.", price: 45.00, image: "https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300&auto=format&fit=crop&q=60" }
+  ]);
+  
+  const [novaObraTitle, setNovaObraTitle] = useState<string>("");
+  const [novaObraCategory, setNovaObraCategory] = useState<string>("Peças Técnicas");
+  const [novaObraDescription, setNovaObraDescription] = useState<string>("");
+  const [novaObraPrice, setNovaObraPrice] = useState<number>(30);
+  const [novaObraImage, setNovaObraImage] = useState<string>("");
+
+  // Lista fictícia global de designers na plataforma
+  const [plataformaDesigners, setPlataformaDesigners] = useState<Array<{ id: string; name: string; email: string; availability: string; hourRate: number; specialties: string[]; portfolio: string; status: "PENDING_APPROVAL" | "APPROVED" }>>([
+    { id: "des1", name: "Alan Turing 3D", email: "alan@fabmakers.com.br", availability: "40h por semana (Full-time)", hourRate: 90, specialties: ["Peças Técnicas", "Acessórios 3D"], portfolio: "Engenheiro de design mecânico. 5 anos modelando protótipos industriais no SolidWorks.", status: "APPROVED" },
+    { id: "des2", name: "Beatriz Mota", email: "beatriz@fabmakers.com.br", availability: "10h por semana (Part-time)", hourRate: 50, specialties: ["Decoração", "Organização"], portfolio: "Designer de Interiores e modelista de adornos contemporâneos.", status: "APPROVED" },
+    { id: "des3", name: "Clara Croft", email: "clara@fabmakers.com.br", availability: "15h por semana (Freelancer)", hourRate: 70, specialties: ["Brinquedos / Geek", "Miniaturas"], portfolio: "Artista de personagens autorais e Action Figures para RPG.", status: "PENDING_APPROVAL" }
+  ]);
+
   // --- ESTADOS DA ÁREA DO CLIENTE EXPANDIDA ---
   const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "ai" | "orders">("gallery");
   const [webSearchQuery, setWebSearchQuery] = useState<string>("");
@@ -228,7 +254,7 @@ export default function Home() {
   ]);
   const [aiInputText, setAiInputText] = useState<string>("");
   const [aiLoading, setAiLoading] = useState<boolean>(false);
-  const [loginRole, setLoginRole] = useState<"CLIENT" | "MAKER" | "ADMIN">("CLIENT");
+  const [loginRole, setLoginRole] = useState<"CLIENT" | "MAKER" | "DESIGNER" | "MODERATOR" | "ADMIN">("CLIENT");
   const [loginEmail, setLoginEmail] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState<boolean>(false);
@@ -1325,6 +1351,10 @@ export default function Home() {
           }
         } else if (data.user.role === "ADMIN") {
           setActiveTab("admin");
+        } else if (data.user.role === "DESIGNER") {
+          setActiveTab("designer");
+        } else if (data.user.role === "MODERATOR") {
+          setActiveTab("moderator");
         }
       } else {
         setLoginError(data.error || "Erro ao realizar o login.");
@@ -1500,33 +1530,155 @@ export default function Home() {
         {activeTab === "home" && (
           <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
             
-            {/* SWITCH DE VISÃO PRINCIPAL (MKT DUAL) */}
-            <div className="flex justify-center pb-4 border-b border-[#18181b]/45">
-              <div className={`rounded-lg p-1.5 flex flex-wrap gap-2 border ${
-                theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#f4f4f5] border-[#e4e4e7]"
-              }`}>
-                <button
-                  onClick={() => setHomeMode("client")}
-                  className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer flex items-center gap-2 ${
-                    homeMode === "client" 
-                      ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
-                      : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
-                  }`}
-                >
-                  🛍️ Comprar Serviços de Impressão (Cliente)
-                </button>
-                <button
-                  onClick={() => setHomeMode("maker")}
-                  className={`px-6 py-2.5 text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer flex items-center gap-2 ${
-                    homeMode === "maker" 
-                      ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
-                      : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
-                  }`}
-                >
-                  ⚙️ Produzir Serviços / Ver Loja (Maker/Empresa)
-                </button>
-              </div>
-            </div>
+             {/* BOTÃO VOLTAR PARA SELEÇÃO DE PERFIS */}
+             {homeMode !== "select" && (
+               <div className="flex justify-between items-center pb-4 border-b border-[#18181b]/30">
+                 <button
+                   onClick={() => setHomeMode("select")}
+                   className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider transition cursor-pointer ${
+                     theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
+                   }`}
+                 >
+                   &larr; Voltar para Seleção de Perfis
+                 </button>
+                 <div className={`rounded-lg p-1 flex gap-1 border ${
+                   theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#f4f4f5] border-[#e4e4e7]"
+                 }`}>
+                   <button
+                     onClick={() => setHomeMode("client")}
+                     className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                       homeMode === "client" 
+                         ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
+                         : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
+                     }`}
+                   >
+                     Cliente
+                   </button>
+                   <button
+                     onClick={() => setHomeMode("maker")}
+                     className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                       homeMode === "maker" 
+                         ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
+                         : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
+                     }`}
+                   >
+                     Maker
+                   </button>
+                   <button
+                     onClick={() => setHomeMode("designer")}
+                     className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                       homeMode === "designer" 
+                         ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
+                         : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
+                     }`}
+                   >
+                     Designer
+                   </button>
+                 </div>
+               </div>
+             )}
+
+             {/* TELA DE SELEÇÃO INICIAL (3 CARDS PREMIUM: CLIENTE, MAKER, DESIGNER) */}
+             {homeMode === "select" && (
+               <div className="py-12 space-y-10 text-center max-w-4xl mx-auto">
+                 <div className="space-y-4">
+                   <h1 className={`text-4xl md:text-5xl font-black tracking-tight leading-none ${
+                     theme === "dark" ? "text-white" : "text-black"
+                   }`}>
+                     Bem-vindo à Rede <span className="text-[#d44d00]">FabMakers</span>
+                   </h1>
+                   <p className={`text-sm md:text-base max-w-xl mx-auto ${
+                     theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
+                   }`}>
+                     Conectamos ideias, manufatura local distribuída e design 3D de ponta. Escolha seu perfil abaixo para acessar a plataforma sob medida.
+                   </p>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+                   {/* CARD 1: CLIENTE */}
+                   <div 
+                     onClick={() => setHomeMode("client")}
+                     className={`group border rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between h-[360px] ${
+                       theme === "dark" 
+                         ? "border-[#18181b] bg-[#09090b]/40 hover:border-[#d44d00]/30 hover:bg-[#09090b]/80" 
+                         : "border-[#e4e4e7] bg-white hover:border-[#d44d00]/30 hover:shadow-lg shadow-sm"
+                     }`}
+                   >
+                     <div className="space-y-4">
+                       <div className="w-12 h-12 rounded-xl bg-[#d44d00]/10 flex items-center justify-center text-[#d44d00] border border-[#d44d00]/20 group-hover:bg-[#d44d00] group-hover:text-white transition duration-300">
+                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                         </svg>
+                       </div>
+                       <div className="space-y-2">
+                         <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Comprar Impressão (Cliente)</h3>
+                         <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
+                           Precisa de uma peça impressa em 3D? Cote modelos STL ou escolha da nossa galeria e receba na sua casa.
+                         </p>
+                       </div>
+                     </div>
+                     <span className="text-xs font-bold text-[#d44d00] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                       Entrar como Cliente &rarr;
+                     </span>
+                   </div>
+
+                   {/* CARD 2: MAKER */}
+                   <div 
+                     onClick={() => setHomeMode("maker")}
+                     className={`group border rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between h-[360px] ${
+                       theme === "dark" 
+                         ? "border-[#18181b] bg-[#09090b]/40 hover:border-[#d44d00]/30 hover:bg-[#09090b]/80" 
+                         : "border-[#e4e4e7] bg-white hover:border-[#d44d00]/30 hover:shadow-lg shadow-sm"
+                     }`}
+                   >
+                     <div className="space-y-4">
+                       <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20 group-hover:bg-orange-500 group-hover:text-white transition duration-300">
+                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                         </svg>
+                       </div>
+                       <div className="space-y-2">
+                         <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Produzir Serviços (Maker)</h3>
+                         <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
+                           Possui impressora 3D? Cadastre suas máquinas, defina seus valores e fature imprimindo sob demanda.
+                         </p>
+                       </div>
+                     </div>
+                     <span className="text-xs font-bold text-[#d44d00] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                       Entrar como Maker &rarr;
+                     </span>
+                   </div>
+
+                   {/* CARD 3: DESIGNER */}
+                   <div 
+                     onClick={() => setHomeMode("designer")}
+                     className={`group border rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between h-[360px] ${
+                       theme === "dark" 
+                         ? "border-[#18181b] bg-[#09090b]/40 hover:border-[#d44d00]/30 hover:bg-[#09090b]/80" 
+                         : "border-[#e4e4e7] bg-white hover:border-[#d44d00]/30 hover:shadow-lg shadow-sm"
+                     }`}
+                   >
+                     <div className="space-y-4">
+                       <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 border border-yellow-500/20 group-hover:bg-yellow-500 group-hover:text-white transition duration-300">
+                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                         </svg>
+                       </div>
+                       <div className="space-y-2">
+                         <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Oferecer Modelagem (Designer)</h3>
+                         <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
+                           Modele sob encomenda para a rede, venda suas obras 3D autorais e precifique sua hora de trabalho.
+                         </p>
+                       </div>
+                     </div>
+                     <span className="text-xs font-bold text-[#d44d00] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                       Entrar como Designer &rarr;
+                     </span>
+                   </div>
+                 </div>
+               </div>
+             )}
 
             {/* MODO CLIENTE: VITRINE DE PROJETOS E PROPOSTAS STL */}
             {homeMode === "client" && (
@@ -1565,7 +1717,7 @@ export default function Home() {
                         }}
                         className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer animate-pulse"
                       >
-                        ⚡ Enviar STL & Cotar Agora
+                        Enviar STL & Cotar Agora
                       </button>
                       <button
                         onClick={() => {
@@ -1578,7 +1730,7 @@ export default function Home() {
                             : "border-black/15 text-black hover:bg-black/5 bg-transparent"
                         }`}
                       >
-                        🔍 Ver Modelos Populares
+                        Ver Modelos Populares
                       </button>
                     </div>
                   </div>
@@ -1721,7 +1873,7 @@ export default function Home() {
                                       <p className={`text-xs mt-0.5 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Criado por: {item.author}</p>
                                     </div>
                                     <div className={`flex justify-between items-center pt-2 border-t ${theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"}`}>
-                                      <span className="text-xs font-bold text-[#d44d00] mono-text">Est. R$ {item.price.toFixed(2)}</span>
+                                      <span className="text-xs font-bold text-[#d44d00] mono-text">R$ {item.price.toFixed(2)}</span>
                                       <button
                                         onClick={() => {
                                           // Injeta os dados da galeria no Quote
@@ -1864,7 +2016,7 @@ export default function Home() {
                         }}
                         className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
                       >
-                        🚀 Quero Produzir / Credenciar Máquina
+                        Quero Produzir / Credenciar Máquina
                       </button>
                       <button
                         onClick={() => {
@@ -1873,7 +2025,7 @@ export default function Home() {
                         }}
                         className="px-6 py-3 border border-[#18181b] text-white hover:bg-[#18181b]/50 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
                       >
-                        🛒 Comprar/Revender Insumos
+                        Comprar/Revender Insumos
                       </button>
                     </div>
                   </div>
@@ -1925,7 +2077,7 @@ export default function Home() {
                               rel="noopener noreferrer"
                               className="py-1.5 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-center text-xs font-bold text-white uppercase rounded transition"
                             >
-                              🛒 Comprar
+                              Comprar
                             </a>
                             <button
                               onClick={() => {
@@ -1939,7 +2091,201 @@ export default function Home() {
                               }}
                               className="py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-xs font-bold text-white uppercase rounded transition cursor-pointer"
                             >
-                              🔗 Revender
+                              Revender
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MODO DESIGNER: CADASTRO DE MODELADORES FREELANCERS E EXIBIÇÃO DE PORTFÓLIO */}
+            {homeMode === "designer" && (
+              <div className="space-y-16">
+                {/* Hero do Designer */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-4">
+                  <div className="lg:col-span-7 space-y-6">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d44d00]/10 border border-[#d44d00]/20 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Freelance & Venda de Arquivos Autorais</span>
+                    </div>
+                    <h1 className={`text-4xl md:text-6xl font-extrabold tracking-tighter leading-none ${
+                      theme === "dark" ? "text-white" : "text-black"
+                    }`}>
+                      Crie modelos 3D? <br />
+                      <span className="text-[#d44d00]">Precifique sua hora e venda suas criações.</span>
+                    </h1>
+                    <p className={`text-sm md:text-base leading-relaxed max-w-xl ${
+                      theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"
+                    }`}>
+                      Ganhe visibilidade na nossa rede de manufatura distribuída. Os clientes podem contratar seu serviço de modelagem técnica ou artística sob demanda por hora de trabalho ou comprar arquivos STL licenciados por você para impressão imediata.
+                    </p>
+                    <div className="flex flex-wrap gap-4 pt-2">
+                      {currentUser && currentUser.role === "DESIGNER" ? (
+                        <button
+                          onClick={() => {
+                            setActiveTab("designer");
+                          }}
+                          className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                        >
+                          Ir para o Meu Painel de Designer
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setLoginRole("DESIGNER");
+                            setLoginEmail("");
+                            setLoginPassword("");
+                            setLoginError("");
+                            setShowLoginModal(true);
+                          }}
+                          className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer animate-pulse"
+                        >
+                          Fazer Login / Cadastrar como Designer
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="lg:col-span-5">
+                    <div className={`rounded-lg p-6 space-y-4 relative overflow-hidden border ${
+                      theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#f4f4f5] border-[#e4e4e7]"
+                    }`}>
+                      <h3 className={`text-xs font-bold uppercase tracking-wider mono-text border-b pb-2 ${
+                        theme === "dark" ? "text-white" : "text-black"
+                      }`}>Benefícios de ser Designer na plataforma</h3>
+                      <div className="space-y-4 text-xs">
+                        <div className="flex gap-3">
+                          <span className={`w-5 h-5 rounded font-bold flex items-center justify-center flex-shrink-0 border text-[10px] ${
+                            theme === "dark" ? "bg-[#18181b] border-[#27272a] text-[#d44d00]" : "bg-white border-[#d4d4d8] text-[#d44d00]"
+                          }`}>1</span>
+                          <div>
+                            <h4 className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Liberdade de Preço</h4>
+                            <p className={theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}>Defina seu valor-hora e suas horas semanais livres para novos jobs freelancer.</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className={`w-5 h-5 rounded font-bold flex items-center justify-center flex-shrink-0 border text-[10px] ${
+                            theme === "dark" ? "bg-[#18181b] border-[#27272a] text-[#d44d00]" : "bg-white border-[#d4d4d8] text-[#d44d00]"
+                          }`}>2</span>
+                          <div>
+                            <h4 className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Royalties nos STLs</h4>
+                            <p className={theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}>Venda arquivos digitais na nossa galeria e ganhe royalties cada vez que um cliente pedir a impressão deles.</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <span className={`w-5 h-5 rounded font-bold flex items-center justify-center flex-shrink-0 border text-[10px] ${
+                            theme === "dark" ? "bg-[#18181b] border-[#27272a] text-[#d44d00]" : "bg-white border-[#d4d4d8] text-[#d44d00]"
+                          }`}>3</span>
+                          <div>
+                            <h4 className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Moderação e Selo de Confiança</h4>
+                            <p className={theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}>Seja um designer aprovado por moderadores e ganhe prioridade de exibição para potenciais contratantes.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lista Pública de Modelistas 3D na Rede */}
+                <div className="space-y-6 pt-8 border-t border-[#18181b]/20">
+                  <div>
+                    <h2 className={`text-xl font-bold tracking-tight uppercase mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Designers 3D Disponíveis na Rede</h2>
+                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Conheça e contrate profissionais especializados para o desenvolvimento de suas peças sob medida.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {plataformaDesigners.filter(d => d.status === "APPROVED").map(d => (
+                      <div key={d.id} className={`border rounded-lg p-5 flex flex-col justify-between space-y-4 ${
+                        theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-white shadow-sm"
+                      }`}>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className={`font-bold text-xs ${theme === "dark" ? "text-white" : "text-black"}`}>{d.name}</h4>
+                              <span className="text-[9px] text-[#71717a] truncate block">{d.email}</span>
+                            </div>
+                            <span className="text-[8px] bg-green-500/10 text-green-500 border border-green-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider mono-text">Aprovado</span>
+                          </div>
+
+                          <p className={`text-xs ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>{d.portfolio}</p>
+
+                          <div className="flex flex-wrap gap-1">
+                            {d.specialties.map((s, idx) => (
+                              <span key={idx} className={`text-[8px] font-bold px-1.5 py-0.5 rounded mono-text ${
+                                theme === "dark" ? "bg-[#18181b] text-white" : "bg-[#f4f4f5] text-black border border-[#e4e4e7]"
+                              }`}>{s}</span>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-3 pt-3 border-t border-[#18181b]/50">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className={theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}>Disponibilidade:</span>
+                            <span className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>{d.availability}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-xs">
+                            <span className={theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}>Preço por Hora:</span>
+                            <span className="text-[#d44d00] font-black text-sm mono-text">R$ {d.hourRate.toFixed(2)}/h</span>
+                          </div>
+                          <button
+                            onClick={() => alert(`Entre em contato com o designer via e-mail: ${d.email} para fechar seu orçamento de modelagem 3D.`)}
+                            className="w-full py-2 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-center text-xs font-bold text-white uppercase rounded transition cursor-pointer"
+                          >
+                            Contratar Designer
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Seção das Obras Autorais em Destaque */}
+                <div className="space-y-6 pt-8 border-t border-[#18181b]/20">
+                  <div>
+                    <h2 className={`text-xl font-bold tracking-tight uppercase mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Modelos Autorais para Venda e Impressão</h2>
+                    <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Arquivos 3D exclusivos criados por designers licenciados na rede. Você compra o arquivo e o envia direto ao fatiador.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {designerObras.map(obra => (
+                      <div key={obra.id} className={`border rounded-lg overflow-hidden flex flex-col justify-between ${
+                        theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-white shadow-sm"
+                      }`}>
+                        <div className="aspect-video w-full relative bg-[#18181b]">
+                          <img src={obra.image || "https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300"} alt={obra.title} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="p-4 space-y-3 flex-grow flex flex-col justify-between">
+                          <div className="space-y-1">
+                            <span className="text-[8px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider mono-text inline-block">{obra.category}</span>
+                            <h4 className={`font-bold text-xs leading-snug truncate ${theme === "dark" ? "text-white" : "text-black"}`}>{obra.title}</h4>
+                            <p className={`text-[10px] leading-relaxed line-clamp-2 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>{obra.description}</p>
+                          </div>
+                          <div className="pt-2 border-t border-[#18181b]/50 flex justify-between items-center">
+                            <span className="text-xs font-bold text-[#d44d00] mono-text">R$ {obra.price.toFixed(2)}</span>
+                            <button
+                              onClick={() => {
+                                // Mock de licenciamento e envio automático para fatiador
+                                setFile(new File([new ArrayBuffer(100)], obra.title.toLowerCase().replace(/\s+/g, "_") + ".stl", { type: "application/sla" }));
+                                setMaterial("PLA");
+                                setQuote({
+                                  success: true,
+                                  filename: obra.title.toLowerCase().replace(/\s+/g, "_") + ".stl",
+                                  trianglesCount: 18450,
+                                  boundingBox: { width: 100, depth: 100, height: 100 },
+                                  metrics: { rawVolumeMm3: 15000, realVolumeCm3: 15.0, weightG: 18.0, timeHours: 1.2, timeFormatted: "1h 12m" },
+                                  pricing: { materialCost: 2.16, machineCost: 14.40, makerProfit: 6.62, makerPayout: 32.0, platformFee: 8.0, royaltyPrice: obra.price, totalPrice: 40.0 + obra.price }
+                                });
+                                setActiveTab("client");
+                                setClientSubTab("upload");
+                                alert(`Arquivo "${obra.title}" licenciado com sucesso por R$ ${obra.price.toFixed(2)} (royalties inclusos na cotação técnica do fatiador).`);
+                              }}
+                              className="px-2.5 py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-white text-[9px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                            >
+                              Licenciar & Imprimir
                             </button>
                           </div>
                         </div>
@@ -1952,8 +2298,6 @@ export default function Home() {
 
           </div>
         )}
-
-        {/* TAB 2: PAINEL CLIENTE (STL + HISTÓRICO + MAPA RASTREAMENTO) */}
         {activeTab === "client" && (
           <div className="max-w-7xl mx-auto px-4 py-8">
             
@@ -2941,7 +3285,7 @@ export default function Home() {
                                   : "bg-[#18181b] border border-[#27272a] text-white hover:bg-[#27272a]"
                               }`}
                             >
-                              {emailVerificationLoading ? "Verificando token..." : emailVerified ? "✓ E-mail Confirmado!" : "🔗 Simular Clique no Link do E-mail"}
+                              {emailVerificationLoading ? "Verificando token..." : emailVerified ? "E-mail Confirmado!" : "Simular Clique no Link do E-mail"}
                             </button>
                           </div>
                         )}
@@ -3769,6 +4113,359 @@ export default function Home() {
         </div>
       )}
 
+      {/* TAB 3.5: PAINEL DO DESIGNER (LOGADO) */}
+      {activeTab === "designer" && (
+        <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
+          <div className="border-b border-[#18181b] pb-4 flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold text-white uppercase tracking-tight mono-text">Espaço do Designer 3D</h2>
+              <p className="text-xs text-[#a1a1aa] mt-1">Configure sua precificação de modelagem 3D sob encomenda e publique suas criações autorais.</p>
+            </div>
+            <div className="flex gap-2">
+              <span className={`text-[10px] font-bold px-3 py-1 rounded border uppercase tracking-wider mono-text ${
+                designerStatus === "NONE" ? "border-yellow-500/20 text-yellow-500 bg-yellow-500/5" :
+                designerStatus === "PENDING_APPROVAL" ? "border-blue-500/20 text-blue-500 bg-blue-500/5 animate-pulse" :
+                "border-green-500/20 text-green-500 bg-green-500/5"
+              }`}>
+                {designerStatus === "NONE" ? "Sem Perfil Ativo" :
+                 designerStatus === "PENDING_APPROVAL" ? "Aguardando Aprovação" : "Perfil Aprovado"}
+              </span>
+            </div>
+          </div>
+
+          {/* SE DESIGNER NÃO POSSUI PERFIL SUBMETIDO */}
+          {designerStatus === "NONE" && (
+            <div className={`max-w-3xl mx-auto p-8 rounded-xl border space-y-6 ${
+              theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-white shadow-sm"
+            }`}>
+              <h3 className={`text-sm font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Formulário de Entrada do Designer</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-[#71717a] uppercase tracking-wider mono-text">Disponibilidade Declarada</label>
+                  <select 
+                    value={designerAvailability} 
+                    onChange={(e) => setDesignerAvailability(e.target.value)}
+                    className="w-full bg-[#050506] border border-[#18181b] rounded-lg p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none"
+                  >
+                    <option value="10h por semana (Part-time)">10h por semana (Part-time)</option>
+                    <option value="20h por semana (Freelancer)">20h por semana (Freelancer)</option>
+                    <option value="30h por semana (Disponível)">30h por semana (Disponível)</option>
+                    <option value="40h por semana (Full-time)">40h por semana (Full-time)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-[#71717a] uppercase tracking-wider mono-text">Valor da Hora de Trabalho (R$)</label>
+                  <input 
+                    type="number" 
+                    value={designerHourRate} 
+                    onChange={(e) => setDesignerHourRate(Number(e.target.value))}
+                    className="w-full bg-[#050506] border border-[#18181b] rounded-lg p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none"
+                    placeholder="Ex: 65"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[#71717a] uppercase tracking-wider mono-text">Especialidades (O que você modela?)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {["Maquetes", "Bonecos / Personagens", "Peças Automotivas", "Decoração", "Organizadores", "Miniaturas"].map(spec => (
+                    <label key={spec} className="flex items-center gap-2 text-xs text-[#a1a1aa] cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={designerSpecialties.includes(spec)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setDesignerSpecialties(prev => [...prev, spec]);
+                          } else {
+                            setDesignerSpecialties(prev => prev.filter(x => x !== spec));
+                          }
+                        }}
+                        className="rounded border-[#18181b] bg-[#050506] text-[#d44d00] focus:ring-[#d44d00]"
+                      />
+                      <span>{spec}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-[#71717a] uppercase tracking-wider mono-text">Formação, Cursos & Links de Portfólio</label>
+                <textarea 
+                  value={designerPortfolio}
+                  onChange={(e) => setDesignerPortfolio(e.target.value)}
+                  placeholder="Descreva seu histórico acadêmico ou técnico, softwares que domina (SolidWorks, Blender, Fusion 360) e anexe links de seus trabalhos."
+                  rows={4}
+                  className="w-full bg-[#050506] border border-[#18181b] rounded-lg p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none"
+                />
+              </div>
+
+              {/* Termo Jurídico Obrigatório */}
+              <div className="border border-red-500/20 bg-red-500/5 p-4 rounded-lg space-y-3">
+                <h4 className="text-xs font-bold text-red-400 uppercase tracking-wider mono-text">Termo de Compromisso Jurídico & Responsabilidade</h4>
+                <p className="text-[10px] text-[#a1a1aa] leading-relaxed">
+                  Declaro que sou integralmente responsável pela originalidade e propriedade intelectual de todas as obras autorais e criações sob encomenda enviadas à plataforma. Estou ciente de que o uso não autorizado de logotipos de marcas comerciais, marcas registradas, times de futebol, símbolos ou personagens sob patentes corporativas sem licenciamento explícito é de minha total responsabilidade civil e criminal, eximindo expressamente a FabMakers de quaisquer custas jurídicas ou cumplicidade legal.
+                </p>
+                <label className="flex items-start gap-2.5 text-[11px] text-white cursor-pointer select-none font-semibold">
+                  <input 
+                    type="checkbox" 
+                    checked={designerLegalAccepted}
+                    onChange={(e) => setDesignerLegalAccepted(e.target.checked)}
+                    className="mt-0.5 rounded border-[#18181b] bg-[#050506] text-[#d44d00]"
+                  />
+                  <span>Li e aceito os termos de responsabilidade intelectual e jurídica.</span>
+                </label>
+              </div>
+
+              <button
+                disabled={!designerLegalAccepted || !designerPortfolio}
+                onClick={() => {
+                  setDesignerStatus("PENDING_APPROVAL");
+                  // Adiciona à lista de designers pendentes para moderação rápida
+                  const newDes = {
+                    id: `des_${Date.now()}`,
+                    name: currentUser?.name || "Designer",
+                    email: currentUser?.email || "designer@fabmakers.com.br",
+                    availability: designerAvailability,
+                    hourRate: designerHourRate,
+                    specialties: designerSpecialties,
+                    portfolio: designerPortfolio,
+                    status: "PENDING_APPROVAL" as const
+                  };
+                  setPlataformaDesigners(prev => [...prev, newDes]);
+                }}
+                className={`w-full py-3 text-xs font-bold uppercase tracking-wider rounded-lg transition ${
+                  designerLegalAccepted && designerPortfolio
+                    ? "bg-[#d44d00] hover:bg-[#b04000] text-white shadow-md shadow-[#d44d00]/10 cursor-pointer"
+                    : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
+                }`}
+              >
+                Enviar Perfil para Moderação
+              </button>
+            </div>
+          )}
+
+          {/* STATUS: AGUARDANDO MODERAÇÃO */}
+          {designerStatus === "PENDING_APPROVAL" && (
+            <div className="max-w-2xl mx-auto p-12 text-center border border-dashed border-blue-500/30 bg-blue-500/5 rounded-xl space-y-4">
+              <span className="text-4xl block animate-pulse">⏳</span>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider mono-text">Perfil em Análise Regulatória</h3>
+              <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                Nossa equipe de moderadores está avaliando seu portfólio, cursos declarados e conformidade de propriedade intelectual. Você receberá uma notificação em até 24 horas. Para testes rápidos locais, você pode logar como Moderador para aprovar este cadastro!
+              </p>
+            </div>
+          )}
+
+          {/* STATUS: APROVADO - PAINEL ATIVO DE PROJETO E OBRAS */}
+          {designerStatus === "APPROVED" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              
+              {/* Esquerda: Informações e Nova Obra */}
+              <div className="lg:col-span-6 space-y-6">
+                <div className="bg-[#09090b] border border-[#18181b] p-6 rounded-lg space-y-4">
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Cadastrar Obra Autoral para Venda</h3>
+                  
+                  <div className="space-y-3 text-xs">
+                    <div className="space-y-1">
+                      <label className="text-[#71717a] font-bold uppercase">Título da Criação</label>
+                      <input 
+                        type="text" value={novaObraTitle} onChange={(e) => setNovaObraTitle(e.target.value)}
+                        className="w-full bg-[#050506] border border-[#18181b] rounded-lg p-2 text-white focus:outline-none"
+                        placeholder="Ex: Suporte de Headset Dragão"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[#71717a] font-bold uppercase">Categoria</label>
+                        <select 
+                          value={novaObraCategory} onChange={(e) => setNovaObraCategory(e.target.value)}
+                          className="w-full bg-[#050506] border border-[#18181b] rounded-lg p-2 text-white focus:outline-none"
+                        >
+                          <option value="Peças Técnicas">Peças Técnicas</option>
+                          <option value="Decoração">Decoração</option>
+                          <option value="Organização">Organização</option>
+                          <option value="Brinquedos / Geek">Brinquedos / Geek</option>
+                          <option value="Miniaturas">Miniaturas</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[#71717a] font-bold uppercase">Preço dos Royalties (R$)</label>
+                        <input 
+                          type="number" value={novaObraPrice} onChange={(e) => setNovaObraPrice(Number(e.target.value))}
+                          className="w-full bg-[#050506] border border-[#18181b] rounded-lg p-2 text-white focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[#71717a] font-bold uppercase">URL da Imagem do Modelo</label>
+                      <input 
+                        type="text" value={novaObraImage} onChange={(e) => setNovaObraImage(e.target.value)}
+                        className="w-full bg-[#050506] border border-[#18181b] rounded-lg p-2 text-white focus:outline-none"
+                        placeholder="Ex: https://images.unsplash.com/... (ou deixe vazio para padrão)"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[#71717a] font-bold uppercase">Descrição da Peça</label>
+                      <textarea 
+                        value={novaObraDescription} onChange={(e) => setNovaObraDescription(e.target.value)}
+                        className="w-full bg-[#050506] border border-[#18181b] rounded-lg p-2 text-white focus:outline-none"
+                        placeholder="Descreva detalhes como espessura de parede recomendada, tipo de filamento ideal, etc."
+                        rows={2}
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (!novaObraTitle || !novaObraDescription) {
+                          alert("Preencha o título e a descrição da sua obra!");
+                          return;
+                        }
+                        const newObra = {
+                          id: `obra_${Date.now()}`,
+                          title: novaObraTitle,
+                          category: novaObraCategory,
+                          description: novaObraDescription,
+                          price: novaObraPrice,
+                          image: novaObraImage || "https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300"
+                        };
+                        setDesignerObras(prev => [newObra, ...prev]);
+                        setNovaObraTitle("");
+                        setNovaObraDescription("");
+                        setNovaObraImage("");
+                        alert(`Obra Autoral "${novaObraTitle}" publicada com sucesso e enviada para o Marketplace!`);
+                      }}
+                      className="w-full py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
+                    >
+                      Publicar Nova Obra
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Direita: Obras já publicadas */}
+              <div className="lg:col-span-6 space-y-6">
+                <div className="bg-[#09090b] border border-[#18181b] p-6 rounded-lg space-y-4">
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Minhas Criações Ativas</h3>
+                  
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                    {designerObras.map(o => (
+                      <div key={o.id} className="p-3 border border-[#18181b] rounded flex justify-between items-center bg-[#050506]">
+                        <div>
+                          <p className="text-xs font-bold text-white">{o.title}</p>
+                          <span className="text-[9px] text-[#71717a] uppercase tracking-wider mono-text">{o.category} | Royalties: R$ {o.price.toFixed(2)}</span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setDesignerObras(prev => prev.filter(x => x.id !== o.id));
+                          }}
+                          className="px-2 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded text-[9px] font-bold uppercase transition"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3.7: PAINEL DO MODERADOR */}
+      {activeTab === "moderator" && (
+        <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
+          <div className="border-b border-[#18181b] pb-4">
+            <h2 className="text-xl font-bold text-white uppercase tracking-tight mono-text">Espaço de Moderação & Governança</h2>
+            <p className="text-xs text-[#a1a1aa] mt-1">Homologue designers pendentes e revise arquivos com alegações de direitos autorais ou patentes.</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Esquerda: Aprovação de Designers */}
+            <div className="lg:col-span-7 space-y-6">
+              <div className="bg-[#09090b] border border-[#18181b] p-6 rounded-lg space-y-4">
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Homologação de Designers Pendentes ({plataformaDesigners.filter(d => d.status === "PENDING_APPROVAL").length})</h3>
+                
+                <div className="space-y-4">
+                  {plataformaDesigners.filter(d => d.status === "PENDING_APPROVAL").length === 0 ? (
+                    <p className="text-xs text-[#71717a] text-center py-4">Nenhum designer pendente de aprovação.</p>
+                  ) : (
+                    plataformaDesigners.filter(d => d.status === "PENDING_APPROVAL").map(d => (
+                      <div key={d.id} className="p-4 border border-[#18181b] rounded-lg bg-[#050506] space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-white">{d.name} ({d.email})</span>
+                          <span className="text-xs text-[#d44d00] font-bold">R$ {d.hourRate.toFixed(2)}/h</span>
+                        </div>
+                        <p className="text-xs text-[#a1a1aa] leading-relaxed">{d.portfolio}</p>
+                        
+                        <div className="flex justify-end gap-2 pt-2 border-t border-[#18181b]/50">
+                          <button
+                            onClick={() => {
+                              // Reprova designer (muda status para NONE localmente no cadastro)
+                              setPlataformaDesigners(prev => prev.map(x => x.id === d.id ? { ...x, status: "APPROVED" as const } : x));
+                              setDesignerStatus("APPROVED"); // Para simular aprovação imediata do designer logado se for ele
+                              alert(`Designer "${d.name}" aprovado com sucesso e ativo na plataforma!`);
+                            }}
+                            className="px-3 py-1.5 bg-[#10b981] hover:bg-emerald-600 text-white text-[10px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                          >
+                            Aprovar
+                          </button>
+                          <button
+                            onClick={() => {
+                              setPlataformaDesigners(prev => prev.filter(x => x.id !== d.id));
+                              alert(`Cadastro de "${d.name}" recusado para ajustes de termos.`);
+                            }}
+                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                          >
+                            Recusar
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Direita: Moderação Jurídica de Obras da Galeria (Direitos de marcas e times) */}
+            <div className="lg:col-span-5 space-y-6">
+              <div className="bg-[#09090b] border border-[#18181b] p-6 rounded-lg space-y-4">
+                <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Controle Jurídico de Patentes & Marcas</h3>
+                <p className="text-[11px] text-[#a1a1aa] leading-relaxed">
+                  Avalie denúncias de peças contendo times de futebol (Corinthians, Flamengo), marcas registradas (Nike, Apple) ou marcas automotivas e remova da plataforma.
+                </p>
+
+                <div className="space-y-3">
+                  <div className="p-3 border border-[#18181b] rounded bg-red-500/5 text-xs space-y-2">
+                    <div className="flex justify-between items-center text-red-400 font-bold">
+                      <span>⚠️ DENÚNCIA ATIVA</span>
+                      <span>Chaveiro Brasil Copa</span>
+                    </div>
+                    <p className="text-[10px] text-[#71717a]">Denunciante: Agência de Propriedade Intelectual (Marca de Símbolos Oficiais).</p>
+                    <button
+                      onClick={() => {
+                        // Remove da galeria de obras autorais simulação
+                        setDesignerObras(prev => prev.filter(x => x.title !== "Chaveiro Suporte de Celular do Brasil Copa"));
+                        alert("Obras contendo símbolos patentários removidas de circulação por segurança jurídica.");
+                      }}
+                      className="w-full py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold text-[10px] uppercase rounded transition"
+                    >
+                      Remover Peça da Galeria
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
         {/* TAB 4: PAINEL ADMINISTRATIVO (CONTROLE, HOMOLOGAÇÕES E MÉTRICAS DE ESCALA) */}
         {activeTab === "admin" && (
           <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
@@ -4272,7 +4969,12 @@ export default function Home() {
                 <span 
                   onClick={() => {
                     // Alterna o perfil dentro do próprio modal
-                    setLoginRole(prev => prev === "CLIENT" ? "MAKER" : prev === "MAKER" ? "ADMIN" : "CLIENT");
+                    setLoginRole(prev => 
+                      prev === "CLIENT" ? "MAKER" : 
+                      prev === "MAKER" ? "DESIGNER" : 
+                      prev === "DESIGNER" ? "MODERATOR" : 
+                      prev === "MODERATOR" ? "ADMIN" : "CLIENT"
+                    );
                     setIsSignUp(false);
                     setLoginEmail("");
                     setLoginPassword("");

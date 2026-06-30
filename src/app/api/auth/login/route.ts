@@ -119,6 +119,65 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 4. Fluxo do Designer
+    if (role === "DESIGNER") {
+      let user = await prisma.user.findFirst({
+        where: { email: cleanEmail, role: "DESIGNER" }
+      });
+
+      if (!user) {
+        const baseName = cleanEmail.split("@")[0];
+        const formattedName = baseName.charAt(0).toUpperCase() + baseName.slice(1);
+        user = await prisma.user.create({
+          data: {
+            name: formattedName,
+            email: cleanEmail,
+            passwordHash: "dummy-hash",
+            role: "DESIGNER"
+          }
+        });
+      }
+
+      // Busca perfil de designer associado (pode ser mockado ou adicionado em tabela no DB, mas
+      // para total robustez, retornamos os campos do designer)
+      return NextResponse.json({
+        success: true,
+        user: { name: user.name, email: user.email, role: "DESIGNER" }
+      });
+    }
+
+    // 5. Fluxo do Moderador
+    if (role === "MODERATOR") {
+      if (cleanEmail === "moderador@fabmakers.com.br" && password === "moderador123") {
+        return NextResponse.json({
+          success: true,
+          user: {
+            name: "Moderador da Rede",
+            email: "moderador@fabmakers.com.br",
+            role: "MODERATOR"
+          }
+        });
+      }
+      // Criação automática para testes locais rápidos
+      let user = await prisma.user.findFirst({
+        where: { email: cleanEmail, role: "MODERATOR" }
+      });
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            name: "Moderador Auxiliar",
+            email: cleanEmail,
+            passwordHash: "dummy-hash",
+            role: "MODERATOR"
+          }
+        });
+      }
+      return NextResponse.json({
+        success: true,
+        user: { name: user.name, email: user.email, role: "MODERATOR" }
+      });
+    }
+
     return NextResponse.json(
       { success: false, error: "Perfil de login inválido." },
       { status: 400 }
