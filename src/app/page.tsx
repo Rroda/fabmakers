@@ -1,5 +1,6 @@
 "use client";
 
+// Integrado com MakerWorld API via Firecrawl para busca dinâmica de modelos 3D em tempo real
 import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
 import Image from "next/image";
 import logoImg from "../logo/logo.png";
