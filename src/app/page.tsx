@@ -152,6 +152,8 @@ export default function Home() {
   const [webSearchQuery, setWebSearchQuery] = useState<string>("");
   const [webSearchResults, setWebSearchResults] = useState<Array<{ id: string; title: string; image: string; author: string; likes: number; source: string; stlName: string; weightG: number; timeFormatted: string; totalPrice: number }>>([]);
   const [webSearchLoading, setWebSearchLoading] = useState<boolean>(false);
+  const [galleryModels, setGalleryModels] = useState<any[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState<boolean>(false);
   
   const [aiChatMessages, setAiChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string; recommendedParams?: { filename: string; material: string; infill: number; weightG: number; timeFormatted: string; totalPrice: number } }>>([
     {
@@ -489,6 +491,25 @@ export default function Home() {
       setOfferTimer(30);
     }
   }, [orders, makerProfile, activeJobOffer]);
+
+  // Carrega modelos iniciais da galeria (MakerWorld)
+  useEffect(() => {
+    const loadInitialGallery = async () => {
+      setGalleryLoading(true);
+      try {
+        const response = await fetch("/api/makerworld/search?keyword=featured");
+        const data = await response.json();
+        if (data.success && data.models) {
+          setGalleryModels(data.models);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar modelos iniciais da galeria:", err);
+      } finally {
+        setGalleryLoading(false);
+      }
+    };
+    loadInitialGallery();
+  }, []);
 
   // --- FUNÇÕES DO CLIENTE (COTAÇÃO & COMPRA) ---
   const generateQuote = async (uploadedFile: File, selectedMaterial: string, selectedInfill: number) => {
@@ -986,34 +1007,31 @@ export default function Home() {
     }).catch(err => console.error("Erro ao alterar banimento no banco:", err));
   };
 
-  // Simula busca em repositórios 3D (Thingiverse, Printables, MakerWorld)
-  const handleWeb3DSearch = (e: React.FormEvent) => {
+  // Busca real no MakerWorld (via nossa API de proxy integrada com Firecrawl)
+  const handleWeb3DSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!webSearchQuery.trim()) return;
     setWebSearchResults([]);
     setWebSearchLoading(true);
     
-    // Simulação com tempo de resposta real e dados rústicos ricos
-    setTimeout(() => {
-      const query = webSearchQuery.toLowerCase().trim();
-      const mockDb = [
-        { id: "w1", title: "Suporte de Fone Minimalista", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", author: "3D_Master", likes: 342, source: "MakerWorld", stlName: "suporte_fone_v2.stl", weightG: 45.2, timeFormatted: "2h 15min", totalPrice: 32.50 },
-        { id: "w2", title: "Suporte de Controle Xbox / PS5", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", author: "GamerPrint", likes: 891, source: "Thingiverse", stlName: "xbox_controller_holder.stl", weightG: 38.0, timeFormatted: "1h 50min", totalPrice: 28.90 },
-        { id: "w3", title: "Vaso de Flores Geométrico", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", author: "Flora3D", likes: 1205, source: "Printables", stlName: "geometric_vase_spiral.stl", weightG: 55.0, timeFormatted: "2h 45min", totalPrice: 38.00 },
-        { id: "w4", title: "Organizador de Cabos de Mesa", image: "https://images.unsplash.com/photo-1558489823-84aac22827d2?w=300&auto=format&fit=crop&q=60", author: "NeatDesk", likes: 532, source: "Creality Cloud", stlName: "desk_cable_clip.stl", weightG: 12.5, timeFormatted: "40 min", totalPrice: 15.80 },
-        { id: "w5", title: "Gancho de Bicicleta Reforçado", image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=300&auto=format&fit=crop&q=60", author: "ToughPrints", likes: 624, source: "Printables", stlName: "bike_wall_hook_heavy.stl", weightG: 120.0, timeFormatted: "6h 10min", totalPrice: 85.00 },
-        { id: "w6", title: "Engrenagem Mecânica M10", image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60", author: "Eng3D", likes: 142, source: "MakerOnline", stlName: "gear_m10_spur.stl", weightG: 22.0, timeFormatted: "1h 10min", totalPrice: 22.40 }
-      ];
-
-      // Filtra os resultados com base na busca
-      const filtered = mockDb.filter(item => 
-        item.title.toLowerCase().includes(query) || 
-        item.stlName.toLowerCase().includes(query)
-      );
-
-      setWebSearchResults(filtered.length > 0 ? filtered : mockDb.slice(0, 3));
+    try {
+      const response = await fetch(`/api/makerworld/search?keyword=${encodeURIComponent(webSearchQuery)}`);
+      const data = await response.json();
+      
+      if (data.success && data.models) {
+        setWebSearchResults(data.models);
+        if (data.warning) {
+          console.warn("[FabMakers] Real-time Search Warning:", data.warning);
+        }
+      } else {
+        alert("Erro ao buscar modelos: " + (data.error || "Erro desconhecido"));
+      }
+    } catch (err: any) {
+      console.error("Erro na busca Web 3D:", err);
+      alert("Falha de conexão ao buscar modelos.");
+    } finally {
       setWebSearchLoading(false);
-    }, 1200);
+    }
   };
 
   // Enviar mensagem para o Assistente de IA 3D ("FabMakers AI")
@@ -1762,65 +1780,69 @@ export default function Home() {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {[
-                        { id: "g1", title: "Suporte de Fone de Ouvido", image: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=300&auto=format&fit=crop&q=60", weightG: 45.0, timeFormatted: "2h 15min", totalPrice: 32.50, material: "PLA", stlName: "suporte_fone_v2.stl" },
-                        { id: "g2", title: "Vaso de Decoração Espiral", image: "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=300&auto=format&fit=crop&q=60", weightG: 55.0, timeFormatted: "2h 45min", totalPrice: 38.00, material: "PLA", stlName: "geometric_vase.stl" },
-                        { id: "g3", title: "Suporte de Controle Xbox", image: "https://images.unsplash.com/photo-1600080972464-8e5f35f63d08?w=300&auto=format&fit=crop&q=60", weightG: 38.0, timeFormatted: "1h 50min", totalPrice: 28.90, material: "PLA", stlName: "xbox_stand.stl" },
-                        { id: "g4", title: "Gancho de Parede Reforçado", image: "https://images.unsplash.com/photo-1558489823-84aac22827d2?w=300&auto=format&fit=crop&q=60", weightG: 120.0, timeFormatted: "6h 10min", totalPrice: 85.00, material: "PETG", stlName: "bike_hook.stl" }
-                      ].map((item) => (
-                        <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
-                          <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
-                            <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                            <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">Royalty Zero</span>
-                          </div>
-                          <div className="p-4 space-y-4 flex-grow flex flex-col justify-between">
-                            <div>
-                              <h4 className="font-bold text-white text-sm leading-tight">{item.title}</h4>
-                              <p className="text-xs text-[#71717a] mt-1">Material sugerido: <span className="text-[#a1a1aa] font-bold">{item.material}</span> | Peso: {item.weightG}g</p>
+                    {galleryLoading ? (
+                      <div className="py-12 text-center">
+                        <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin mx-auto"></div>
+                        <p className="text-xs text-[#71717a] mt-3">Carregando galeria MakerWorld...</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {galleryModels.map((item) => (
+                          <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
+                            <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
+                              <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                              <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">
+                                {item.source}
+                              </span>
                             </div>
-                            <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
-                              <span className="text-sm font-extrabold text-white mono-text">R$ {item.totalPrice.toFixed(2)}</span>
-                              <button
-                                onClick={() => {
-                                  // Injeta os dados da galeria no Quote
-                                  setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
-                                  setMaterial(item.material);
-                                  setQuote({
-                                    success: true,
-                                    filename: item.stlName,
-                                    trianglesCount: 15420,
-                                    boundingBox: { width: 120, depth: 80, height: 160 },
-                                    metrics: {
-                                      rawVolumeMm3: 36000,
-                                      realVolumeCm3: 36.0,
-                                      weightG: item.weightG,
-                                      timeHours: item.weightG / 18,
-                                      timeFormatted: item.timeFormatted
-                                    },
-                                    pricing: {
-                                      materialCost: item.weightG * 0.12,
-                                      machineCost: (item.weightG / 18) * 12,
-                                      makerProfit: (item.weightG * 0.12 + (item.weightG / 18) * 12) * 0.40,
-                                      makerPayout: item.totalPrice * 0.80,
-                                      platformFee: item.totalPrice * 0.20,
-                                      royaltyPrice: 0.0,
-                                      totalPrice: item.totalPrice
-                                    }
-                                  });
-                                  setClientZip("01001-000"); // CEP padrão para teste rápido
-                                  alert(`Modelo "${item.title}" importado e cotado com sucesso! Agora configure o CEP para fechar o pedido.`);
-                                  setClientSubTab("upload"); // Joga para a cotação fatiador
-                                }}
-                                className="px-3 py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold rounded uppercase tracking-wider transition cursor-pointer"
-                              >
-                                Selecionar
-                              </button>
+                            <div className="p-4 space-y-4 flex-grow flex flex-col justify-between">
+                              <div>
+                                <h4 className="font-bold text-white text-sm leading-tight line-clamp-2">{item.title}</h4>
+                                <p className="text-xs text-[#71717a] mt-1">Material sugerido: <span className="text-[#a1a1aa] font-bold">{item.material || "PLA"}</span> | Peso: {item.weightG}g</p>
+                              </div>
+                              <div className="flex justify-between items-center pt-2 border-t border-[#18181b]/50">
+                                <span className="text-sm font-extrabold text-white mono-text">R$ {item.totalPrice.toFixed(2)}</span>
+                                <button
+                                  onClick={() => {
+                                    // Injeta os dados da galeria no Quote
+                                    setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
+                                    setMaterial(item.material || "PLA");
+                                    setQuote({
+                                      success: true,
+                                      filename: item.stlName,
+                                      trianglesCount: 15420,
+                                      boundingBox: { width: 120, depth: 80, height: 160 },
+                                      metrics: {
+                                        rawVolumeMm3: item.weightG * 1000,
+                                        realVolumeCm3: item.weightG / 1.2,
+                                        weightG: item.weightG,
+                                        timeHours: item.weightG / 18,
+                                        timeFormatted: item.timeFormatted
+                                      },
+                                      pricing: {
+                                        materialCost: item.weightG * 0.12,
+                                        machineCost: (item.weightG / 18) * 12,
+                                        makerProfit: (item.weightG * 0.12 + (item.weightG / 18) * 12) * 0.40,
+                                        makerPayout: item.totalPrice * 0.80,
+                                        platformFee: item.totalPrice * 0.20,
+                                        royaltyPrice: 0.0,
+                                        totalPrice: item.totalPrice
+                                      }
+                                    });
+                                    setClientZip("01001-000"); // CEP padrão para teste rápido
+                                    alert(`Modelo "${item.title}" importado e cotado com sucesso! Agora configure o CEP para fechar o pedido.`);
+                                    setClientSubTab("upload"); // Joga para a cotação fatiador
+                                  }}
+                                  className="px-3 py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                >
+                                  Selecionar
+                                </button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
