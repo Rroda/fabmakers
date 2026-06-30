@@ -206,7 +206,7 @@ export default function Home() {
   const [novoInsumoDelivery, setNovoInsumoDelivery] = useState<string>("");
   
   // --- ESTADOS DA ÁREA DO CLIENTE EXPANDIDA ---
-  const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "ai">("upload");
+  const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "ai" | "orders">("gallery");
   const [webSearchQuery, setWebSearchQuery] = useState<string>("");
   const [gallerySearchQuery, setGallerySearchQuery] = useState<string>("");
   const [galleryModels, setGalleryModels] = useState<any[]>([]);
@@ -1137,6 +1137,22 @@ export default function Home() {
     }
   };
 
+  const handleCategorySearch = async (keyword: string) => {
+    setGallerySearchQuery(keyword === "featured" ? "" : keyword);
+    setGalleryLoading(true);
+    try {
+      const response = await fetch(`/api/makerworld/search?keyword=${encodeURIComponent(keyword)}`);
+      const data = await response.json();
+      if (data.success && data.models) {
+        setGalleryModels(data.models);
+      }
+    } catch (err) {
+      console.error("Erro na busca de categoria:", err);
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
   // Busca dinâmica integrada na Landing Page pública
   const handleHomeSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1939,62 +1955,189 @@ export default function Home() {
 
         {/* TAB 2: PAINEL CLIENTE (STL + HISTÓRICO + MAPA RASTREAMENTO) */}
         {activeTab === "client" && (
-          <div className="max-w-7xl mx-auto px-6 py-12 space-y-8">
+          <div className="max-w-7xl mx-auto px-4 py-8">
             
-            {/* SUB-ABAS DA JORNADA DO CLIENTE */}
-            <div className="flex flex-wrap gap-2 border-b border-[#18181b]/50 pb-4">
-              <button
-                onClick={() => setClientSubTab("upload")}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
-                  clientSubTab === "upload"
-                    ? theme === "dark" ? "bg-white text-black" : "bg-black text-white"
-                    : theme === "dark"
-                      ? "border border-white/10 text-[#a1a1aa] hover:text-white bg-transparent hover:border-white/30"
-                      : "border border-black/10 text-[#52525b] hover:text-black bg-transparent hover:border-black/30"
-                }`}
-              >
-                📁 Fatiador STL
-              </button>
-              <button
-                onClick={() => setClientSubTab("gallery")}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
-                  clientSubTab === "gallery"
-                    ? theme === "dark" ? "bg-white text-black" : "bg-black text-white"
-                    : theme === "dark"
-                      ? "border border-white/10 text-[#a1a1aa] hover:text-white bg-transparent hover:border-white/30"
-                      : "border border-black/10 text-[#52525b] hover:text-black bg-transparent hover:border-black/30"
-                }`}
-              >
-                🖼️ Galeria de Modelos
-              </button>
-              <button
-                onClick={() => setClientSubTab("ai")}
-                className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
-                  clientSubTab === "ai"
-                    ? theme === "dark" ? "bg-white text-black" : "bg-black text-white"
-                    : theme === "dark"
-                      ? "border border-white/10 text-[#a1a1aa] hover:text-white bg-transparent hover:border-white/30"
-                      : "border border-black/10 text-[#52525b] hover:text-black bg-transparent hover:border-black/30"
-                }`}
-              >
-                🤖 Assistente de IA 3D
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            {/* GRID DO MARKETPLACE ESTILO MAKERWORLD */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
               
-              {/* Lado Esquerdo: Ferramenta Dinâmica de acordo com a Sub-Aba selecionada */}
-              <div className="lg:col-span-7 space-y-8">
+              {/* COLUNA ESQUERDA: MENU LATERAL (SIDEBAR) */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* Perfil Rápido do Cliente (se logado) */}
+                {currentUser && (
+                  <div className={`p-4 border rounded-lg flex items-center gap-3 ${theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-[#fafafa]"}`}>
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#d44d00] to-orange-500 flex items-center justify-center text-white font-black text-xs shadow-md">
+                      {currentUser.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="overflow-hidden">
+                      <h4 className={`text-xs font-bold truncate ${theme === "dark" ? "text-white" : "text-black"}`}>{currentUser.name}</h4>
+                      <p className="text-[10px] text-[#71717a]">Painel do Cliente</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navegação Principal */}
+                <div className="space-y-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-3 block mb-2 ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>Navegação</span>
+                  
+                  <button
+                    onClick={() => setClientSubTab("gallery")}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer text-left ${
+                      clientSubTab === "gallery"
+                        ? "bg-[#d44d00]/10 text-[#d44d00] border-l-2 border-[#d44d00]"
+                        : theme === "dark"
+                          ? "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]"
+                          : "text-[#52525b] hover:text-black hover:bg-[#f4f4f5]"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <span>Todos os Modelos</span>
+                  </button>
+
+                  <button
+                    onClick={() => setClientSubTab("upload")}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer text-left ${
+                      clientSubTab === "upload"
+                        ? "bg-[#d44d00]/10 text-[#d44d00] border-l-2 border-[#d44d00]"
+                        : theme === "dark"
+                          ? "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]"
+                          : "text-[#52525b] hover:text-black hover:bg-[#f4f4f5]"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>Fatiador & Cotação</span>
+                  </button>
+
+                  <button
+                    onClick={() => setClientSubTab("ai")}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer text-left ${
+                      clientSubTab === "ai"
+                        ? "bg-[#d44d00]/10 text-[#d44d00] border-l-2 border-[#d44d00]"
+                        : theme === "dark"
+                          ? "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]"
+                          : "text-[#52525b] hover:text-black hover:bg-[#f4f4f5]"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    <span>Assistente de IA 3D</span>
+                  </button>
+
+                </div>
+
+                <div className={`h-[1px] ${theme === "dark" ? "bg-[#18181b]" : "bg-[#e4e4e7]"}`}></div>
+
+                {/* Categorias */}
+                <div className="space-y-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest px-3 block mb-2 ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>Categorias</span>
+                  {[
+                    { 
+                      name: "Todos", 
+                      keyword: "featured", 
+                      icon: (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        </svg>
+                      )
+                    },
+                    { 
+                      name: "Peças Técnicas", 
+                      keyword: "holder", 
+                      icon: (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      )
+                    },
+                    { 
+                      name: "Decoração", 
+                      keyword: "vase", 
+                      icon: (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      )
+                    },
+                    { 
+                      name: "Organização", 
+                      keyword: "box", 
+                      icon: (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
+                      )
+                    },
+                    { 
+                      name: "Brinquedos / Geek", 
+                      keyword: "toy", 
+                      icon: (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                      )
+                    },
+                    { 
+                      name: "Miniaturas", 
+                      keyword: "action", 
+                      icon: (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.907c.961 0 1.36 1.253.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.772-.557-.372-1.81.588-1.81h4.907a1 1 0 00.95-.69l1.519-4.674z" />
+                        </svg>
+                      )
+                    },
+                    { 
+                      name: "Acessórios 3D", 
+                      keyword: "printer", 
+                      icon: (
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        </svg>
+                      )
+                    }
+                  ].map((cat) => (
+                    <button
+                      key={cat.name}
+                      onClick={() => {
+                        setClientSubTab("gallery");
+                        handleCategorySearch(cat.keyword);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition cursor-pointer text-left ${
+                        theme === "dark"
+                          ? "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]/60"
+                          : "text-[#52525b] hover:text-black hover:bg-[#f4f4f5]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-[#a1a1aa]">{cat.icon}</span>
+                        <span>{cat.name}</span>
+                      </div>
+                      <span className="text-[10px] text-[#71717a] font-mono">→</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* COLUNA DIREITA: CONTEÚDO PRINCIPAL (lg:col-span-9) */}
+              <div className="lg:col-span-9 space-y-8">
                 
                 {/* 1. Sub-Aba: UPLOAD STL (Fatiador atual) */}
                 {clientSubTab === "upload" && (
-                  <>
+                  <div className="space-y-6">
                     <div>
                       <h2 className={`text-xl font-bold tracking-tight uppercase mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Área de Cotação de Geometria</h2>
                       <p className={`text-xs mt-1 leading-relaxed ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>
                         Faça o upload do seu arquivo STL. Nosso motor calcula instantaneamente o faturamento e inicia o roteamento para a fazenda de impressão mais próxima.
                       </p>
                     </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                      {/* Coluna da Esquerda: Fatiador & Configurações */}
+                      <div className={`${quote ? "lg:col-span-7" : "lg:col-span-12"} space-y-6`}>
 
                     {/* Upload */}
                     <div
@@ -2274,7 +2417,224 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                  </>
+                  </div>
+
+                      {/* Coluna da Direita: Cotação & Logística */}
+                      <div className="lg:col-span-5 space-y-6">
+                        
+                        {quote ? (
+                          <div className={`technical-panel rounded-lg p-6 space-y-5 border ${
+                            theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-white shadow-sm"
+                          }`}>
+                            <div className={`text-center pb-4 border-b ${theme === "dark" ? "border-[#18181b]" : "border-[#e4e4e7]"}`}>
+                              <span className={`text-[10px] font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>Valor Total Estimado</span>
+                              <div className="text-3xl font-extrabold text-[#d44d00] mt-1 mono-text">
+                                R$ {quote.pricing.totalPrice.toFixed(2).replace(".", ",")}
+                              </div>
+                            </div>
+                            
+                            <div className={`space-y-2 text-xs mono-text ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>
+                              <div className="flex justify-between"><span>Tempo de Impressão</span><span className={theme === "dark" ? "text-white font-bold" : "text-black font-bold"}>{quote.metrics.timeFormatted}</span></div>
+                              <div className="flex justify-between"><span>Consumo de Material</span><span className={theme === "dark" ? "text-white font-bold" : "text-black font-bold"}>{quote.metrics.weightG}g</span></div>
+                              <div className="flex justify-between"><span>Material Escolhido</span><span className={theme === "dark" ? "text-white font-bold" : "text-black font-bold"}>{material}</span></div>
+                              <div className="flex justify-between"><span>Dimensões Limites</span><span className={theme === "dark" ? "text-white font-bold" : "text-black font-bold"}>{quote.boundingBox.width.toFixed(1)} x {quote.boundingBox.depth.toFixed(1)} x {quote.boundingBox.height.toFixed(1)} mm</span></div>
+                            </div>
+
+                            {/* Campo de CEP do Cliente (ViaCEP) */}
+                            <div className={`space-y-2 border-t pt-4 ${theme === "dark" ? "border-[#18181b]" : "border-[#e4e4e7]"}`}>
+                              <label className={`text-[10px] font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>CEP de Entrega para Cotação Logística</label>
+                              <input 
+                                type="text" value={clientZip} 
+                                onChange={(e) => handleClientZipChange(e.target.value)} 
+                                placeholder="Ex: 13083-970" 
+                                className={`w-full border rounded-lg p-2.5 text-xs focus:border-[#d44d00] focus:outline-none transition ${
+                                  theme === "dark" ? "bg-[#050506] border-[#18181b] text-white" : "bg-white border-[#d4d4d8] text-black"
+                                }`} 
+                              />
+                              {clientZipLoading && <p className="text-xs text-yellow-500 mono-text animate-pulse">Buscando localidade e calculando frete...</p>}
+                              {clientAddress && <p className="text-xs text-[#10b981] font-semibold mono-text mt-0.5">📍 {clientAddress}</p>}
+                            </div>
+
+                            {/* Sonar / Radar de Proximidade */}
+                            {clientZip && (
+                              <div className={`border rounded-lg p-4 space-y-3 ${theme === "dark" ? "border-[#18181b] bg-[#050506]" : "border-[#e4e4e7] bg-[#f9f9fb]"}`}>
+                                <div className={`flex justify-between items-center text-[9px] uppercase tracking-wider font-bold mono-text border-b pb-2 ${
+                                  theme === "dark" ? "text-[#71717a] border-[#18181b]" : "text-[#71717a] border-[#e4e4e7]"
+                                }`}>
+                                  <span>Radar de Proximidade</span>
+                                  <span className={isScanningRadar ? "text-yellow-500 animate-pulse" : "text-[#10b981]"}>
+                                    {isScanningRadar ? "Escaneando Rede..." : "Rede Pronta"}
+                                  </span>
+                                </div>
+
+                                {isScanningRadar ? (
+                                  <div className="flex flex-col items-center justify-center py-6 space-y-3 relative overflow-hidden">
+                                    <div className="w-12 h-12 rounded-full border border-[#d44d00]/30 flex items-center justify-center animate-ping absolute"></div>
+                                    <div className="w-20 h-20 rounded-full border border-[#d44d00]/20 flex items-center justify-center animate-ping absolute"></div>
+                                    <svg className="w-10 h-10 text-[#d44d00] animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span className="text-xs text-[#71717a] mono-text">Escaneando e avaliando compatibilidades...</span>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-3">
+                                    {nearbyMakers.length > 0 ? (
+                                      <div className="space-y-2">
+                                        <p className="text-[9px] text-[#71717a] uppercase tracking-wider font-bold mono-text">Makers compatíveis próximos:</p>
+                                        {nearbyMakers.map((maker, idx) => {
+                                          const presetMatch = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === maker.machine);
+                                          const fitsVolume = presetMatch 
+                                            ? (presetMatch.volumeX >= quote.boundingBox.width && presetMatch.volumeY >= quote.boundingBox.depth && presetMatch.volumeZ >= quote.boundingBox.height)
+                                            : true;
+                                          const meetsEnclosure = (material === "ABS" || material === "ASA")
+                                            ? (presetMatch ? presetMatch.hasEnclosure : true)
+                                            : true;
+                                          const isCompatible = fitsVolume && meetsEnclosure;
+
+                                          return (
+                                            <div key={idx} className={`p-2.5 border rounded text-xs space-y-1.5 ${
+                                              isCompatible 
+                                                ? theme === "dark" ? "border-[#18181b] bg-[#09090b]/80" : "border-[#e4e4e7] bg-white shadow-sm"
+                                                : "border-red-500/10 bg-red-500/5 opacity-50"
+                                            }`}>
+                                              <div className="flex justify-between items-center font-bold">
+                                                <span className={theme === "dark" ? "text-white" : "text-black"}>{maker.name}</span>
+                                                <span className={isCompatible ? "text-[#10b981]" : "text-red-400"}>
+                                                  {isCompatible ? `${maker.distanceKm.toFixed(1)} km` : "Incompatível"}
+                                                </span>
+                                              </div>
+                                              <div className="flex justify-between items-center text-[10px] text-[#71717a]">
+                                                <span>Máquina: {maker.machine}</span>
+                                                <span>Nota: ★{maker.rating.toFixed(1)}</span>
+                                              </div>
+                                              {!isCompatible && (
+                                                <p className="text-[8px] text-red-400 font-semibold mono-text mt-0.5">
+                                                  ⚠️ {!fitsVolume ? "Mesa útil menor que a peça" : "Exige impressora fechada"}
+                                                </p>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-[#71717a] text-center py-2">Nenhum maker retornado.</p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            <button
+                              onClick={dispatchOrder}
+                              disabled={clientZip.replace(/\D/g, "").length !== 8 || nearbyMakers.filter(m => {
+                                const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
+                                const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
+                                const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
+                                return fitsVol && meetsEnc;
+                              }).length === 0}
+                              className={`w-full py-3 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition cursor-pointer ${
+                                clientZip.replace(/\D/g, "").length === 8 && nearbyMakers.filter(m => {
+                                  const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
+                                  const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
+                                  const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
+                                  return fitsVol && meetsEnc;
+                                }).length > 0
+                                  ? "bg-[#d44d00] hover:bg-[#b04000] shadow-md shadow-[#d44d00]/10"
+                                  : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
+                              }`}
+                            >
+                              Despachar para Fabricação Local
+                            </button>
+                          </div>
+                        ) : (
+                          <div className={`technical-panel rounded-lg p-10 text-center flex flex-col items-center justify-center min-h-[180px] border ${
+                            theme === "dark" ? "border-[#18181b] bg-[#09090b]/40 text-[#71717a]" : "border-[#e4e4e7] bg-white text-[#52525b] shadow-sm"
+                          }`}>
+                            <p className="text-xs mono-text">Aguardando fatiamento para gerar cotação técnica.</p>
+                          </div>
+                        )}
+
+                        {/* Rastreamento de Pedidos do Cliente (Dentro do Fatiador) */}
+                        <div className={`technical-panel rounded-lg p-6 space-y-6 border ${
+                          theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-white shadow-sm"
+                        }`}>
+                          <h3 className={`text-xs font-semibold uppercase tracking-wider mono-text border-b pb-3 ${
+                            theme === "dark" ? "text-white border-[#18181b]" : "text-black border-[#e4e4e7]"
+                          }`}>Seus Pedidos & Rastreamento</h3>
+                          
+                          <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
+                            {orders.length === 0 ? (
+                              <p className={`text-xs text-center py-4 mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Nenhum pedido efetuado.</p>
+                            ) : (
+                              orders.map((ord) => (
+                                <div key={ord.id} className={`border p-4 rounded-lg space-y-3 ${
+                                  theme === "dark" ? "border-[#18181b] bg-[#050506]" : "border-[#e4e4e7] bg-[#f4f4f5]/60"
+                                }`}>
+                                  <div className="flex justify-between items-center">
+                                    <span className={`text-xs font-bold mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>PEDIDO #{ord.id}</span>
+                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded mono-text uppercase border ${
+                                      ord.status === "WAITING_MAKER" ? "border-yellow-500/30 text-yellow-500 bg-yellow-500/5" :
+                                      ord.status === "PRINTING" ? "border-[#d44d00]/30 text-[#d44d00] bg-[#d44d00]/5 animate-pulse" :
+                                      ord.status === "SHIPPED" ? "border-blue-500/30 text-blue-500 bg-blue-500/5" :
+                                      ord.status === "COMPLETED" ? "border-green-500/30 text-green-500 bg-green-500/5" :
+                                      "border-red-500/30 text-red-500 bg-red-500/5"
+                                    }`}>
+                                      {ord.status === "WAITING_MAKER" ? "Aguardando Maker" :
+                                       ord.status === "PRINTING" ? `Imprimindo (${ord.progress}%)` :
+                                       ord.status === "SHIPPED" ? "Despachado" :
+                                       ord.status === "COMPLETED" ? "Concluído" : "Cancelado"}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className={`text-xs space-y-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>
+                                    <p className="truncate">Peça: <span className={theme === "dark" ? "text-white font-semibold" : "text-black font-semibold"}>{ord.filename}</span></p>
+                                    <p>Fabricado por: <span className={theme === "dark" ? "text-white" : "text-black"}>{ord.makerName || "Procurando parceiro..."}</span></p>
+                                    <p>Total: <span className="text-[#d44d00] font-bold">R$ {ord.totalPrice.toFixed(2).replace(".", ",")}</span></p>
+                                  </div>
+
+                                  {/* Rota lograda do pedido */}
+                                  {(ord.status === "PRINTING" || ord.status === "SHIPPED" || ord.status === "WAITING_MAKER") && (
+                                    <div className="pt-2">
+                                      <div className={`h-16 rounded relative overflow-hidden flex items-center justify-center border ${
+                                        theme === "dark" ? "bg-[#020203] border-[#18181b]" : "bg-[#fafafa] border-[#e4e4e7]"
+                                      }`}>
+                                        <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--zinc-800)_1px,transparent_1px),linear-gradient(to_bottom,var(--zinc-800)_1px,transparent_1px)] bg-[size:8px_8px] opacity-20"></div>
+                                        
+                                        <svg className="absolute inset-0 w-full h-full">
+                                          {ord.status !== "WAITING_MAKER" && (
+                                            <line x1="30" y1="32" x2="160" y2="32" stroke="#d44d00" strokeWidth="1" strokeDasharray="3 3" />
+                                          )}
+                                        </svg>
+                                        
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
+                                          <span className={`w-2 h-2 rounded-full ${ord.status === "WAITING_MAKER" ? "bg-yellow-500 animate-ping" : "bg-[#d44d00]"} border border-black/10`}></span>
+                                          <span className="text-[6px] mt-0.5 mono-text text-[#71717a]">Maker</span>
+                                        </div>
+                                        
+                                        {ord.status !== "WAITING_MAKER" && (
+                                          <div className={`absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 text-[7px] font-bold px-1.5 py-0.5 rounded mono-text z-10 border ${
+                                            theme === "dark" ? "bg-[#09090b] border-[#18181b] text-white" : "bg-white border-[#e4e4e7] text-black"
+                                          }`}>
+                                            {ord.status === "PRINTING" ? "⚙️ IMPRIMINDO" : "🚚 TRANSIT"}
+                                          </div>
+                                        )}
+
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-center">
+                                          <span className="w-2 h-2 rounded-full bg-white border border-black/10"></span>
+                                          <span className="text-[6px] mt-0.5 mono-text text-[#71717a]">Cliente</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* 2. Sub-Aba: GALERIA DE MODELOS PRONTOS */}
@@ -2488,238 +2848,13 @@ export default function Home() {
                     </form>
                   </div>
                 )}
+
+
               </div>
 
-            {/* Lado Direito: Resultados, Histórico de Pedidos e Rastreamento */}
-            <div className="lg:col-span-5 space-y-8">
-              
-              {/* Resultado Cotação */}
-              {quote ? (
-                <div className="technical-panel rounded p-6 space-y-5">
-                  <div className="text-center pb-4 border-b border-[#18181b]">
-                    <span className="text-xs font-semibold text-[#71717a] uppercase tracking-wider mono-text">Valor da Peça</span>
-                    <div className="text-3xl font-extrabold text-[#d44d00] mt-1 mono-text">
-                      R$ {quote.pricing.totalPrice.toFixed(2).replace(".", ",")}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 text-xs text-[#a1a1aa] mono-text">
-                    <div className="flex justify-between"><span>Tempo Máquina</span><span>{quote.metrics.timeFormatted}</span></div>
-                    <div className="flex justify-between"><span>Peso Extrudado</span><span>{quote.metrics.weightG}g</span></div>
-                    <div className="flex justify-between"><span>Material</span><span>{material}</span></div>
-                    <div className="flex justify-between"><span>Dimensões Peça</span><span>{quote.boundingBox.width.toFixed(1)} x {quote.boundingBox.depth.toFixed(1)} x {quote.boundingBox.height.toFixed(1)} mm</span></div>
-                  </div>
-
-                  {/* Campo de CEP do Cliente (ViaCEP) */}
-                  <div className="space-y-1.5 border-t border-[#18181b] pt-4">
-                    <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">CEP de Entrega para Cotação Logística</label>
-                    <input 
-                      type="text" value={clientZip} 
-                      onChange={(e) => handleClientZipChange(e.target.value)} 
-                      placeholder="Ex: 13083-970" 
-                      className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
-                    />
-                    {clientZipLoading && <p className="text-xs text-yellow-500 mono-text animate-pulse">Buscando localidade e calculando frete...</p>}
-                    {clientAddress && <p className="text-xs text-[#10b981] font-semibold mono-text mt-0.5">📍 {clientAddress}</p>}
-                  </div>
-
-                  {/* Sonar / Radar de Proximidade */}
-                  {clientZip && (
-                    <div className="border border-[#18181b] rounded p-4 bg-[#050506] space-y-3">
-                      <div className="flex justify-between items-center text-xs text-[#71717a] uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">
-                        <span>Radar de Proximidade</span>
-                        <span className={isScanningRadar ? "text-yellow-500 animate-pulse" : "text-[#10b981]"}>
-                          {isScanningRadar ? "Escaneando Rede..." : "Rede Pronta"}
-                        </span>
-                      </div>
-
-                      {isScanningRadar ? (
-                        <div className="flex flex-col items-center justify-center py-6 space-y-3 relative overflow-hidden">
-                          {/* Animação do sonar */}
-                          <div className="w-12 h-12 rounded-full border border-[#d44d00]/30 flex items-center justify-center animate-ping absolute"></div>
-                          <div className="w-20 h-20 rounded-full border border-[#d44d00]/20 flex items-center justify-center animate-ping absolute"></div>
-                          
-                          <svg className="w-10 h-10 text-[#d44d00] animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span className="text-xs text-[#71717a] mono-text">Escaneando e avaliando compatibilidades de mesa/câmara...</span>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {nearbyMakers.length > 0 ? (
-                            <div className="space-y-2">
-                              <p className="text-xs text-[#71717a] uppercase tracking-wider mono-text">Makers locais avaliados pela rede:</p>
-                              {nearbyMakers.map((maker, idx) => {
-                                const presetMatch = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === maker.machine);
-                                
-                                const width = quote.boundingBox.width;
-                                const depth = quote.boundingBox.depth;
-                                const height = quote.boundingBox.height;
-                                
-                                const fitsVolume = presetMatch 
-                                  ? (presetMatch.volumeX >= width && presetMatch.volumeY >= depth && presetMatch.volumeZ >= height)
-                                  : true;
-                                  
-                                const requiresEnclosure = material === "ABS" || material === "ASA";
-                                const meetsEnclosure = presetMatch 
-                                  ? (requiresEnclosure ? presetMatch.hasEnclosure : true)
-                                  : true;
-                                  
-                                const isCompatible = fitsVolume && meetsEnclosure;
-
-                                return (
-                                  <div key={idx} className={`p-2.5 rounded border text-xs space-y-1.5 ${
-                                    isCompatible ? "border-[#10b981]/20 bg-[#10b981]/2" : "border-red-500/20 bg-red-500/2"
-                                  }`}>
-                                    <div className="flex justify-between items-center">
-                                      <span className="font-bold text-white">{maker.name} <span className="text-[#a1a1aa] font-normal text-xs">({maker.distanceKm} km)</span></span>
-                                      <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded mono-text ${
-                                        isCompatible ? "bg-[#10b981]/15 text-[#10b981]" : "bg-red-500/15 text-red-500"
-                                      }`}>
-                                        {isCompatible ? `Disponível (ETA: ${maker.etaMinutes} min)` : "Incompatível"}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-xs text-[#71717a]">
-                                      <span>Máquina: {maker.machine}</span>
-                                      <span>Nota: ★{maker.rating.toFixed(1)}</span>
-                                    </div>
-                                    {!isCompatible && (
-                                      <p className="text-[8px] text-red-400 font-semibold mono-text mt-0.5 flex items-center gap-1">
-                                        ⚠️ Motivo: {!fitsVolume 
-                                          ? `Mesa útil (${presetMatch?.volumeX}x${presetMatch?.volumeY}x${presetMatch?.volumeZ}mm) menor que a peça` 
-                                          : "Material exige impressora fechada (Câmara térmica ABS/ASA)"}
-                                      </p>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="text-xs text-[#71717a] text-center py-2">Nenhum maker retornado.</p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={dispatchOrder}
-                    disabled={clientZip.replace(/\D/g, "").length !== 8 || nearbyMakers.filter(m => {
-                      const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
-                      const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
-                      const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
-                      return fitsVol && meetsEnc;
-                    }).length === 0}
-                    className={`w-full py-3 text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer ${
-                      clientZip.replace(/\D/g, "").length === 8 && nearbyMakers.filter(m => {
-                        const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
-                        const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
-                        const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
-                        return fitsVol && meetsEnc;
-                      }).length > 0
-                        ? "bg-[#d44d00] hover:bg-[#b04000]"
-                        : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
-                    }`}
-                  >
-                    Despachar para Fabricação Local
-                  </button>
-                  {clientZip && nearbyMakers.length > 0 && nearbyMakers.filter(m => {
-                    const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
-                    const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
-                    const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
-                    return fitsVol && meetsEnc;
-                  }).length === 0 && (
-                    <p className="text-xs text-red-400 text-center font-semibold mt-1">
-                      ⚠️ Nenhum Maker no raio atende aos requisitos físicos/térmicos desta peça/material.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="technical-panel rounded p-10 text-center flex flex-col items-center justify-center min-h-[180px]">
-                  <p className={`text-xs ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Aguardando fatiamento para gerar cotação técnica.</p>
-                </div>
-              )}
-
-              {/* Rastreamento de Pedidos do Cliente */}
-              <div className="technical-panel rounded p-6 space-y-6">
-                <h3 className={`text-xs font-semibold uppercase tracking-wider mono-text border-b pb-3 ${
-                  theme === "dark" ? "text-white border-[#18181b]" : "text-black border-[#e4e4e7]"
-                }`}>Seus Pedidos & Rastreamento</h3>
-                
-                <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
-                  {orders.map((ord) => (
-                    <div key={ord.id} className={`border p-4 rounded space-y-3 ${
-                      theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-[#f4f4f5]/60"
-                    }`}>
-                      <div className="flex justify-between items-center">
-                        <span className={`text-xs font-bold mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>PEDIDO #{ord.id}</span>
-                        <span className={`text-[8px] font-bold px-2 py-0.5 rounded mono-text uppercase border ${
-                          ord.status === "WAITING_MAKER" ? "border-yellow-500/30 text-yellow-500 bg-yellow-500/5" :
-                          ord.status === "PRINTING" ? "border-[#d44d00]/30 text-[#d44d00] bg-[#d44d00]/5 animate-pulse" :
-                          ord.status === "SHIPPED" ? "border-blue-500/30 text-blue-500 bg-blue-500/5" :
-                          ord.status === "COMPLETED" ? "border-green-500/30 text-green-500 bg-green-500/5" :
-                          "border-red-500/30 text-red-500 bg-red-500/5"
-                        }`}>
-                          {ord.status === "WAITING_MAKER" ? "Aguardando Maker" :
-                           ord.status === "PRINTING" ? `Imprimindo (${ord.progress}%)` :
-                           ord.status === "SHIPPED" ? "Despachado" :
-                           ord.status === "COMPLETED" ? "Concluído" : "Cancelado"}
-                        </span>
-                      </div>
-                      
-                      <div className={`text-xs space-y-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>
-                        <p className="truncate">Peça: <span className={theme === "dark" ? "text-white" : "text-black"}>{ord.filename}</span></p>
-                        <p>Fabricado por: <span className={theme === "dark" ? "text-white" : "text-black"}>{ord.makerName || "Procurando parceiro..."}</span></p>
-                        <p>Total: <span className="text-[#d44d00] font-bold">R$ {ord.totalPrice.toFixed(2).replace(".", ",")}</span></p>
-                      </div>
-
-                      {/* Mapa Simulado de Rotas para os pedidos em andamento */}
-                      {(ord.status === "PRINTING" || ord.status === "SHIPPED" || ord.status === "WAITING_MAKER") && (
-                        <div className="pt-2">
-                          <span className={`text-[8px] uppercase tracking-widest block mb-1.5 mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Distribuição Regionalizada (Mapa)</span>
-                          <div className={`h-16 rounded relative overflow-hidden flex items-center justify-center border ${
-                            theme === "dark" ? "bg-[#050506] border-[#18181b]" : "bg-[#f4f4f5] border-[#e4e4e7]"
-                          }`}>
-                            {/* Grid do mapa de fundo usando variáveis de tema CSS */}
-                            <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--zinc-800)_1px,transparent_1px),linear-gradient(to_bottom,var(--zinc-800)_1px,transparent_1px)] bg-[size:10px_10px] opacity-40"></div>
-                            
-                            {/* Conexão da rota */}
-                            <svg className="absolute inset-0 w-full h-full">
-                              {ord.status !== "WAITING_MAKER" && (
-                                <line x1="30" y1="30" x2="160" y2="30" stroke="#d44d00" strokeWidth="1" strokeDasharray="4 4" className="animate-[dash_2s_linear_infinite]" />
-                              )}
-                            </svg>
-                            
-                            {/* Pontos de Roteamento */}
-                            <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col items-center">
-                              <span className={`w-2.5 h-2.5 rounded-full ${ord.status === "WAITING_MAKER" ? "bg-yellow-500 animate-ping" : "bg-[#d44d00]"} border border-black/10`}></span>
-                              <span className={`text-[7px] mt-1 mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Maker</span>
-                            </div>
-                            
-                            {ord.status !== "WAITING_MAKER" && (
-                              <div className={`absolute left-1/2 top-1/2 -translate-y-1/2 ${ord.status === "PRINTING" ? "text-yellow-500" : "text-[#10b981]"} text-[8px] px-1.5 py-0.5 rounded mono-text z-10 border ${
-                                theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#fafafa] border-[#e4e4e7]"
-                              }`}>
-                                {ord.status === "PRINTING" ? "⚙️ IMPRIMINDO" : "🚚 EM TRÂNSITO"}
-                              </div>
-                            )}
-
-                            <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col items-center">
-                              <span className="w-2.5 h-2.5 rounded-full bg-white border border-black/10"></span>
-                              <span className={`text-[7px] mt-1 mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Cliente</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* TAB 3: PAINEL MAKER (CADASTRO PASSO A PASSO + NOTIFICAÇÕES SOB DEMANDA + REPUTAÇÃO E BANIMENTO) */}
         {activeTab === "maker" && (
