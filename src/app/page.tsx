@@ -155,6 +155,7 @@ export default function Home() {
   const [webSearchLoading, setWebSearchLoading] = useState<boolean>(false);
   const [galleryModels, setGalleryModels] = useState<any[]>([]);
   const [galleryLoading, setGalleryLoading] = useState<boolean>(false);
+  const [selectedModelImage, setSelectedModelImage] = useState<string | null>(null);
   
   const [aiChatMessages, setAiChatMessages] = useState<Array<{ role: "user" | "assistant"; text: string; recommendedParams?: { filename: string; material: string; infill: number; weightG: number; timeFormatted: string; totalPrice: number } }>>([
     {
@@ -562,6 +563,7 @@ export default function Home() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile.name.toLowerCase().endsWith(".stl")) {
+        setSelectedModelImage(null); // Upload manual limpa imagem da galeria
         setFile(droppedFile);
         generateQuote(droppedFile, material, infill);
       } else {
@@ -573,6 +575,7 @@ export default function Home() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
+      setSelectedModelImage(null); // Upload manual limpa imagem da galeria
       setFile(selectedFile);
       generateQuote(selectedFile, material, infill);
     }
@@ -586,6 +589,7 @@ export default function Home() {
   };
 
   const handleSimulateExample = () => {
+    setSelectedModelImage("https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60"); // Imagem de engrenagem
     setFile(new File([], "engrenagem_cafeteira_reposicao.stl"));
     setLoading(true);
     setTimeout(() => {
@@ -605,6 +609,7 @@ export default function Home() {
     setFile(null);
     setQuote(null);
     setError(null);
+    setSelectedModelImage(null);
   };
 
   const handleBrowseFiles = () => {
@@ -1396,7 +1401,7 @@ export default function Home() {
                           <span className="w-5 h-5 rounded bg-[#18181b] text-[#d44d00] font-bold flex items-center justify-center flex-shrink-0 border border-[#27272a]">1</span>
                           <div>
                             <h4 className="font-bold text-white">Escolha ou Envie o Arquivo</h4>
-                            <p className="text-xs text-[#71717a] mt-0.5">Importe do MakerWorld ou envie seu arquivo de engenharia STL.</p>
+                            <p className="text-xs text-[#71717a] mt-0.5">Importe da nossa galeria ou envie seu arquivo de engenharia STL.</p>
                           </div>
                         </div>
                         <div className="flex gap-3">
@@ -1418,10 +1423,10 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Grid Integrado do MakerWorld / Printables */}
+                {/* Grid de Modelos Populares */}
                 <div id="populares-makerworld" className="space-y-6 pt-6 border-t border-[#18181b]/50">
                   <div>
-                    <h2 className="text-lg font-bold text-white uppercase tracking-tight mono-text">Ideias e Modelos Populares (MakerWorld & Printables)</h2>
+                    <h2 className="text-lg font-bold text-white uppercase tracking-tight mono-text">Ideias e Modelos Populares da Rede</h2>
                     <p className="text-xs text-[#a1a1aa] mt-1">
                       Pesquise ou clique em qualquer modelo abaixo para importá-lo instantaneamente e receber seu orçamento físico.
                     </p>
@@ -1450,7 +1455,7 @@ export default function Home() {
                       <div key={item.id} className="bg-[#09090b] border border-[#18181b] rounded-lg overflow-hidden flex flex-col justify-between hover:border-[#d44d00]/30 transition group">
                         <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
                           <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                          <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">{item.source}</span>
+                          <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-[8px] font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">Homologado</span>
                         </div>
                         <div className="p-4 flex-grow flex flex-col justify-between space-y-4">
                           <div>
@@ -1462,6 +1467,7 @@ export default function Home() {
                             <button
                               onClick={() => {
                                 // Injeta os dados da galeria no Quote
+                                setSelectedModelImage(item.image); // Leva a imagem do modelo para a cotação
                                 setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
                                 setMaterial("PLA");
                                 setQuote({
@@ -1731,11 +1737,17 @@ export default function Home() {
                       ) : (
                         <div className="flex justify-between items-center bg-[#18181b]/50 border border-[#27272a] p-4 rounded">
                           <div className="flex items-center gap-3 text-left">
-                            <div className="w-8 h-8 rounded bg-[#10b981]/15 text-[#10b981] flex items-center justify-center border border-[#10b981]/20">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </div>
+                            {selectedModelImage ? (
+                              <div className="w-12 h-12 rounded overflow-hidden border border-[#27272a] bg-[#18181b] flex-shrink-0">
+                                <img src={selectedModelImage} alt="Preview do modelo" className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="w-8 h-8 rounded bg-[#10b981]/15 text-[#10b981] flex items-center justify-center border border-[#10b981]/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </div>
+                            )}
                             <div>
                               <h4 className="font-semibold text-white text-xs truncate max-w-[200px] mono-text">{file.name}</h4>
                               <p className="text-xs text-[#71717a]">Arquivo de engenharia carregado</p>
@@ -1797,7 +1809,7 @@ export default function Home() {
                     {galleryLoading ? (
                       <div className="py-12 text-center">
                         <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin mx-auto"></div>
-                        <p className="text-xs text-[#71717a] mt-3">Carregando galeria MakerWorld...</p>
+                        <p className="text-xs text-[#71717a] mt-3">Carregando galeria de modelos...</p>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -1806,7 +1818,7 @@ export default function Home() {
                             <div className="aspect-video w-full relative overflow-hidden bg-[#18181b]">
                               <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                               <span className="absolute top-2 right-2 bg-[#d44d00] text-white text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider mono-text">
-                                {item.source}
+                                Homologado
                               </span>
                             </div>
                             <div className="p-4 space-y-4 flex-grow flex flex-col justify-between">
@@ -1819,6 +1831,7 @@ export default function Home() {
                                 <button
                                   onClick={() => {
                                     // Injeta os dados da galeria no Quote
+                                    setSelectedModelImage(item.image); // Leva a imagem do modelo para a cotação
                                     setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
                                     setMaterial(item.material || "PLA");
                                     setQuote({
@@ -1866,7 +1879,7 @@ export default function Home() {
                     <div>
                       <h2 className="text-xl font-bold tracking-tight text-white uppercase mono-text">Pesquisa Integrada Web 3D</h2>
                       <p className="text-xs text-[#a1a1aa] mt-1 leading-relaxed">
-                        Pesquise modelos prontos em repositórios abertos mundiais (MakerWorld, Printables, Thingiverse) e importe diretamente para cotação.
+                        Pesquise modelos prontos em nossa rede integrada e importe diretamente para cotação.
                       </p>
                     </div>
 
@@ -1890,7 +1903,7 @@ export default function Home() {
                     {webSearchLoading && (
                       <div className="py-12 text-center">
                         <div className="w-8 h-8 rounded-full border border-dashed border-[#71717a] border-t-[#d44d00] animate-spin mx-auto"></div>
-                        <p className="text-xs text-[#71717a] mt-3">Agregando resultados das APIs globais 3D...</p>
+                        <p className="text-xs text-[#71717a] mt-3">Agregando resultados das APIs integradas...</p>
                       </div>
                     )}
 
@@ -1902,12 +1915,13 @@ export default function Home() {
                               <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
                             </div>
                             <div className="flex-grow space-y-1.5 min-w-0">
-                              <span className="text-[8px] bg-[#18181b] text-[#a1a1aa] px-1.5 py-0.5 rounded border border-[#27272a] uppercase font-bold tracking-wider mono-text inline-block">{item.source}</span>
+                              <span className="text-[8px] bg-[#18181b] text-[#a1a1aa] px-1.5 py-0.5 rounded border border-[#27272a] uppercase font-bold tracking-wider mono-text inline-block">Modelo 3D</span>
                               <h4 className="font-bold text-white text-xs truncate leading-tight">{item.title}</h4>
                               <p className="text-xs text-[#71717a] truncate">Por: {item.author} | {item.likes} likes</p>
                               <button
                                 onClick={() => {
                                   // Injeta os dados da busca no Quote
+                                  setSelectedModelImage(item.image); // Leva a imagem do modelo para a cotação
                                   setFile(new File([new ArrayBuffer(100)], item.stlName, { type: "application/sla" }));
                                   setMaterial("PLA");
                                   setQuote({
@@ -1933,7 +1947,7 @@ export default function Home() {
                                     }
                                   });
                                   setClientZip("01001-000");
-                                  alert(`Modelo "${item.title}" importado com sucesso da ${item.source}! Agora informe o CEP para fechar o pedido.`);
+                                  alert(`Modelo "${item.title}" importado com sucesso! Agora informe o CEP para fechar o pedido.`);
                                   setClientSubTab("upload"); // Joga para a cotação fatiador
                                 }}
                                 className="text-xs text-[#d44d00] hover:text-[#b04000] font-bold uppercase tracking-wider block cursor-pointer"
