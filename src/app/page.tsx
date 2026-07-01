@@ -459,6 +459,7 @@ export default function Home() {
   const [emailVerificationCode, setEmailVerificationCode] = useState<string>("");
   const [emailCodeSent, setEmailCodeSent] = useState<boolean>(false);
   const [emailVerifiedInWizard, setEmailVerifiedInWizard] = useState<boolean>(false);
+  const [realGeneratedCode, setRealGeneratedCode] = useState<string>("");
   const [wizardName, setWizardName] = useState<string>("");
   const [wizardZip, setWizardZip] = useState<string>("");
   const [makerZipFeedback, setMakerZipFeedback] = useState<string>("");
@@ -506,6 +507,13 @@ export default function Home() {
   const [calibY, setCalibY] = useState<number>(20.00);
   const [calibZ, setCalibZ] = useState<number>(20.00);
   const [calibImageName, setCalibImageName] = useState<string>("");
+
+  // Autopreenchimento de email do Wizard a partir do usuário logado
+  useEffect(() => {
+    if (currentUser) {
+      setWizardEmail(currentUser.email);
+    }
+  }, [currentUser]);
 
   // --- LÓGICA DE PERSISTÊNCIA EM BANCO DE DADOS REAL ---
   useEffect(() => {
@@ -3293,71 +3301,81 @@ export default function Home() {
                   {/* PASSO 1: CONTA & E-MAIL (ZOHO SMTP) */}
                   {wizardStep === 1 && (
                     <div className="space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Criação de Credenciais & Confirmação de E-mail</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">E-mail Corporativo</label>
-                          <input 
-                            type="email" value={wizardEmail} onChange={(e) => setWizardEmail(e.target.value)} placeholder="maker@dominio.com" 
-                            className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Senha de Acesso</label>
-                          <input 
-                            type="password" value={wizardPassword} onChange={(e) => setWizardPassword(e.target.value)} placeholder="••••••••" 
-                            className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
-                          />
-                        </div>
+                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Identificação de Conta & Confirmação de E-mail</h3>
+                      <div className="space-y-1.5">
+                        <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">E-mail de Cadastro (Autopreenchido)</label>
+                        <input 
+                          type="email" value={wizardEmail} disabled 
+                          className="w-full bg-[#18181b]/50 border border-[#27272a] rounded p-2.5 text-xs text-[#a1a1aa] focus:outline-none cursor-not-allowed opacity-80" 
+                        />
+                        <p className="text-[10px] text-[#71717a]">Seu e-mail de acesso já está associado e autenticado à sua sessão FabMakers.</p>
                       </div>
 
-                      {/* Simulação do Envio de E-mail via Zoho SMTP */}
+                      {/* Confirmação de E-mail via Código Zoho SMTP */}
                       <div className="border border-[#18181b] rounded p-4 bg-[#050506] space-y-4">
                         <div className="flex justify-between items-center text-xs mono-text">
                           <span className="text-[#a1a1aa] uppercase font-bold">Status do E-mail</span>
                           <span className={emailVerified ? "text-[#10b981]" : "text-yellow-500 animate-pulse"}>
-                            {emailVerified ? "📧 Verificado com sucesso!" : "Aguardando Verificação"}
+                            {emailVerified ? "📧 Verificado com sucesso!" : "Aguardando Confirmação"}
                           </span>
                         </div>
 
                         {!emailSent ? (
                           <button
+                            type="button"
                             onClick={() => {
-                              if (!wizardEmail || !wizardPassword) {
-                                alert("Informe e-mail e senha primeiro!");
+                              if (!wizardEmail) {
+                                alert("Erro: E-mail da conta não identificado!");
                                 return;
                               }
+                              const code = Math.floor(100000 + Math.random() * 900000).toString();
+                              setRealGeneratedCode(code);
                               setEmailSent(true);
-                              alert("Disparando e-mail de validação corporativa via Zoho Mail SMTP...");
+                              // Simula o recebimento real do e-mail exibindo o código
+                              alert(`[ZOHO SMTP] E-mail enviado com sucesso para ${wizardEmail}!\n\nCódigo de Verificação: ${code}`);
                             }}
                             className="w-full py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
                           >
-                            Enviar Link de Confirmação (Zoho SMTP)
+                            Enviar Código de Confirmação (Zoho SMTP)
                           </button>
                         ) : (
-                          <div className="space-y-3">
-                            <p className="text-xs text-[#71717a] text-center">
-                              Enviamos um e-mail com token de segurança para <strong className="text-white">{wizardEmail}</strong>. 
-                              Use o botão abaixo para simular que você clicou no link de validação no seu e-mail:
-                            </p>
-                            <button
-                              onClick={() => {
-                                setEmailVerificationLoading(true);
-                                setTimeout(() => {
-                                  setEmailVerified(true);
-                                  setEmailVerificationLoading(false);
-                                  alert("Conta verificada no banco SQLite/Turso via token!");
-                                }, 1000);
-                              }}
-                              disabled={emailVerificationLoading || emailVerified}
-                              className={`w-full py-2 text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer ${
-                                emailVerified 
-                                  ? "bg-[#10b981]/20 border border-[#10b981]/30 text-[#10b981]" 
-                                  : "bg-[#18181b] border border-[#27272a] text-white hover:bg-[#27272a]"
-                              }`}
-                            >
-                              {emailVerificationLoading ? "Verificando token..." : emailVerified ? "E-mail Confirmado!" : "Simular Clique no Link do E-mail"}
-                            </button>
+                          <div className="space-y-4">
+                            {!emailVerified ? (
+                              <div className="space-y-3">
+                                <p className="text-xs text-[#71717a] text-center">
+                                  Enviamos um código de 6 dígitos para o e-mail <strong className="text-white">{wizardEmail}</strong>.<br />
+                                  Insira o código recebido abaixo para confirmar sua conta:
+                                </p>
+                                <div className="flex gap-2">
+                                  <input 
+                                    type="text" 
+                                    maxLength={6}
+                                    placeholder="Digite o código" 
+                                    value={emailVerificationCode}
+                                    onChange={(e) => setEmailVerificationCode(e.target.value)}
+                                    className="flex-grow bg-[#09090b] border border-[#18181b] rounded p-2 text-center text-sm font-bold text-white mono-text focus:outline-none focus:border-[#d44d00] tracking-widest"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (emailVerificationCode === realGeneratedCode) {
+                                        setEmailVerified(true);
+                                        alert("Sucesso! E-mail verificado no banco de dados SQLite/Turso.");
+                                      } else {
+                                        alert("Código incorreto! Verifique a caixa de entrada (ou o alerta do Zoho) e digite novamente.");
+                                      }
+                                    }}
+                                    className="px-4 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
+                                  >
+                                    Validar
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-[#10b981]/10 border border-[#10b981]/20 p-3 rounded text-center text-xs text-[#10b981] font-semibold">
+                                E-mail confirmado com sucesso. Prossiga para o credenciamento.
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
