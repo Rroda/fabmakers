@@ -172,7 +172,8 @@
 - **Por quê:** fechar instrumento H5 e um único script de regressão para o founder.
 - **Data:** 2026-07-22
 
-- **Decisão:** Após L1, abrir L3 como **origem de pedidos** para a fila (`POST /api/channels/fulfillment`), não como pitch/afiliado. UI Shopee continua `SHOW_LATER_UI=false`.
-- **Por quê:** reforça Supply-first (mais jobs na fila) sem diluir a frase do produto.
-- **Fora:** clonar loja; afiliado hero; L2 neste passo.
+## D025 — Ops harden (teste founder)
+
+- **Decisão:** `ADMIN_API_SECRET` definido na Vercel (Production+Preview). Bypass de e-mail no wizard **só em localhost**. Prod exige código SMTP.
+- **Por quê:** fechar buracos antes do roteiro de teste manual do founder.
 - **Data:** 2026-07-22

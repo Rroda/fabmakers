@@ -216,6 +216,7 @@ export default function FabMakersApp() {
   // --- ESTADOS DE SESSÃO E AUTENTICAÇÃO REAL ---
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; makerStatus?: string } | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("light");
+  const [allowEmailBypass, setAllowEmailBypass] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [homeMode, setHomeMode] = useState<HomeMode>(boot.homeMode);
   const [contratoAceito, setContratoAceito] = useState<boolean>(false);
@@ -551,6 +552,12 @@ export default function FabMakersApp() {
     root.classList.remove("light", "dark");
     root.classList.add(theme);
   }, [theme]);
+
+  // Bypass de e-mail só em localhost (D025 — SMTP real em prod)
+  useEffect(() => {
+    const h = window.location.hostname;
+    setAllowEmailBypass(h === "localhost" || h === "127.0.0.1");
+  }, []);
 
   // Autopreenchimento de email/nome do Wizard a partir do usuário logado
   useEffect(() => {
@@ -4245,9 +4252,10 @@ export default function FabMakersApp() {
                               </div>
                             )}
 
+                            {allowEmailBypass && (
                             <details className={`pt-2 ${isLight ? "border-t border-[#ebebef]" : "border-t border-[#18181b]"}`}>
                               <summary className={`text-[12px] cursor-pointer select-none py-2 ${isLight ? "text-[#8a8a93]" : "text-[#71717a] uppercase tracking-wider mono-text"}`}>
-                                Emergência — pular verificação (só demo)
+                                Emergência — pular verificação (só localhost)
                               </summary>
                               <button
                                 type="button"
@@ -4265,6 +4273,7 @@ export default function FabMakersApp() {
                                 Confirmar e-mail sem código
                               </button>
                             </details>
+                            )}
                           </div>
                         ) : (
                           <p className={`text-sm font-medium ${isLight ? "text-[#0d9f6e]" : "text-[#10b981]"}`}>

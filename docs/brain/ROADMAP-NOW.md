@@ -39,8 +39,8 @@
 ## Dívida explícita (UX / infra)
 
 - ~~Layout do **wizard maker** (onboarding)~~ — redesign Layer A 2026-07-21
-- ~~E-mail de ativação com código (SMTP real)~~ — D013 + D018 (Zoho em prod). Bypass demo ainda em `<details>`.
-- Prioridade após Core: seed de demanda no radar + polish visual (parcialmente feito).
+- ~~E-mail de ativação com código (SMTP real)~~ — D013 + D018 (Zoho em prod). Bypass só localhost (D025).
+- ~~Seed demanda + polish~~ — catálogo/canal/e2e:all
 - ~~Dois SQLite locais~~ — unificado em `prisma/dev.db` (D010)
 
 ## Escopo operacional (só Core + Support **agora**)
@@ -114,6 +114,7 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 32. ~~**L3 canal de demanda (D022)**~~ — MVP PASS
 33. ~~**L2 Técnicos / H7 (D023)**~~ — MVP PASS
 34. ~~Polish H5 funil + e2e:all (D024)~~
+35. ~~Ops harden: ADMIN_API_SECRET + bypass e-mail só localhost (D025)~~
 
 ## Candidatos descartados (esta rodada)
 
