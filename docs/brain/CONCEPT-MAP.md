@@ -52,7 +52,7 @@
 | Peça | Onde | Nota |
 |------|------|------|
 | **L1 Designers** + royalties + `Model3D` | `SHOW_L1_DESIGNER`, `/api/designer/models`, `/designer` | **D021 em curso** — não compete com hero maker |
-| **L2 Técnicos / manutenção** (H7) | ainda não existe | Após L1 |
+| **L2 Técnicos / manutenção** (H7) | `/api/tech/requests`, role TECH | **D023 MVP** — chamado maker → claim tech |
 | **L3 Dropshipping** | esqueleto `/api/dropshipping/shopee` | Após L1 — **não** hero |
 | Chat “FabMakers AI” | UI | Assistente; não é o produto |
 | DRM / G-code stream | `Model3D.gcodeStream` | Depois de matching vivo |

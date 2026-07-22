@@ -159,10 +159,11 @@
 - **Smoke:** `e2e:channel-job` PASS em prod.
 - **Data:** 2026-07-22
 
-## D023 — L2 Técnicos / manutenção (H7) — próximo
+## D023 — L2 Técnicos / manutenção (H7)
 
-- **Decisão:** Após L1+L3, abrir vertical de técnicos (matching “preciso de manutenção”) sem diluir a home Supply-first.
-- **Status:** enfileirado; implementação no próximo passo autônomo.
+- **Decisão:** MVP L2: `TechRequest` + `TechnicianProfile`; maker abre chamado (`POST /api/tech/requests`); tech `tech@` / `123` lista OPEN, claim e DONE. UI: botão no portal maker (não hero).
+- **Por quê:** testar H7 sem diluir Supply-first.
+- **Smoke:** `e2e:tech-job` em prod.
 - **Data:** 2026-07-22
 
 - **Decisão:** Após L1, abrir L3 como **origem de pedidos** para a fila (`POST /api/channels/fulfillment`), não como pitch/afiliado. UI Shopee continua `SHOW_LATER_UI=false`.

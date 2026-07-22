@@ -16,7 +16,7 @@ model User {
   name          String
   email         String    @unique
   passwordHash  String
-  role          String    // "CLIENT", "MAKER", "DESIGNER", "ADMIN"
+  role          String    // "CLIENT", "MAKER", "DESIGNER", "TECH", "ADMIN"
   
   // Confirmação de E-mail
   emailVerified    Boolean   @default(false)
@@ -28,7 +28,9 @@ model User {
   // Relações
   makerProfile  MakerProfile?
   designerProfile DesignerProfile?
+  technicianProfile TechnicianProfile?
   ordersAsClient Order[]  @relation("ClientOrders")
+  techRequestsAsMaker TechRequest[] @relation("MakerTechRequests")
 }
 
 model MakerProfile {
@@ -69,6 +71,37 @@ model DesignerProfile {
   rating        Float     @default(5.0)
   
   models        Model3D[]
+}
+
+/** L2 / H7 — técnico de impressoras (D023) */
+model TechnicianProfile {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city          String    @default("")
+  state         String    @default("")
+  specialties   String    @default("[]") // JSON: extrusora, mesa, firmware...
+  isApproved    Boolean   @default(false)
+  rating        Float     @default(5.0)
+
+  requests      TechRequest[] @relation("TechAssigned")
+}
+
+model TechRequest {
+  id            String    @id @default(uuid())
+  status        String    // OPEN | CLAIMED | DONE | CANCELLED
+  title         String
+  description   String
+  machineBrand  String?
+  machineModel  String?
+  zipCode       String
+  makerUserId   String
+  makerUser     User      @relation("MakerTechRequests", fields: [makerUserId], references: [id])
+  technicianId  String?
+  technician    TechnicianProfile? @relation("TechAssigned", fields: [technicianId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Model3D {

@@ -112,7 +112,8 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 30. ~~Auth GET listagem orders (D020)~~
 31. ~~**L1 Designers (D021)**~~ — MVP PASS
 32. ~~**L3 canal de demanda (D022)**~~ — MVP PASS
-33. **L2 Técnicos / H7 (D023)** — próximo
+33. ~~**L2 Técnicos / H7 (D023)**~~ — MVP PASS
+34. Polish / hipóteses abertas (H5 funil, etc.) conforme necessidade
 
 ## Candidatos descartados (esta rodada)
 

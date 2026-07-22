@@ -247,6 +247,82 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 4b. Fluxo do Técnico (L2 / D023 / H7)
+    if (role === "TECH") {
+      const { issueTechToken } = await import("@/lib/techAuth");
+      const { ensureTechSchema } = await import("@/lib/ensureTechSchema");
+      await ensureTechSchema(prisma);
+
+      if (cleanEmail === "tech@fabmakers.com.br" && password === "123") {
+        let mvp = await prisma.user.findFirst({
+          where: { email: cleanEmail, role: "TECH" },
+          include: { technicianProfile: true },
+        });
+        if (!mvp) {
+          mvp = await prisma.user.create({
+            data: {
+              name: "Técnico Demo",
+              email: cleanEmail,
+              passwordHash: "123",
+              role: "TECH",
+              emailVerified: true,
+              technicianProfile: {
+                create: {
+                  city: "São Paulo",
+                  state: "SP",
+                  specialties: JSON.stringify(["extrusora", "mesa", "firmware"]),
+                  isApproved: true,
+                  rating: 5,
+                },
+              },
+            },
+            include: { technicianProfile: true },
+          });
+        } else {
+          await prisma.user.update({
+            where: { id: mvp.id },
+            data: { passwordHash: "123", emailVerified: true },
+          });
+          if (!mvp.technicianProfile) {
+            await prisma.technicianProfile.create({
+              data: {
+                userId: mvp.id,
+                city: "São Paulo",
+                state: "SP",
+                specialties: JSON.stringify(["extrusora", "mesa", "firmware"]),
+                isApproved: true,
+              },
+            });
+          } else if (!mvp.technicianProfile.isApproved) {
+            await prisma.technicianProfile.update({
+              where: { id: mvp.technicianProfile.id },
+              data: { isApproved: true },
+            });
+          }
+          mvp = await prisma.user.findFirst({
+            where: { id: mvp.id },
+            include: { technicianProfile: true },
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          user: {
+            name: mvp!.name,
+            email: mvp!.email,
+            role: "TECH",
+            profile: mvp!.technicianProfile,
+          },
+          techToken: issueTechToken(cleanEmail),
+        });
+      }
+
+      return NextResponse.json(
+        { success: false, error: "Use tech@fabmakers.com.br / 123 no MVP." },
+        { status: 401 }
+      );
+    }
+
     // 4. Fluxo do Designer (L1 / D021)
     if (role === "DESIGNER") {
       const { issueDesignerToken } = await import("@/lib/designerAuth");

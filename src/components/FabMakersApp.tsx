@@ -287,7 +287,7 @@ export default function FabMakersApp() {
   ]);
   const [aiInputText, setAiInputText] = useState<string>("");
   const [aiLoading, setAiLoading] = useState<boolean>(false);
-  const [loginRole, setLoginRole] = useState<"CLIENT" | "MAKER" | "DESIGNER" | "MODERATOR" | "ADMIN">("MAKER");
+  const [loginRole, setLoginRole] = useState<"CLIENT" | "MAKER" | "DESIGNER" | "TECH" | "MODERATOR" | "ADMIN">("MAKER");
   const [loginEmail, setLoginEmail] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState<boolean>(false);
@@ -1484,6 +1484,44 @@ export default function FabMakersApp() {
     } catch (err) {
       console.error(err);
       alert("Erro ao gerar demanda demo.");
+    }
+  };
+
+  /** L2 / H7 — maker solicita manutenção (D023) */
+  const createTechMaintenanceRequest = async () => {
+    if (!Object.keys(makerAuthHeaders()).length) {
+      alert("Faça login como maker para abrir chamado de manutenção.");
+      return;
+    }
+    const title = window.prompt("Resumo do problema (ex: extrusora entupida)", "Extrusora / bico");
+    if (!title) return;
+    const description =
+      window.prompt(
+        "Descreva o sintoma",
+        "Impressora falha ao extrudar; preciso de técnico ou orientação."
+      ) || "";
+    if (!description.trim()) return;
+    try {
+      const res = await fetch("/api/tech/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...makerAuthHeaders() },
+        body: JSON.stringify({
+          title,
+          description,
+          zipCode: makerProfile?.zipCode || "01310-100",
+          machineBrand: makerProfile?.machines?.[0]?.brand || "Bambu Lab",
+          machineModel: makerProfile?.machines?.[0]?.model || "P1S",
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || "Falha ao abrir chamado.");
+        return;
+      }
+      alert(`Chamado #${data.request.id} aberto (status OPEN). Técnicos veem na fila L2.`);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao abrir chamado de manutenção.");
     }
   };
 
@@ -5062,6 +5100,17 @@ export default function FabMakersApp() {
                                 >
                                   Gerar demanda demo
                                 </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void createTechMaintenanceRequest()}
+                                  className={`block mx-auto mt-2 px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer border ${
+                                    theme === "dark"
+                                      ? "border-[#27272a] text-[#a1a1aa] hover:text-white"
+                                      : "border-[#e4e4e7] text-[#52525b] hover:text-black"
+                                  }`}
+                                >
+                                  Preciso de manutenção (L2)
+                                </button>
                               </div>
                             ) : (
                               orders.filter(o => o.status === "WAITING_MAKER").map((ord) => (
@@ -6380,9 +6429,16 @@ export default function FabMakersApp() {
                 
                 <span 
                   onClick={() => {
-                    setLoginRole(prev => 
-                      prev === "MAKER" ? "CLIENT" : 
-                      prev === "CLIENT" ? "ADMIN" : "MAKER"
+                    setLoginRole((prev) =>
+                      prev === "MAKER"
+                        ? "CLIENT"
+                        : prev === "CLIENT"
+                          ? "ADMIN"
+                          : prev === "ADMIN"
+                            ? "DESIGNER"
+                            : prev === "DESIGNER"
+                              ? "TECH"
+                              : "MAKER"
                     );
                     setIsSignUp(false);
                     setLoginEmail("");
@@ -6393,7 +6449,7 @@ export default function FabMakersApp() {
                   }}
                   className="hover:text-white transition cursor-pointer underline"
                 >
-                  Alternar perfil (Fab / Seed / Admin)
+                  Alternar perfil (Fab / Seed / Admin / Designer / Tech)
                 </span>
               </div>
             </form>

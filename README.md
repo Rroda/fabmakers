@@ -23,6 +23,7 @@ Detalhes: `docs/brain/ROADMAP-NOW.md` · `PROJECT-MEMORY.md`
 | Admin | `admin@fabmakers.com.br` | `admin123` |
 | Maker | `roda@fabmakers.com.br` | `123` |
 | Designer (L1) | `designer@fabmakers.com.br` | `123` |
+| Técnico (L2) | `tech@fabmakers.com.br` | `123` |
 | Cliente | qualquer e-mail | cria automático |
 
 ---

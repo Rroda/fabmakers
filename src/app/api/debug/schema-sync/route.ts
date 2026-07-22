@@ -23,6 +23,28 @@ export async function POST(req: NextRequest) {
     const stmts = [
       `ALTER TABLE "Order" ADD COLUMN filename TEXT`,
       `ALTER TABLE "Order" ADD COLUMN catalogId TEXT`,
+      `CREATE TABLE IF NOT EXISTS "TechnicianProfile" (
+      "id" TEXT PRIMARY KEY NOT NULL,
+      "userId" TEXT NOT NULL UNIQUE,
+      "city" TEXT NOT NULL DEFAULT '',
+      "state" TEXT NOT NULL DEFAULT '',
+      "specialties" TEXT NOT NULL DEFAULT '[]',
+      "isApproved" BOOLEAN NOT NULL DEFAULT false,
+      "rating" REAL NOT NULL DEFAULT 5.0
+    )`,
+      `CREATE TABLE IF NOT EXISTS "TechRequest" (
+      "id" TEXT PRIMARY KEY NOT NULL,
+      "status" TEXT NOT NULL,
+      "title" TEXT NOT NULL,
+      "description" TEXT NOT NULL,
+      "machineBrand" TEXT,
+      "machineModel" TEXT,
+      "zipCode" TEXT NOT NULL,
+      "makerUserId" TEXT NOT NULL,
+      "technicianId" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
     ];
 
     for (const sql of stmts) {
