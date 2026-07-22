@@ -1806,6 +1806,18 @@ export default function FabMakersApp() {
             setMakerProfile({
               ...data.user.profile,
               name: data.user.profile.name || data.user.name,
+              zipCode: data.user.profile.zipCode || data.user.profile.city || "",
+              penalties: data.user.profile.penalties ?? 0,
+              contractAccepted: data.user.profile.contractAccepted ?? true,
+              kycStatus: data.user.profile.kycStatus || "APPROVED",
+              machines: data.user.profile.machines || [],
+              filaments: data.user.profile.filaments || [],
+              availability: {
+                days: [],
+                shifts: [],
+                months: [],
+                ...(data.user.profile.availability || {}),
+              },
             });
           } else {
             setMakerProfile(null);
@@ -5141,24 +5153,32 @@ export default function FabMakersApp() {
                           theme === "light" ? "border-[#ebebef] bg-[#fafafa]" : "border-[#18181b] bg-[#050506]"
                         }`}>
                           <span className={`block ${theme === "light" ? "text-[12px] font-medium text-[#8a8a93]" : "text-[8px] uppercase tracking-wider text-[#71717a] mono-text"}`}>Impressoras cadastradas</span>
-                          {makerProfile.machines.map(m => (
+                          {makerProfile.machines.length === 0 ? (
+                            <p className="text-xs text-[#71717a]">Nenhuma impressora cadastrada.</p>
+                          ) : (
+                            makerProfile.machines.map(m => (
                             <div key={m.id} className={`text-sm font-medium flex justify-between ${theme === "light" ? "text-[#111]" : "text-xs font-bold text-white"}`}>
                               <span>{m.brand} {m.model}</span>
                               <span className={`font-normal ${theme === "light" ? "text-[#8a8a93]" : "text-[#a1a1aa]"}`}>{m.nozzle}</span>
                             </div>
-                          ))}
+                          ))
+                          )}
                         </div>
 
                         <div className={`p-3.5 rounded-xl space-y-2 border ${
                           theme === "light" ? "border-[#ebebef] bg-[#fafafa]" : "border-[#18181b] bg-[#050506]"
                         }`}>
                           <span className={`block ${theme === "light" ? "text-[12px] font-medium text-[#8a8a93]" : "text-[8px] uppercase tracking-wider text-[#71717a] mono-text"}`}>Estoque de filamento</span>
-                          {makerProfile.filaments.map(f => (
+                          {makerProfile.filaments.length === 0 ? (
+                            <p className="text-xs text-[#71717a]">Estoque vazio.</p>
+                          ) : (
+                            makerProfile.filaments.map(f => (
                             <div key={f.id} className={`text-sm font-medium flex justify-between ${theme === "light" ? "text-[#111]" : "text-xs font-bold text-white"}`}>
                               <span>{f.type} ({f.color})</span>
                               <span className={`font-normal ${theme === "light" ? "text-[#8a8a93]" : "text-[#a1a1aa]"}`}>{f.weightG}g</span>
                             </div>
-                          ))}
+                          ))
+                          )}
                         </div>
 
                         <div className={`p-3.5 rounded-xl space-y-2 border ${

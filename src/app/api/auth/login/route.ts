@@ -45,6 +45,13 @@ export async function POST(req: NextRequest) {
     if (role === "MAKER") {
       // Conta MVP canônica (D012) — garante maker homologado para demos
       if (cleanEmail === "roda@fabmakers.com.br" && password === "123") {
+        const { MVP_DEMO_MACHINES, MVP_DEMO_FILAMENTS, MVP_DEMO_AVAILABILITY } = await import(
+          "@/lib/mvpMakerDefaults"
+        );
+        const machinesJson = JSON.stringify(MVP_DEMO_MACHINES);
+        const materialsJson = JSON.stringify(MVP_DEMO_FILAMENTS);
+        const availabilityJson = JSON.stringify(MVP_DEMO_AVAILABILITY);
+
         let mvp = await prisma.user.findFirst({
           where: { email: cleanEmail, role: "MAKER" },
           include: { makerProfile: true },
@@ -59,33 +66,62 @@ export async function POST(req: NextRequest) {
               emailVerified: true,
               makerProfile: {
                 create: {
-                  city: "São Paulo",
+                  city: "01310-100",
                   state: "SP",
                   rating: 5,
                   isApproved: true,
                   isBanned: false,
                   makerStatus: "HOMOLOGATED",
-                  machines: "[]",
-                  materials: "[]",
-                  availability: '{"days":["seg","ter","qua","qui","sex"],"shifts":["tarde","noite"]}',
+                  contractAccepted: true,
+                  kycStatus: "APPROVED",
+                  machines: machinesJson,
+                  materials: materialsJson,
+                  availability: availabilityJson,
                 },
               },
             },
             include: { makerProfile: true },
           });
-        } else if (mvp.makerProfile && (!mvp.makerProfile.isApproved || mvp.passwordHash !== "123" || mvp.makerProfile.makerStatus === "APPROVED" || mvp.makerProfile.makerStatus === "UNVERIFIED" || mvp.makerProfile.makerStatus === "PENDING_APPROVAL")) {
-          await prisma.user.update({
-            where: { id: mvp.id },
-            data: { passwordHash: "123" },
-          });
-          await prisma.makerProfile.update({
-            where: { id: mvp.makerProfile.id },
-            data: { isApproved: true, isBanned: false, makerStatus: "HOMOLOGATED" },
-          });
-          mvp = await prisma.user.findFirst({
-            where: { id: mvp.id },
-            include: { makerProfile: true },
-          });
+        } else if (mvp.makerProfile) {
+          const emptyFleet =
+            !mvp.makerProfile.machines ||
+            mvp.makerProfile.machines === "[]" ||
+            !mvp.makerProfile.materials ||
+            mvp.makerProfile.materials === "[]";
+          const needsHomolog =
+            !mvp.makerProfile.isApproved ||
+            mvp.passwordHash !== "123" ||
+            ["APPROVED", "UNVERIFIED", "PENDING_APPROVAL"].includes(mvp.makerProfile.makerStatus);
+
+          if (emptyFleet || needsHomolog) {
+            await prisma.user.update({
+              where: { id: mvp.id },
+              data: { passwordHash: "123" },
+            });
+            await prisma.makerProfile.update({
+              where: { id: mvp.makerProfile.id },
+              data: {
+                isApproved: true,
+                isBanned: false,
+                makerStatus: "HOMOLOGATED",
+                contractAccepted: true,
+                kycStatus: "APPROVED",
+                city: mvp.makerProfile.city || "01310-100",
+                state: mvp.makerProfile.state || "SP",
+                ...(emptyFleet
+                  ? {
+                      machines: machinesJson,
+                      materials: materialsJson,
+                      availability: availabilityJson,
+                    }
+                  : {}),
+              },
+            });
+            mvp = await prisma.user.findFirst({
+              where: { id: mvp.id },
+              include: { makerProfile: true },
+            });
+          }
         }
         if (mvp?.makerProfile) {
           const { issueMakerToken } = await import("@/lib/makerAuth");
@@ -101,18 +137,21 @@ export async function POST(req: NextRequest) {
                 name: mvp.name,
                 city: mvp.makerProfile.city,
                 state: mvp.makerProfile.state,
-                zipCode: mvp.makerProfile.city,
+                zipCode: mvp.makerProfile.city || "01310-100",
                 rating: mvp.makerProfile.rating,
+                penalties: mvp.makerProfile.penaltiesCount ?? 0,
                 isApproved: mvp.makerProfile.isApproved,
                 isBanned: mvp.makerProfile.isBanned,
                 makerStatus: mvp.makerProfile.makerStatus,
+                contractAccepted: mvp.makerProfile.contractAccepted,
+                kycStatus: mvp.makerProfile.kycStatus || "APPROVED",
                 machines: JSON.parse(mvp.makerProfile.machines || "[]"),
                 filaments: JSON.parse(mvp.makerProfile.materials || "[]"),
                 availability: {
-                  days: [],
-                  shifts: [],
-                  months: [],
-                  ...JSON.parse(mvp.makerProfile.availability || '{"days":[],"shifts":[]}'),
+                  days: [] as string[],
+                  shifts: [] as string[],
+                  months: [] as string[],
+                  ...JSON.parse(mvp.makerProfile.availability || "{}"),
                 },
                 kycDocumentUrl: mvp.makerProfile.kycDocumentUrl,
                 kycSelfieUrl: mvp.makerProfile.kycSelfieUrl,
