@@ -142,3 +142,10 @@
 - **Por quê:** fecha residual D019 — pedidos não são públicos.
 - **Smoke:** GET sem token → 401; e2e PASS.
 - **Data:** 2026-07-22
+
+## D021 — Abrir L1 Designers (pós-Core)
+
+- **Decisão:** Com Core estável, executar **L1** (persona Designer: publicar `Model3D` com licença OK + royalty no pedido). Manter home maker-first; `SHOW_L1_DESIGNER` separado de MakerWorld/Shopee/AI (`SHOW_LATER_UI` continua false).
+- **Por quê:** ordem do ROADMAP pós-Core; usuário confirmou autonomia para seguir sem micro-menus.
+- **Fora:** L2/L3 neste passo; scrape MakerWorld; DRM/G-code stream.
+- **Data:** 2026-07-22

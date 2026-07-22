@@ -5,8 +5,9 @@
 - **Wedge escolhido?** Sim — **Supply-first** (D004)
 - **TEKNA:** peer apenas (D005) — sem papel especial
 - **Foco técnico recente:** Onboarding maker + APIs + cotação/orders
-- **Próximo movimento:** Core + SMTP (D018) em prod. L1–L3 backlog.
+- **Próximo movimento:** **L1 Designers (D021)** em execução. Core Supply-first + SMTP + auth orders fechados.
 - **SMTP:** ligado (Zoho `contato@` / `smtp.zoho.com`)
+- **Autonomia:** orquestrar ROADMAP sem menus “A ou B”; humano só em secrets/risco/pivot
 - **Prod:** https://fabmakers.com.br
 - **D014:** backlog L1–L3
 - **Autonomia:** orquestrar ROADMAP; acionar humano em secrets/aprovação
@@ -109,7 +110,8 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 28. ~~Wizard copy alinhada a SMTP real~~ (bypass só emergência)
 29. ~~Auth POST seed orders (D019)~~
 30. ~~Auth GET listagem orders (D020)~~
-31. *(Backlog Later — só com freio)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
+31. **L1 Designers (D021)** — em curso
+32. *(Depois L1)* L2 Técnicos/H7 · L3 Dropshipping
 
 ## Candidatos descartados (esta rodada)
 

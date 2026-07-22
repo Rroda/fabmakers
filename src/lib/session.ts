@@ -1,4 +1,4 @@
-/** Sessão client-side (Layer B) — adminToken (D009) + makerToken (D011) + clientToken (D019). */
+/** Sessão client-side — admin/maker/client/designer tokens. */
 
 export type SessionUser = {
   name: string;
@@ -13,6 +13,7 @@ export type StoredSession = {
   adminToken?: string | null;
   makerToken?: string | null;
   clientToken?: string | null;
+  designerToken?: string | null;
 };
 
 const KEY = "fm_session_v1";
@@ -37,6 +38,7 @@ export function saveSession(
     adminToken?: string | null;
     makerToken?: string | null;
     clientToken?: string | null;
+    designerToken?: string | null;
   }
 ) {
   if (typeof window === "undefined") return;
@@ -56,6 +58,10 @@ export function saveSession(
         tokens?.makerToken !== undefined ? tokens.makerToken : prev?.makerToken ?? null,
       clientToken:
         tokens?.clientToken !== undefined ? tokens.clientToken : prev?.clientToken ?? null,
+      designerToken:
+        tokens?.designerToken !== undefined
+          ? tokens.designerToken
+          : prev?.designerToken ?? null,
     } satisfies StoredSession)
   );
 }
@@ -72,6 +78,10 @@ export function getClientToken(): string | null {
   return loadSession()?.clientToken || null;
 }
 
+export function getDesignerToken(): string | null {
+  return loadSession()?.designerToken || null;
+}
+
 export function adminAuthHeaders(): HeadersInit {
   const token = getAdminToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -82,7 +92,12 @@ export function makerAuthHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-/** Headers para POST /api/orders (D019): maker → admin → client. */
+export function designerAuthHeaders(): HeadersInit {
+  const token = getDesignerToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** Headers para POST/GET orders: maker → admin → client. */
 export function orderAuthHeaders(): HeadersInit {
   const token = getMakerToken() || getAdminToken() || getClientToken();
   return token ? { Authorization: `Bearer ${token}` } : {};

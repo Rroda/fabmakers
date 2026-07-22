@@ -150,7 +150,18 @@ export async function POST(req: NextRequest) {
       makerName,
       timeFormatted,
       catalogId,
+      modelId,
     } = data;
+
+    let royaltyFromModel: number | null = null;
+    let resolvedModelId: string | null = modelId || null;
+    if (modelId) {
+      const m = await prisma.model3D.findUnique({ where: { id: String(modelId) } });
+      if (m) {
+        royaltyFromModel = m.royaltyPrice;
+        resolvedModelId = m.id;
+      }
+    }
 
     let client =
       writer.role === "CLIENT"
@@ -196,6 +207,7 @@ export async function POST(req: NextRequest) {
             royaltyPaid: parseFloat(String(weightG || 0)),
             filename: filename || existing.filename,
             catalogId: catalogId || existing.catalogId || null,
+            modelId: resolvedModelId || existing.modelId || null,
           },
         });
         return NextResponse.json({ success: true, orderId: order.id, action: "update" });
@@ -208,14 +220,17 @@ export async function POST(req: NextRequest) {
         status: queueStatus,
         totalPrice: price,
         makerPrice: parseTimeToHours(timeFormatted),
-        royaltyPaid: parseFloat(String(weightG || 0)),
+        royaltyPaid:
+          royaltyFromModel != null
+            ? royaltyFromModel
+            : parseFloat(String(weightG || 0)),
         platformFee: fee,
         shippingZip: zipCode || "01001-000",
         shippingAddress: material || "PLA",
         clientId: client.id,
         makerId,
         filename: filename || "peca.stl",
-        modelId: null,
+        modelId: resolvedModelId,
         catalogId: catalogId || null,
       },
     });

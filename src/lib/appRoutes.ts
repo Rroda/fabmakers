@@ -13,6 +13,8 @@ export function pathToAppState(pathname: string): AppRouteState {
   switch (path) {
     case "/maker":
       return { tab: "maker", homeMode: "maker" };
+    case "/designer":
+      return { tab: "designer", homeMode: "designer" };
     case "/admin":
       return { tab: "admin", homeMode: "maker" };
     case "/quote":
@@ -27,8 +29,10 @@ export function pathToAppState(pathname: string): AppRouteState {
 
 export function appStateToPath(tab: AppTab, homeMode: HomeMode = "maker"): string {
   if (tab === "maker") return "/maker";
+  if (tab === "designer") return "/designer";
   if (tab === "admin") return "/admin";
   if (tab === "client") return "/quote";
   if (tab === "home" && homeMode === "client") return "/client";
+  if (tab === "home" && homeMode === "designer") return "/designer";
   return "/";
 }

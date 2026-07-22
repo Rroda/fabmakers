@@ -15,7 +15,7 @@ import {
   type AppTab,
   type HomeMode,
 } from "@/lib/appRoutes";
-import { loadSession, saveSession, adminAuthHeaders, makerAuthHeaders, orderAuthHeaders, getMakerToken } from "@/lib/session";
+import { loadSession, saveSession, adminAuthHeaders, makerAuthHeaders, orderAuthHeaders, designerAuthHeaders, getMakerToken } from "@/lib/session";
 
 // Interface para dados do fatiador STL
 interface QuoteData {
@@ -202,8 +202,10 @@ const materialDetails = {
 };
 
 export default function FabMakersApp() {
-  // false = esconde Designer, MakerWorld-hero, Shopee, AI (CONCEPT-MAP Later/Cut)
+  // Later/Cut: MakerWorld hero, Shopee, AI, moderator — continuam ocultos
   const SHOW_LATER_UI = false;
+  // L1 Designers (D021) — portal + home mode designer
+  const SHOW_L1_DESIGNER = true;
 
   const router = useRouter();
   const pathname = usePathname() || "/";
@@ -640,6 +642,18 @@ export default function FabMakersApp() {
       setShowLoginModal(true);
     }
   }, [activeTab, currentUser?.role, currentUser?.email]);
+
+  // Deep-link /designer (L1)
+  useEffect(() => {
+    if (activeTab !== "designer" || !SHOW_L1_DESIGNER) return;
+    if (!currentUser || currentUser.role !== "DESIGNER") {
+      setLoginRole("DESIGNER");
+      setLoginEmail("");
+      setLoginPassword("");
+      setLoginError("");
+      setShowLoginModal(true);
+    }
+  }, [activeTab, currentUser?.role]);
 
   useEffect(() => {
     // 1. Carrega makers do banco de dados
@@ -1855,7 +1869,26 @@ export default function FabMakersApp() {
           goTo("admin");
           refreshOrdersFromApi();
         } else if (data.user.role === "DESIGNER") {
-          setActiveTab("designer");
+          saveSession(data.user, data.user.profile || null, {
+            designerToken: data.designerToken || null,
+            makerToken: null,
+            adminToken: null,
+            clientToken: null,
+          });
+          if (data.user.profile?.models?.length) {
+            setDesignerObras(
+              data.user.profile.models.map((m: { id: string; title: string; description: string; royaltyPrice: number; fileUrl: string }) => ({
+                id: m.id,
+                title: m.title,
+                category: "L1",
+                description: m.description,
+                price: m.royaltyPrice,
+                image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=60",
+              }))
+            );
+            setDesignerStatus("APPROVED");
+          }
+          goTo("designer");
         } else if (data.user.role === "MODERATOR") {
           setActiveTab("moderator");
         }
@@ -2095,7 +2128,7 @@ export default function FabMakersApp() {
                    >
                      Seed demanda
                    </button>
-                   {SHOW_LATER_UI && (
+                   {SHOW_L1_DESIGNER && (
                    <button
                      onClick={() => setHomeMode("designer")}
                      className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer ${
@@ -2730,8 +2763,8 @@ export default function FabMakersApp() {
               </div>
             )}
 
-            {/* MODO DESIGNER — Later (SHOW_LATER_UI) */}
-            {SHOW_LATER_UI && homeMode === "designer" && (
+            {/* MODO DESIGNER — L1 (D021) */}
+            {SHOW_L1_DESIGNER && homeMode === "designer" && (
               <div className="space-y-16">
                 {/* Hero do Designer */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-4">
@@ -5233,8 +5266,8 @@ export default function FabMakersApp() {
           </div>
         )}
 
-      {/* TAB 3.5: PAINEL DO DESIGNER (LOGADO) */}
-      {SHOW_LATER_UI && activeTab === "designer" && (
+      {/* TAB 3.5: PAINEL DO DESIGNER (L1) */}
+      {SHOW_L1_DESIGNER && activeTab === "designer" && (
         <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
           <div className="border-b border-[#18181b] pb-4 flex justify-between items-center">
             <div>
@@ -5441,24 +5474,49 @@ export default function FabMakersApp() {
                     </div>
 
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         if (!novaObraTitle || !novaObraDescription) {
                           alert("Preencha o título e a descrição da sua obra!");
                           return;
                         }
-                        const newObra = {
-                          id: `obra_${Date.now()}`,
-                          title: novaObraTitle,
-                          category: novaObraCategory,
-                          description: novaObraDescription,
-                          price: novaObraPrice,
-                          image: novaObraImage || "https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300"
-                        };
-                        setDesignerObras(prev => [newObra, ...prev]);
-                        setNovaObraTitle("");
-                        setNovaObraDescription("");
-                        setNovaObraImage("");
-                        alert(`Obra Autoral "${novaObraTitle}" publicada com sucesso e enviada para o Marketplace!`);
+                        try {
+                          const res = await fetch("/api/designer/models", {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              ...designerAuthHeaders(),
+                            },
+                            body: JSON.stringify({
+                              title: novaObraTitle,
+                              description: `${novaObraCategory}: ${novaObraDescription}`,
+                              royaltyPrice: novaObraPrice,
+                              catalogId: "fm-cable-clip",
+                            }),
+                          });
+                          const data = await res.json();
+                          if (!data.success) {
+                            alert(data.error || "Falha ao publicar. Faça login como designer.");
+                            return;
+                          }
+                          const newObra = {
+                            id: data.model.id,
+                            title: data.model.title,
+                            category: novaObraCategory,
+                            description: novaObraDescription,
+                            price: data.model.royaltyPrice,
+                            image:
+                              novaObraImage ||
+                              "https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300",
+                          };
+                          setDesignerObras((prev) => [newObra, ...prev]);
+                          setNovaObraTitle("");
+                          setNovaObraDescription("");
+                          setNovaObraImage("");
+                          alert(`Obra "${newObra.title}" publicada (royalty R$ ${Number(newObra.price).toFixed(2)}).`);
+                        } catch (err) {
+                          console.error(err);
+                          alert("Erro de conexão ao publicar obra.");
+                        }
                       }}
                       className="w-full py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
                     >

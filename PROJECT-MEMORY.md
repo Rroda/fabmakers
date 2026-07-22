@@ -7,15 +7,20 @@
 ## Status atual
 - **Status:** active
 - **Última sessão:** 2026-07-22
-- **Modo:** autonomia
-- **Foco:** D020 — GET orders autenticado. Core Supply-first fechado.
-- **Próximo:** L1–L3 só com freio de foco (3 confirmações).
+- **Modo:** autonomia total — orquestrar ROADMAP; **não** perguntar “faço A ou B?”
+- **Foco:** **L1 Designers** (D021) — publicar modelo + royalty na fila. Supply-first permanece o núcleo.
+- **Próximo:** fechar L1 MVP → L3 ou L2 na ordem do ROADMAP (sem micro-perguntas).
+
+## Autonomia
+- Seguir sempre o próximo passo do ROADMAP ao terminar uma tarefa.
+- Acionar humano **só** em: secrets, risco alto/irreversível, ou mudança de wedge não listada.
+- Não oferecer menus de opções no fim de cada passo.
 
 ## Deploy
 - Prod: https://fabmakers.com.br
-- Contas: admin@ / admin123 · roda@ / 123
-- SMTP: Zoho `contato@` → `smtp.zoho.com:587` (envs na Vercel)
-- Senhas locais: `SECRETS.local.md` (gitignored — não commit)
+- Contas: admin@ / admin123 · roda@ / 123 · designer@ / 123 (L1)
+- SMTP: Zoho `contato@` → `smtp.zoho.com:587`
+- Senhas locais: `SECRETS.local.md` (gitignored)
 
 ## Quando me acionar
-- Abrir L1–L3 / incidente / trocar senha de app Zoho
+- Secrets / incidente / pivot fora do ROADMAP

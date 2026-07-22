@@ -247,10 +247,84 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 4. Fluxo do Designer
+    // 4. Fluxo do Designer (L1 / D021)
     if (role === "DESIGNER") {
+      const { issueDesignerToken } = await import("@/lib/designerAuth");
+      const { getCuratedModel } = await import("@/lib/curatedCatalog");
+
+      // Conta MVP canônica
+      if (cleanEmail === "designer@fabmakers.com.br" && password === "123") {
+        let mvp = await prisma.user.findFirst({
+          where: { email: cleanEmail, role: "DESIGNER" },
+          include: { designerProfile: { include: { models: true } } },
+        });
+        if (!mvp) {
+          mvp = await prisma.user.create({
+            data: {
+              name: "Designer Demo",
+              email: cleanEmail,
+              passwordHash: "123",
+              role: "DESIGNER",
+              emailVerified: true,
+              designerProfile: {
+                create: { paypalEmail: cleanEmail, rating: 5 },
+              },
+            },
+            include: { designerProfile: { include: { models: true } } },
+          });
+        } else {
+          await prisma.user.update({
+            where: { id: mvp.id },
+            data: { passwordHash: "123", emailVerified: true },
+          });
+          if (!mvp.designerProfile) {
+            await prisma.designerProfile.create({
+              data: { userId: mvp.id, paypalEmail: cleanEmail, rating: 5 },
+            });
+          }
+          mvp = await prisma.user.findFirst({
+            where: { id: mvp.id },
+            include: { designerProfile: { include: { models: true } } },
+          });
+        }
+
+        if (mvp?.designerProfile && mvp.designerProfile.models.length === 0) {
+          const curated = getCuratedModel("fm-cable-clip");
+          await prisma.model3D.create({
+            data: {
+              title: "Presilha — obra designer demo",
+              description:
+                "Licença comercial OK (L1). Geometria demo ligada ao catálogo curado.",
+              fileUrl: curated?.stlUrl || "/catalog/presilha_cabos_fm.stl",
+              royaltyPrice: 4.5,
+              gcodeStream: true,
+              designerId: mvp.designerProfile.id,
+            },
+          });
+          mvp = await prisma.user.findFirst({
+            where: { id: mvp.id },
+            include: { designerProfile: { include: { models: true } } },
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          user: {
+            name: mvp!.name,
+            email: mvp!.email,
+            role: "DESIGNER",
+            profile: {
+              id: mvp!.designerProfile!.id,
+              models: mvp!.designerProfile!.models,
+            },
+          },
+          designerToken: issueDesignerToken(cleanEmail),
+        });
+      }
+
       let user = await prisma.user.findFirst({
-        where: { email: cleanEmail, role: "DESIGNER" }
+        where: { email: cleanEmail, role: "DESIGNER" },
+        include: { designerProfile: { include: { models: true } } },
       });
 
       if (!user) {
@@ -261,16 +335,32 @@ export async function POST(req: NextRequest) {
             name: formattedName,
             email: cleanEmail,
             passwordHash: "dummy-hash",
-            role: "DESIGNER"
-          }
+            role: "DESIGNER",
+            designerProfile: { create: { paypalEmail: cleanEmail } },
+          },
+          include: { designerProfile: { include: { models: true } } },
+        });
+      } else if (!user.designerProfile) {
+        await prisma.designerProfile.create({
+          data: { userId: user.id, paypalEmail: cleanEmail },
+        });
+        user = await prisma.user.findFirst({
+          where: { id: user.id },
+          include: { designerProfile: { include: { models: true } } },
         });
       }
 
-      // Busca perfil de designer associado (pode ser mockado ou adicionado em tabela no DB, mas
-      // para total robustez, retornamos os campos do designer)
       return NextResponse.json({
         success: true,
-        user: { name: user.name, email: user.email, role: "DESIGNER" }
+        user: {
+          name: user!.name,
+          email: user!.email,
+          role: "DESIGNER",
+          profile: user!.designerProfile
+            ? { id: user!.designerProfile.id, models: user!.designerProfile.models }
+            : null,
+        },
+        designerToken: issueDesignerToken(cleanEmail),
       });
     }
 

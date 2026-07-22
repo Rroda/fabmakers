@@ -7,13 +7,40 @@ export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get("content-type") || "";
 
-    // Catálogo curado (D006): JSON { catalogId, material, infill, layerHeight, infillPattern }
+    // Catálogo curado (D006) ou Model3D designer (L1/D021)
     if (contentType.includes("application/json")) {
       const body = await req.json();
       const catalogId = body.catalogId as string | undefined;
+      const modelId = body.modelId as string | undefined;
+
+      if (modelId) {
+        const { prisma } = await import("@/lib/db");
+        const { getCuratedModel } = await import("@/lib/curatedCatalog");
+        const m = await prisma.model3D.findUnique({ where: { id: modelId } });
+        if (!m) {
+          return NextResponse.json({ error: "Modelo do designer não encontrado." }, { status: 404 });
+        }
+        // Geometria demo: reusa catálogo curado se fileUrl bater; senão presilha
+        const curated =
+          getCuratedModel("fm-cable-clip") ||
+          getCuratedModel("fm-hook-wall");
+        const result = computeQuote({
+          volumeMm3: curated?.volumeMm3 ?? 4500,
+          boundingBox: curated?.boundingBox ?? { width: 25, depth: 15, height: 20 },
+          trianglesCount: curated?.trianglesCount ?? 3200,
+          filename: m.title.replace(/\s+/g, "_").toLowerCase() + ".stl",
+          material: body.material || curated?.defaultMaterial || "PLA",
+          infillPercent: parseInt(String(body.infill ?? "20"), 10),
+          layerHeight: body.layerHeight || "0.20",
+          infillPattern: body.infillPattern || "grid",
+          royaltyPrice: m.royaltyPrice,
+        });
+        return NextResponse.json({ ...result, modelId: m.id, fileUrl: m.fileUrl });
+      }
+
       if (!catalogId) {
         return NextResponse.json(
-          { error: "Informe catalogId ou envie um arquivo STL." },
+          { error: "Informe catalogId, modelId ou envie um arquivo STL." },
           { status: 400 }
         );
       }

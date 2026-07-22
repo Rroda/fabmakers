@@ -8,9 +8,9 @@ Produção: https://fabmakers.com.br
 
 ## Wedge atual
 
-Persona principal = **Maker / fab**. Cliente e catálogo curado só alimentam a fila (Support).
+Persona principal = **Maker / fab**. L1 Designers ativo (publicar modelo + royalty). L2/L3 depois.
 
-Fora do foco agora: Designers (L1), técnicos/manutenção (L2), dropshipping (L3), scrape MakerWorld.
+Fora do foco agora: técnicos/manutenção (L2), dropshipping (L3), scrape MakerWorld.
 
 Detalhes: `docs/brain/ROADMAP-NOW.md` · `PROJECT-MEMORY.md`
 
@@ -18,10 +18,11 @@ Detalhes: `docs/brain/ROADMAP-NOW.md` · `PROJECT-MEMORY.md`
 
 ## Contas MVP
 
-| Perfil | E-mail | Senha |
+| Contas MVP | E-mail | Senha |
 |--------|--------|-------|
 | Admin | `admin@fabmakers.com.br` | `admin123` |
 | Maker | `roda@fabmakers.com.br` | `123` |
+| Designer (L1) | `designer@fabmakers.com.br` | `123` |
 | Cliente | qualquer e-mail | cria automático |
 
 ---
@@ -52,6 +53,7 @@ npm run build
 | `/` | Pitch maker |
 | `/client` | Catálogo / seed de demanda |
 | `/maker` | Portal da fab (fila) |
+| `/designer` | Portal designer (L1) |
 | `/admin` | Homologação + funil H5 |
 | `/quote` | Cotação |
 

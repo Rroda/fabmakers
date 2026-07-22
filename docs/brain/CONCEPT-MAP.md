@@ -47,13 +47,13 @@
 | Radar de proximidade | UI (simulado) | Útil só com fabs reais; cosmético se supply vazio |
 | `layout.tsx` / shell | app | Infra |
 
-### Later — no plano (ROADMAP L1–L3), fora do wedge **agora**
+### Later — no plano, fora do wedge **Supply-first** (exceto L1 ativo)
 
 | Peça | Onde | Nota |
 |------|------|------|
-| **L1 Designers** + royalties + `Model3D` | schema, auth DESIGNER, UI Later | Pós-Core; não competir com frase Supply-first |
-| **L2 Técnicos / manutenção** (H7) | ainda não existe | Oficinas, peças, manuais; após jobs reais |
-| **L3 Dropshipping** | esqueleto `/api/dropshipping/shopee` | Canal de demanda/fulfillment pós-Core — **não** hero do pitch |
+| **L1 Designers** + royalties + `Model3D` | `SHOW_L1_DESIGNER`, `/api/designer/models`, `/designer` | **D021 em curso** — não compete com hero maker |
+| **L2 Técnicos / manutenção** (H7) | ainda não existe | Após L1 |
+| **L3 Dropshipping** | esqueleto `/api/dropshipping/shopee` | Após L1 — **não** hero |
 | Chat “FabMakers AI” | UI | Assistente; não é o produto |
 | DRM / G-code stream | `Model3D.gcodeStream` | Depois de matching vivo |
 | API B2B / app mobile | visão | Fora do ROADMAP-NOW ativo |
