@@ -8,7 +8,7 @@
 - **Status:** active
 - **Última sessão:** 2026-07-22
 - **Modo:** autonomia
-- **Foco:** Core Supply-first validado em prod. README alinhado ao wedge. schema-sync sem fallback público.
+- **Foco:** Core Supply-first em prod. D017: frota/estoque demo no login `roda@` (P1S + PLA/PETG).
 - **Próximo:** SMTP (quando pedir) · ou L1–L3 (com freio de foco).
 
 ## Deploy

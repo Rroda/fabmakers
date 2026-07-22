@@ -113,3 +113,10 @@
 - **Por quê:** job na fila precisa de arquivo de produção baixável (seed), sem scrape externo.
 - **Limite:** geometria demo (caixa), não peças finais de engenharia.
 - **Data:** 2026-07-22
+
+## D017 — Frota/estoque demo no maker MVP (roda@)
+
+- **Decisão:** No login `roda@` / `123`, se `machines` ou `materials` estiverem vazios (`[]`), seed com P1S + PLA/PETG (`mvpMakerDefaults`). Homologação/KYC/contrato também reforçados nesse path.
+- **Por quê:** perfil “Especificações do maker” vazio quebrava o demo Supply-first mesmo com fila ok.
+- **Smoke prod:** login → machines `Bambu Lab P1S`, filaments PLA/PETG.
+- **Data:** 2026-07-22

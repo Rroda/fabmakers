@@ -5,7 +5,7 @@
 - **Wedge escolhido?** Sim — **Supply-first** (D004)
 - **TEKNA:** peer apenas (D005) — sem papel especial
 - **Foco técnico recente:** Onboarding maker + APIs + cotação/orders
-- **Próximo movimento:** Core **validado em prod** (usuário). README operacional. SMTP adiado. L1–L3 backlog.
+- **Próximo movimento:** Core **validado em prod**. D017 frota MVP. SMTP adiado. L1–L3 backlog.
 - **SMTP:** parked até pedido explícito
 - **Prod:** https://fabmakers.com.br
 - **D014:** backlog L1–L3
@@ -104,7 +104,8 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 23. ~~STLs demo catálogo (D016)~~
 24. SMTP_* — **adiado** (ligar quando o usuário pedir / no deploy)
 25. ~~Build produção TypeScript OK~~ (MakerProfile.id + key rede)
-26. *(Backlog Later — só após Core/deploy)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
+26. ~~Frota/estoque demo maker MVP (D017)~~
+27. *(Backlog Later — só após Core/deploy)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
 
 ## Candidatos descartados (esta rodada)
 
