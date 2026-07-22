@@ -24,13 +24,15 @@ export async function POST(req: NextRequest) {
     // 1. Fluxo do Administrador
     if (role === "ADMIN") {
       if (cleanEmail === "admin@fabmakers.com.br" && password === "admin123") {
+        const { issueAdminToken } = await import("@/lib/adminAuth");
         return NextResponse.json({
           success: true,
           user: {
             name: "Administrador Geral",
             email: "admin@fabmakers.com.br",
             role: "ADMIN"
-          }
+          },
+          adminToken: issueAdminToken(cleanEmail),
         });
       }
       return NextResponse.json(
@@ -41,6 +43,86 @@ export async function POST(req: NextRequest) {
 
     // 2. Fluxo do Maker
     if (role === "MAKER") {
+      // Conta MVP canônica (D012) — garante maker homologado para demos
+      if (cleanEmail === "roda@fabmakers.com.br" && password === "123") {
+        let mvp = await prisma.user.findFirst({
+          where: { email: cleanEmail, role: "MAKER" },
+          include: { makerProfile: true },
+        });
+        if (!mvp) {
+          mvp = await prisma.user.create({
+            data: {
+              name: "Roda Fab",
+              email: cleanEmail,
+              passwordHash: "123",
+              role: "MAKER",
+              emailVerified: true,
+              makerProfile: {
+                create: {
+                  city: "São Paulo",
+                  state: "SP",
+                  rating: 5,
+                  isApproved: true,
+                  isBanned: false,
+                  makerStatus: "APPROVED",
+                  machines: "[]",
+                  materials: "[]",
+                  availability: '{"days":["seg","ter","qua","qui","sex"],"shifts":["tarde","noite"]}',
+                },
+              },
+            },
+            include: { makerProfile: true },
+          });
+        } else if (mvp.makerProfile && (!mvp.makerProfile.isApproved || mvp.passwordHash !== "123")) {
+          await prisma.user.update({
+            where: { id: mvp.id },
+            data: { passwordHash: "123" },
+          });
+          await prisma.makerProfile.update({
+            where: { id: mvp.makerProfile.id },
+            data: { isApproved: true, isBanned: false, makerStatus: "APPROVED" },
+          });
+          mvp = await prisma.user.findFirst({
+            where: { id: mvp.id },
+            include: { makerProfile: true },
+          });
+        }
+        if (mvp?.makerProfile) {
+          const { issueMakerToken } = await import("@/lib/makerAuth");
+          return NextResponse.json({
+            success: true,
+            user: {
+              name: mvp.name,
+              email: mvp.email,
+              role: "MAKER",
+              makerStatus: mvp.makerProfile.makerStatus || "APPROVED",
+              profile: {
+                id: mvp.makerProfile.id,
+                name: mvp.name,
+                city: mvp.makerProfile.city,
+                state: mvp.makerProfile.state,
+                rating: mvp.makerProfile.rating,
+                isApproved: mvp.makerProfile.isApproved,
+                isBanned: mvp.makerProfile.isBanned,
+                makerStatus: mvp.makerProfile.makerStatus,
+                machines: JSON.parse(mvp.makerProfile.machines || "[]"),
+                filaments: JSON.parse(mvp.makerProfile.materials || "[]"),
+                availability: JSON.parse(
+                  mvp.makerProfile.availability || '{"days":[], "shifts":[]}'
+                ),
+                kycDocumentUrl: mvp.makerProfile.kycDocumentUrl,
+                kycSelfieUrl: mvp.makerProfile.kycSelfieUrl,
+                calibX: mvp.makerProfile.calibX,
+                calibY: mvp.makerProfile.calibY,
+                calibZ: mvp.makerProfile.calibZ,
+                calibImageUrl: mvp.makerProfile.calibImageUrl,
+              },
+            },
+            makerToken: issueMakerToken(cleanEmail),
+          });
+        }
+      }
+
       const user = await prisma.user.findFirst({
         where: { email: cleanEmail, role: "MAKER" },
         include: { makerProfile: true }
@@ -69,6 +151,7 @@ export async function POST(req: NextRequest) {
           makerStatus: user.makerProfile?.makerStatus || "UNVERIFIED",
           profile: user.makerProfile ? {
             id: user.makerProfile.id,
+            name: user.name,
             city: user.makerProfile.city,
             state: user.makerProfile.state,
             rating: user.makerProfile.rating,
@@ -85,7 +168,8 @@ export async function POST(req: NextRequest) {
             calibZ: user.makerProfile.calibZ,
             calibImageUrl: user.makerProfile.calibImageUrl
           } : null
-        }
+        },
+        makerToken: (await import("@/lib/makerAuth")).issueMakerToken(cleanEmail),
       });
     }
 

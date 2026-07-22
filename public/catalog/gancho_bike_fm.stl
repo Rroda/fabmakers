@@ -1,0 +1,86 @@
+solid gancho_bike_fm
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 140.000 0.000 0.000
+      vertex 140.000 60.000 0.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 140.000 60.000 0.000
+      vertex 0.000 60.000 0.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 100.000
+      vertex 140.000 60.000 100.000
+      vertex 140.000 0.000 100.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 100.000
+      vertex 0.000 60.000 100.000
+      vertex 140.000 60.000 100.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 140.000 0.000 100.000
+      vertex 140.000 0.000 0.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 0.000 0.000 100.000
+      vertex 140.000 0.000 100.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 60.000 0.000
+      vertex 140.000 60.000 0.000
+      vertex 140.000 60.000 100.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 60.000 0.000
+      vertex 140.000 60.000 100.000
+      vertex 0.000 60.000 100.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 0.000 60.000 0.000
+      vertex 0.000 60.000 100.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 0.000 60.000 100.000
+      vertex 0.000 0.000 100.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 140.000 0.000 0.000
+      vertex 140.000 0.000 100.000
+      vertex 140.000 60.000 100.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 140.000 0.000 0.000
+      vertex 140.000 60.000 100.000
+      vertex 140.000 60.000 0.000
+    endloop
+  endfacet
+endsolid gancho_bike_fm

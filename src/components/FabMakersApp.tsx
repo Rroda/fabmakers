@@ -1,10 +1,21 @@
 "use client";
 
-// Integrado com MakerWorld API via Firecrawl para busca dinâmica de modelos 3D em tempo real
-import { useState, useRef, DragEvent, ChangeEvent, useEffect } from "react";
+// Supply-first (D004): UI prioriza fab/maker. Later/Cut ficam atrás de SHOW_LATER_UI.
+// Layer B (D007): rotas / /client /quote /maker /admin — shell estável no layout (app).
+import { useState, useRef, DragEvent, ChangeEvent, useEffect, useCallback } from "react";
 import Image from "next/image";
-import logoImg from "../logo/logo.png";
+import { usePathname, useRouter } from "next/navigation";
+import logoMark from "../logo/logo-mark.png";
 import { PRINTER_PRESETS } from "../lib/printerPresets";
+import { Icon } from "@/components/Icon";
+import { CURATED_CATALOG, getCuratedStlUrl, type CuratedModel } from "@/lib/curatedCatalog";
+import {
+  appStateToPath,
+  pathToAppState,
+  type AppTab,
+  type HomeMode,
+} from "@/lib/appRoutes";
+import { loadSession, saveSession, adminAuthHeaders, makerAuthHeaders, getMakerToken } from "@/lib/session";
 
 // Interface para dados do fatiador STL
 interface QuoteData {
@@ -51,6 +62,7 @@ interface SimulatedOrder {
   createdAt: string;
   makerPayout?: number;
   platformFee?: number;
+  catalogId?: string | null;
 }
 
 // Interface para impressoras cadastradas
@@ -84,6 +96,7 @@ interface Filament {
 
 // Interface para perfil de Maker
 interface MakerProfile {
+  id?: string;
   name: string;
   zipCode: string;
   rating: number;
@@ -101,7 +114,7 @@ interface MakerProfile {
   // Onboarding Anti-Fraude e Contrato SLA
   contractAccepted: boolean;
   kycStatus: "PENDING" | "APPROVED" | "REJECTED";
-  makerStatus: "UNVERIFIED" | "PENDING_APPROVAL" | "SANDBOX" | "HOMOLOGATED" | "BANNED";
+  makerStatus: "UNVERIFIED" | "PENDING_APPROVAL" | "SANDBOX" | "HOMOLOGATED" | "APPROVED" | "BANNED";
   kycDocumentUrl?: string;
   kycDocFrontUrl?: string;
   kycDocBackUrl?: string;
@@ -188,14 +201,21 @@ const materialDetails = {
   }
 };
 
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<"home" | "client" | "maker" | "designer" | "moderator" | "admin">("home");
+export default function FabMakersApp() {
+  // false = esconde Designer, MakerWorld-hero, Shopee, AI (CONCEPT-MAP Later/Cut)
+  const SHOW_LATER_UI = false;
+
+  const router = useRouter();
+  const pathname = usePathname() || "/";
+  const boot = pathToAppState(pathname);
+
+  const [activeTab, setActiveTab] = useState<AppTab>(boot.tab);
   
   // --- ESTADOS DE SESSÃO E AUTENTICAÇÃO REAL ---
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role: string; makerStatus?: string } | null>(null);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light">("light");
   const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
-  const [homeMode, setHomeMode] = useState<"select" | "client" | "maker" | "designer">("select");
+  const [homeMode, setHomeMode] = useState<HomeMode>(boot.homeMode);
   const [contratoAceito, setContratoAceito] = useState<boolean>(false);
   
   const [lojaInsumos, setLojaInsumos] = useState<Array<{ id: string; title: string; price: number; link: string; affiliateCommissionPercent: number; image: string; deliveryTime: string; platform: "SHOPEE" | "TIKTOK" | "AMAZON" | "ALIEXPRESS" }>>([
@@ -241,12 +261,14 @@ export default function Home() {
   ]);
 
   // --- ESTADOS DA ÁREA DO CLIENTE EXPANDIDA ---
-  const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "ai" | "orders">("gallery");
+  const [clientSubTab, setClientSubTab] = useState<"upload" | "gallery" | "ai" | "orders">("upload");
   const [webSearchQuery, setWebSearchQuery] = useState<string>("");
   const [gallerySearchQuery, setGallerySearchQuery] = useState<string>("");
   const [galleryModels, setGalleryModels] = useState<any[]>([]);
   const [galleryLoading, setGalleryLoading] = useState<boolean>(false);
   const [selectedModelImage, setSelectedModelImage] = useState<string | null>(null);
+  /** Catálogo curado (D006) — id do modelo; quote recalcula via API */
+  const [curatedCatalogId, setCuratedCatalogId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [homeSearchQuery, setHomeSearchQuery] = useState<string>("");
   const [homeSearchLoading, setHomeSearchLoading] = useState<boolean>(false);
@@ -263,7 +285,7 @@ export default function Home() {
   ]);
   const [aiInputText, setAiInputText] = useState<string>("");
   const [aiLoading, setAiLoading] = useState<boolean>(false);
-  const [loginRole, setLoginRole] = useState<"CLIENT" | "MAKER" | "DESIGNER" | "MODERATOR" | "ADMIN">("CLIENT");
+  const [loginRole, setLoginRole] = useState<"CLIENT" | "MAKER" | "DESIGNER" | "MODERATOR" | "ADMIN">("MAKER");
   const [loginEmail, setLoginEmail] = useState<string>("");
   const [loginPassword, setLoginPassword] = useState<string>("");
   const [loginLoading, setLoginLoading] = useState<boolean>(false);
@@ -396,7 +418,6 @@ export default function Home() {
     }
   ]);
  
-  // Fila de solicitações de Homologação de Makers para o Admin
   const [homologations, setHomologations] = useState<HomologationRequest[]>([
     {
       id: "req-1",
@@ -431,6 +452,14 @@ export default function Home() {
   // Push notification simulado para o Maker (Roteamento Descentralizado)
   const [activeJobOffer, setActiveJobOffer] = useState<SimulatedOrder | null>(null);
   const [offerTimer, setOfferTimer] = useState<number>(30);
+
+  /** Funil H5 — cadastro → homologado (admin) */
+  const [h5Funnel, setH5Funnel] = useState<{
+    started: number;
+    homologated: number;
+    conversionPct: number;
+    counts: Record<string, number>;
+  } | null>(null);
 
   // --- ESTADOS DO FATIADOR STL (Aba Cliente) ---
   const [file, setFile] = useState<File | null>(null);
@@ -507,15 +536,109 @@ export default function Home() {
   const [calibY, setCalibY] = useState<number>(20.00);
   const [calibZ, setCalibZ] = useState<number>(20.00);
   const [calibImageName, setCalibImageName] = useState<string>("");
+  /** Erros de validação do wizard (chave → mensagem); UI destaca o campo */
+  const [wizardErrors, setWizardErrors] = useState<Record<string, string>>({});
+  const wizardErrorBannerRef = useRef<HTMLDivElement | null>(null);
 
-  // Autopreenchimento de email do Wizard a partir do usuário logado
+  // Sincroniza <html> com o tema (tokens CSS + Material Symbols no documento)
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+  }, [theme]);
+
+  // Autopreenchimento de email/nome do Wizard a partir do usuário logado
   useEffect(() => {
     if (currentUser) {
       setWizardEmail(currentUser.email);
+      if (currentUser.name) setWizardName((prev) => prev || currentUser.name);
     }
   }, [currentUser]);
 
+
   // --- LÓGICA DE PERSISTÊNCIA EM BANCO DE DADOS REAL ---
+  const refreshOrdersFromApi = () => {
+    fetch("/api/orders")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.orders) {
+          setOrders((prev) => {
+            const byId = new Map(prev.map((o) => [o.id, o]));
+            for (const o of data.orders) {
+              byId.set(o.id, { ...byId.get(o.id), ...o });
+            }
+            return Array.from(byId.values());
+          });
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar ordens do banco:", err));
+  };
+
+  /** Layer B: navega aba + URL sem remountar o shell (layout estável). */
+  const goTo = useCallback(
+    (tab: AppTab, mode?: HomeMode) => {
+      const resolvedMode: HomeMode =
+        mode ?? (tab === "client" ? "client" : homeMode);
+      setActiveTab(tab);
+      if (mode !== undefined) setHomeMode(mode);
+      else if (tab === "client") setHomeMode("client");
+      const nextPath = appStateToPath(tab, resolvedMode);
+      if (pathname !== nextPath) router.push(nextPath);
+    },
+    [homeMode, pathname, router]
+  );
+
+  useEffect(() => {
+    const next = pathToAppState(pathname);
+    setActiveTab((prev) => (prev === next.tab ? prev : next.tab));
+    setHomeMode((prev) => (prev === next.homeMode ? prev : next.homeMode));
+  }, [pathname]);
+
+  // Restaura sessão após refresh (gate /admin e portal maker)
+  useEffect(() => {
+    const s = loadSession();
+    if (!s?.user) return;
+    setCurrentUser(s.user);
+    if (s.makerProfile && typeof s.makerProfile === "object") {
+      setMakerProfile(s.makerProfile as MakerProfile);
+    }
+  }, []);
+
+  useEffect(() => {
+    saveSession(currentUser, makerProfile);
+  }, [currentUser, makerProfile]);
+
+  // Deep-link /admin sem ADMIN → abre login admin (não mostra painel)
+  useEffect(() => {
+    if (activeTab !== "admin") return;
+    if (currentUser?.role === "ADMIN") return;
+    setLoginRole("ADMIN");
+    setLoginEmail("");
+    setLoginPassword("");
+    setLoginError("");
+    setShowLoginModal(true);
+  }, [activeTab, currentUser?.role]);
+
+  // Deep-link /maker com outro role → login maker; sessão maker sem token → re-login (D011/D012)
+  useEffect(() => {
+    if (activeTab !== "maker") return;
+    if (currentUser && currentUser.role !== "MAKER") {
+      setLoginRole("MAKER");
+      setLoginEmail("");
+      setLoginPassword("");
+      setLoginError("");
+      setShowLoginModal(true);
+      return;
+    }
+    if (currentUser?.role === "MAKER" && !getMakerToken()) {
+      setLoginRole("MAKER");
+      setLoginEmail(currentUser.email || "");
+      setLoginPassword("");
+      setLoginError("Sessão expirada — entre de novo para aceitar jobs.");
+      setShowLoginModal(true);
+    }
+  }, [activeTab, currentUser?.role, currentUser?.email]);
+
   useEffect(() => {
     // 1. Carrega makers do banco de dados
     fetch("/api/maker")
@@ -532,52 +655,88 @@ export default function Home() {
       .catch(err => console.error("Erro ao carregar makers do banco:", err));
 
     // 2. Carrega ordens do banco de dados
-    fetch("/api/orders")
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.orders) {
-          setOrders(prev => {
-            const existingIds = new Set(prev.map(o => o.id));
-            const newOrders = data.orders.filter((o: any) => !existingIds.has(o.id));
-            return [...prev, ...newOrders];
-          });
-        }
-      })
-      .catch(err => console.error("Erro ao carregar ordens do banco:", err));
+    refreshOrdersFromApi();
 
-    // 3. Carrega homologações do banco de dados
-    fetch("/api/admin")
-      .then(res => res.json())
-      .then(data => {
+    // 3. Carrega homologações (só com token admin — D009)
+    fetch("/api/admin", { headers: { ...adminAuthHeaders() } })
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success && data.homologations) {
-          setHomologations(prev => {
-            const existingNames = new Set(prev.map(h => h.name));
-            const newHomologations = data.homologations.filter((h: any) => !existingNames.has(h.name));
+          setHomologations((prev) => {
+            const existingNames = new Set(prev.map((h) => h.name));
+            const newHomologations = data.homologations.filter(
+              (h: { name: string }) => !existingNames.has(h.name)
+            );
             return [...prev, ...newHomologations];
           });
         }
       })
-      .catch(err => console.error("Erro ao carregar homologações do banco:", err));
+      .catch((err) => console.error("Erro ao carregar homologações do banco:", err));
   }, []);
+
+  // Atualiza fila enquanto o maker está no painel (Supply-first) — queue autenticada (D015)
+  useEffect(() => {
+    if (activeTab !== "maker" || !makerProfile?.isApproved) return;
+    const pull = () => {
+      refreshOrdersFromApi();
+      const headers = { ...makerAuthHeaders() };
+      if (!getMakerToken()) return;
+      fetch("/api/orders?filter=queue", { headers })
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.success || !data.orders) return;
+          setOrders((prev) => {
+            const byId = new Map(prev.map((o) => [o.id, o]));
+            for (const o of data.orders) byId.set(o.id, { ...byId.get(o.id), ...o });
+            return Array.from(byId.values());
+          });
+        })
+        .catch((err) => console.error("Erro ao carregar fila autenticada:", err));
+    };
+    pull();
+    const t = setInterval(pull, 12000);
+    return () => clearInterval(t);
+  }, [activeTab, makerProfile?.isApproved]);
+
+  // Funil H5 + homologações no admin (requer Bearer adminToken)
+  useEffect(() => {
+    if (activeTab !== "admin") return;
+    if (currentUser?.role !== "ADMIN") return;
+    const headers = { ...adminAuthHeaders() };
+    fetch("/api/funnel/h5", { headers })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.funnel) setH5Funnel(data.funnel);
+      })
+      .catch((err) => console.error("Erro ao carregar funil H5:", err));
+    fetch("/api/admin", { headers })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.homologations) {
+          setHomologations((prev) => {
+            const byId = new Map(prev.map((h) => [h.id, h]));
+            for (const h of data.homologations) byId.set(h.id, h);
+            return Array.from(byId.values());
+          });
+        }
+      })
+      .catch((err) => console.error("Erro ao carregar homologações admin:", err));
+  }, [activeTab, currentUser?.role]);
 
   // --- LÓGICA DE SIMULAÇÃO EM SEGUNDO PLANO ---
   
-  // Simulação de Progresso de Impressão (Fila)
+  // Simulação de Progresso de Impressão (só % — avanço de status é manual no motor Core)
   useEffect(() => {
     const interval = setInterval(() => {
       setOrders(prevOrders => 
         prevOrders.map(order => {
-          if (order.status === "PRINTING" && order.progress < 100) {
-            const nextProgress = order.progress + 5;
-            if (nextProgress >= 100) {
-              return { ...order, progress: 100, status: "SHIPPED" };
-            }
-            return { ...order, progress: nextProgress };
+          if (order.status === "PRINTING" && order.progress < 85) {
+            return { ...order, progress: Math.min(85, order.progress + 5) };
           }
           return order;
         })
       );
-    }, 4000);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -608,8 +767,9 @@ export default function Home() {
     }
   }, [orders, makerProfile, activeJobOffer]);
 
-  // Carrega modelos iniciais da galeria (MakerWorld)
+  // Carrega modelos MakerWorld só se Later UI estiver ligada (Park)
   useEffect(() => {
+    if (!SHOW_LATER_UI) return;
     const loadInitialGallery = async () => {
       setGalleryLoading(true);
       try {
@@ -628,6 +788,67 @@ export default function Home() {
   }, []);
 
   // --- FUNÇÕES DO CLIENTE (COTAÇÃO & COMPRA) ---
+  const generateCatalogQuote = async (
+    catalogId: string,
+    selectedMaterial: string,
+    selectedInfill: number,
+    selectedLayerHeight: string = layerHeight,
+    selectedInfillPattern: string = infillPattern
+  ) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          catalogId,
+          material: selectedMaterial,
+          infill: selectedInfill,
+          layerHeight: selectedLayerHeight,
+          infillPattern: selectedInfillPattern,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Erro ao processar cotação do catálogo.");
+      }
+      setQuote(data);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao cotar modelo do catálogo.";
+      console.error(err);
+      setError(message);
+      setQuote(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectCuratedModel = (model: CuratedModel) => {
+    setCuratedCatalogId(model.id);
+    setSelectedModelImage(model.image);
+    setFile(new File([new ArrayBuffer(8)], model.filename, { type: "application/sla" }));
+    setMaterial(model.defaultMaterial);
+    // CEP seed + radar cosmético (não bloqueia a fila real)
+    setClientZip("01001-000");
+    setClientAddress("Sé, São Paulo - SP");
+    setNearbyMakers([
+      { name: "Maria Souza", distanceKm: 2.3, etaMinutes: 9, machine: "Bambu Lab P1S", rating: 4.9 },
+      { name: "Roberto Lima", distanceKm: 5.7, etaMinutes: 18, machine: "Creality K1 Max", rating: 4.2 },
+    ]);
+    void generateCatalogQuote(model.id, model.defaultMaterial, infill, layerHeight, infillPattern);
+    if (currentUser) {
+      setClientSubTab("upload");
+      goTo("client");
+    } else {
+      setLoginRole("CLIENT");
+      setLoginEmail("");
+      setLoginPassword("");
+      setLoginError("");
+      setShowLoginModal(true);
+    }
+  };
+
   const generateQuote = async (
     uploadedFile: File,
     selectedMaterial: string,
@@ -667,6 +888,21 @@ export default function Home() {
     }
   };
 
+  const refreshQuoteParams = (
+    nextMaterial: string,
+    nextInfill: number,
+    nextLayer: string,
+    nextPattern: string
+  ) => {
+    if (curatedCatalogId) {
+      void generateCatalogQuote(curatedCatalogId, nextMaterial, nextInfill, nextLayer, nextPattern);
+      return;
+    }
+    if (file && file.size > 0) {
+      void generateQuote(file, nextMaterial, nextInfill, nextLayer, nextPattern);
+    }
+  };
+
   const handleDrag = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -685,7 +921,8 @@ export default function Home() {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile.name.toLowerCase().endsWith(".stl")) {
-        setSelectedModelImage(null); // Upload manual limpa imagem da galeria
+        setSelectedModelImage(null);
+        setCuratedCatalogId(null);
         setFile(droppedFile);
         generateQuote(droppedFile, material, infill);
       } else {
@@ -697,7 +934,8 @@ export default function Home() {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      setSelectedModelImage(null); // Upload manual limpa imagem da galeria
+      setSelectedModelImage(null);
+      setCuratedCatalogId(null);
       setFile(selectedFile);
       generateQuote(selectedFile, material, infill);
     }
@@ -709,26 +947,12 @@ export default function Home() {
     if (details && details.colors && details.colors.length > 0) {
       setSelectedColor(details.colors[0].name);
     }
-    if (file) {
-      generateQuote(file, newMaterial, infill);
-    }
+    refreshQuoteParams(newMaterial, infill, layerHeight, infillPattern);
   };
 
   const handleSimulateExample = () => {
-    setSelectedModelImage("https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=300&auto=format&fit=crop&q=60"); // Imagem de engrenagem
-    setFile(new File([], "engrenagem_cafeteira_reposicao.stl"));
-    setLoading(true);
-    setTimeout(() => {
-      setQuote({
-        success: true,
-        filename: "engrenagem_cafeteira_reposicao.stl",
-        trianglesCount: 48260,
-        boundingBox: { width: 45.5, depth: 45.5, height: 12.0 },
-        metrics: { rawVolumeMm3: 18500, realVolumeCm3: 8.14, weightG: 10.1, timeHours: 0.56, timeFormatted: "34 min" },
-        pricing: { materialCost: 1.21, machineCost: 6.72, makerProfit: 3.17, makerPayout: 11.10, platformFee: 2.78, royaltyPrice: 0.0, totalPrice: 13.88 }
-      });
-      setLoading(false);
-    }, 1200);
+    const demo = CURATED_CATALOG.find((m) => m.id === "fm-gear-spare") || CURATED_CATALOG[0];
+    selectCuratedModel(demo);
   };
 
   const handleClear = () => {
@@ -736,6 +960,7 @@ export default function Home() {
     setQuote(null);
     setError(null);
     setSelectedModelImage(null);
+    setCuratedCatalogId(null);
   };
 
   const handleBrowseFiles = () => {
@@ -744,23 +969,17 @@ export default function Home() {
 
   const handleInfillChange = (newInfill: number) => {
     setInfill(newInfill);
-    if (file) {
-      generateQuote(file, material, newInfill, layerHeight, infillPattern);
-    }
+    refreshQuoteParams(material, newInfill, layerHeight, infillPattern);
   };
 
   const handleLayerHeightChange = (newLayer: string) => {
     setLayerHeight(newLayer);
-    if (file) {
-      generateQuote(file, material, infill, newLayer, infillPattern);
-    }
+    refreshQuoteParams(material, infill, newLayer, infillPattern);
   };
 
   const handleInfillPatternChange = (newPattern: string) => {
     setInfillPattern(newPattern);
-    if (file) {
-      generateQuote(file, material, infill, layerHeight, newPattern);
-    }
+    refreshQuoteParams(material, infill, layerHeight, newPattern);
   };
 
   // --- FUNÇÕES DE CEP E GEOLOCALIZAÇÃO (ViaCEP) ---
@@ -851,11 +1070,11 @@ export default function Home() {
       return;
     }
     
-    // Se o modelo foi selecionado da galeria/busca (possui selectedModelImage),
-    // a extensão do arquivo enviado para fabricação deve ser .3mf
-    const finalFilename = selectedModelImage
-      ? quote.filename.replace(/\.stl$/i, ".3mf")
-      : quote.filename;
+    // Galeria MakerWorld (Later) usa .3mf; catálogo curado e upload STL mantêm o filename da cotação
+    const finalFilename =
+      selectedModelImage && !curatedCatalogId
+        ? quote.filename.replace(/\.stl$/i, ".3mf")
+        : quote.filename;
 
     const newOrder: SimulatedOrder = {
       id: Math.floor(1000 + Math.random() * 9000).toString(),
@@ -870,7 +1089,8 @@ export default function Home() {
       infill: infill,
       createdAt: new Date().toLocaleDateString("pt-BR") + " " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
       makerPayout: quote.pricing.makerPayout,
-      platformFee: quote.pricing.platformFee
+      platformFee: quote.pricing.platformFee,
+      catalogId: curatedCatalogId || null,
     };
 
     setOrders(prev => [newOrder, ...prev]);
@@ -886,41 +1106,56 @@ export default function Home() {
     setClientZip("");
     setClientAddress("");
     setNearbyMakers([]);
-    alert(`Pedido #${newOrder.id} enviado para o roteador geolocalizado! O modelo .3mf fatiador pronto foi carregado e enviado ao Maker selecionado nas proximidades.`);
+    alert(`Pedido #${newOrder.id} enviado para a fila WAITING_MAKER. Fabs homologadas podem aceitar o job.`);
   };
 
   // --- FUNÇÕES DO MAKER (WIZARD & DESPACHO SOB DEMANDA) ---
   
   // Concluir cadastro do Maker (Envia solicitação para aprovação do Admin)
-  const handleRegisterMaker = () => {
-    if (!wizardName || !wizardZip) {
-      alert("Por favor, preencha o Nome e o CEP.");
-      return;
-    }
-    if (!emailVerified) {
-      alert("Por favor, verifique seu e-mail antes de prosseguir.");
-      return;
-    }
-    if (!contractAccepted) {
-      alert("Por favor, aceite os termos do contrato para prosseguir.");
-      return;
-    }
-    if (!kycDocumentName || !kycSelfieName) {
-      alert("Por favor, envie seu documento de identificação e selfie.");
-      return;
-    }
-    if (!calibImageName) {
-      alert("Por favor, envie a foto da medição do cubo de calibração.");
+  const handleRegisterMaker = async () => {
+    const name = (wizardName || currentUser?.name || "").trim();
+    const zip = wizardZip.trim();
+    const email = (wizardEmail || currentUser?.email || "").trim();
+
+    const errors: Record<string, string> = {};
+    if (!emailVerified) errors.email = "Confirme o e-mail da sessão (passo 1).";
+    if (!contractAccepted) errors.contract = "Aceite o contrato SLA (passo 2).";
+    if (!name) errors.name = "Informe o nome completo (passo 1).";
+    if (!zip || zip.replace(/\D/g, "").length < 8) errors.zip = "Informe um CEP válido com 8 dígitos (passo 1).";
+    if (wizardMachines.length === 0) errors.machines = "Cadastre ao menos uma impressora (passo 3).";
+    if (wizardFilaments.length === 0) errors.filaments = "Cadastre ao menos um filamento (passo 4).";
+    if (!kycDocumentName) errors.kycDoc = "Anexe o documento de identidade.";
+    if (!kycSelfieName) errors.kycSelfie = "Anexe a selfie com o documento.";
+    if (!calibImageName) errors.calibPhoto = "Anexe a foto da medição do cubo.";
+    if (!email) errors.emailSession = "E-mail da sessão não encontrado — faça login de novo.";
+
+    if (Object.keys(errors).length > 0) {
+      setWizardErrors(errors);
+      const needsStep1 = !!(errors.email || errors.name || errors.zip || errors.emailSession);
+      const needsStep2 = !!errors.contract;
+      const needsStep3 = !!errors.machines;
+      const needsStep4 = !!errors.filaments;
+      if (needsStep1) setWizardStep(1);
+      else if (needsStep2) setWizardStep(2);
+      else if (needsStep3) setWizardStep(3);
+      else if (needsStep4) setWizardStep(4);
+      else setWizardStep(5);
+      setTimeout(() => {
+        wizardErrorBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
       return;
     }
 
+    setWizardErrors({});
+    if (!wizardName) setWizardName(name);
+
     const newProfile: MakerProfile = {
-      name: wizardName,
-      zipCode: wizardZip,
+      name,
+      zipCode: zip,
       rating: 5.0,
       penalties: 0,
       isBanned: false,
-      isApproved: false, // Requer aprovação do Admin
+      isApproved: false,
       machines: wizardMachines,
       filaments: wizardFilaments,
       availability: {
@@ -931,7 +1166,7 @@ export default function Home() {
       },
       contractAccepted: true,
       kycStatus: "PENDING",
-      makerStatus: "PENDING_APPROVAL", // Aguardando aprovação do Admin
+      makerStatus: "PENDING_APPROVAL",
       kycDocumentUrl: kycDocumentName,
       kycSelfieUrl: kycSelfieName,
       calibX: calibX,
@@ -940,23 +1175,49 @@ export default function Home() {
       calibImageUrl: calibImageName
     };
 
+    try {
+      const res = await fetch("/api/maker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          zipCode: zip,
+          machines: wizardMachines,
+          filaments: wizardFilaments,
+          availability: {
+            days: wizardDays,
+            shifts: wizardShifts,
+            months: ["todos"],
+            dailyHours: wizardDailyHours
+          },
+          makerStatus: "PENDING_APPROVAL",
+          contractAccepted: true,
+          calibX,
+          calibY,
+          calibZ,
+          calibImageUrl: calibImageName,
+          kycDocumentName,
+          kycSelfieName
+        })
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setWizardErrors({ submit: data.error || "Erro ao salvar no servidor." });
+        return;
+      }
+    } catch (err) {
+      console.error("Erro ao salvar perfil no banco:", err);
+      setWizardErrors({ submit: "Erro de conexão ao salvar. Tente de novo." });
+      return;
+    }
+
     setMakerProfile(newProfile);
 
-    // Persistência real no banco de dados
-    fetch("/api/maker", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...newProfile,
-        email: wizardEmail
-      })
-    }).catch(err => console.error("Erro ao salvar perfil no banco:", err));
-
-    // Enviar solicitação de homologação completa para o Admin
     const newRequest: HomologationRequest = {
       id: `req-${Math.floor(100 + Math.random() * 900)}`,
-      name: wizardName,
-      zipCode: wizardZip,
+      name,
+      zipCode: zip,
       machineModel: wizardMachines[0]?.model || "FDM Standard",
       benchmarkResult: "PENDING",
       benchmarkImageUrl: calibImageName,
@@ -1024,31 +1285,128 @@ export default function Home() {
     }
   };
 
-  // Aceitar Job (Roteamento P2P)
-  const acceptJob = () => {
-    if (!activeJobOffer || !makerProfile) return;
+  // --- MOTOR CORE: claim / advance / release (persiste em /api/orders PATCH) ---
+  const persistOrderAction = async (
+    action: "claim" | "advance" | "release",
+    orderId: string,
+    makerName?: string
+  ) => {
+    try {
+      const res = await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...makerAuthHeaders() },
+        body: JSON.stringify({ action, orderId, makerName }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        console.warn("Motor orders:", data.error);
+        return data;
+      }
+      return data;
+    } catch (err) {
+      console.error("Erro no motor de pedidos:", err);
+      return { success: false, error: String(err) };
+    }
+  };
 
-    // Atualiza o pedido
-    setOrders(prev => 
-      prev.map(o => o.id === activeJobOffer.id 
-        ? { ...o, status: "PRINTING", makerName: makerProfile.name } 
-        : o
+  const claimOrder = async (orderId: string) => {
+    if (!makerProfile) return;
+    const makerName = makerProfile.name || currentUser?.name;
+    if (!makerName) {
+      alert("Sessão sem nome de maker. Faça login de novo.");
+      return;
+    }
+    if (makerProfile.makerStatus === "PENDING_APPROVAL" || makerProfile.makerStatus === "UNVERIFIED") {
+      alert("Sua conta ainda está em análise! Aguarde homologação antes de fabricar.");
+      return;
+    }
+    if (makerProfile.isBanned) {
+      alert("Conta banida — não é possível aceitar jobs.");
+      return;
+    }
+
+    const localSnapshot = orders.find((o) => o.id === orderId);
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? { ...o, status: "PRINTING" as const, makerName, progress: 15 }
+          : o
       )
     );
     setActiveJobOffer(null);
-    alert(`Trabalho #${activeJobOffer.id} aceito com sucesso! Iniciando fatiamento e conexão G-Code...`);
+    if (!makerProfile.name) {
+      setMakerProfile({ ...makerProfile, name: makerName });
+    }
+
+    let data = await persistOrderAction("claim", orderId, makerName);
+    if (!data.success && localSnapshot) {
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...localSnapshot,
+          status: "WAITING_MAKER",
+          makerName: undefined,
+        }),
+      });
+      data = await persistOrderAction("claim", orderId, makerName);
+    }
+    if (!data.success) {
+      alert(data.error || "Não foi possível aceitar o job. Atualize a fila e tente de novo.");
+      refreshOrdersFromApi();
+      return;
+    }
+    alert(`Job #${orderId} aceito. Produza e avance o status até o pagamento.`);
+  };
+
+  const advanceOrder = async (orderId: string) => {
+    const current = orders.find((o) => o.id === orderId);
+    if (!current) return;
+
+    const next =
+      current.status === "PRINTING" ? "SHIPPED" : current.status === "SHIPPED" ? "COMPLETED" : null;
+    if (!next) return;
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: next,
+              progress: next === "SHIPPED" ? 90 : 100,
+            }
+          : o
+      )
+    );
+
+    const data = await persistOrderAction("advance", orderId, makerProfile?.name);
+    if (next === "COMPLETED") {
+      const payout = current.makerPayout ?? current.totalPrice * 0.95;
+      alert(
+        data?.order?.payoutReleased !== false
+          ? `Entrega confirmada. Pagamento liberado: R$ ${payout.toFixed(2).replace(".", ",")} (job #${orderId}).`
+          : `Job #${orderId} marcado como concluído.`
+      );
+    }
+  };
+
+  // Aceitar Job (oferta push)
+  const acceptJob = () => {
+    if (!activeJobOffer || !makerProfile) return;
+    void claimOrder(activeJobOffer.id);
   };
 
   // Rejeitar Job (Roteamento P2P)
   const rejectJob = () => {
     if (!activeJobOffer) return;
     setActiveJobOffer(null);
-    setOrders(prev => 
-      prev.map(o => o.id === activeJobOffer.id ? { ...o, status: "WAITING_MAKER" } : o)
+    setOrders((prev) =>
+      prev.map((o) => (o.id === activeJobOffer.id ? { ...o, status: "WAITING_MAKER" as const } : o))
     );
   };
 
-  // Desistir do Job ativo (Penalização)
+  // Desistir do Job ativo (Penalização + release na fila)
   const cancelActiveJob = (orderId: string) => {
     if (!makerProfile) return;
 
@@ -1060,25 +1418,29 @@ export default function Home() {
       ...makerProfile,
       penalties: currentPenalties,
       rating: nextRating,
-      isBanned: shouldBan
+      isBanned: shouldBan,
     };
 
     setMakerProfile(updatedProfile);
-    
-    // Atualiza a lista de makers no Admin
-    setSystemMakers(prev => 
-      prev.map(m => m.name === makerProfile.name ? updatedProfile : m)
+    setSystemMakers((prev) =>
+      prev.map((m) => (m.name === makerProfile.name ? updatedProfile : m))
     );
 
-    // Volta o status do pedido para WAITING_MAKER para outro aceitar
-    setOrders(prev => 
-      prev.map(o => o.id === orderId ? { ...o, status: "WAITING_MAKER", makerName: undefined } : o)
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, status: "WAITING_MAKER" as const, makerName: undefined, progress: 0 } : o
+      )
     );
+    void persistOrderAction("release", orderId, makerProfile.name);
 
     if (shouldBan) {
-      alert("ALERTA DE SEGURANÇA: Você acumulou excesso de penalidades ou reputação insatisfatória e foi BANIDO da comunidade FAB MAKERS.");
+      alert(
+        "ALERTA DE SEGURANÇA: Você acumulou excesso de penalidades ou reputação insatisfatória e foi BANIDO da comunidade FAB MAKERS."
+      );
     } else {
-      alert(`Job cancelado. Penalidade aplicada: Reputação caiu para ${nextRating}★ (Penalidades: ${currentPenalties}/3).`);
+      alert(
+        `Job cancelado. Penalidade aplicada: Reputação caiu para ${nextRating}★ (Penalidades: ${currentPenalties}/3).`
+      );
     }
   };
 
@@ -1105,7 +1467,7 @@ export default function Home() {
     // Persistência real no banco de dados
     fetch("/api/admin", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...adminAuthHeaders() },
       body: JSON.stringify({ action: "APPROVE", name })
     }).catch(err => console.error("Erro ao aprovar homologação no banco:", err));
 
@@ -1133,7 +1495,7 @@ export default function Home() {
     // Persistência real no banco de dados
     fetch("/api/admin", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...adminAuthHeaders() },
       body: JSON.stringify({ action: "REJECT", name })
     }).catch(err => console.error("Erro ao rejeitar homologação no banco:", err));
 
@@ -1159,7 +1521,7 @@ export default function Home() {
     // Persistência real no banco de dados
     fetch("/api/admin", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...adminAuthHeaders() },
       body: JSON.stringify({ action: nextBanned ? "BAN" : "UNBAN", name })
     }).catch(err => console.error("Erro ao alterar banimento no banco:", err));
   };
@@ -1366,16 +1728,25 @@ export default function Home() {
         setLoginPassword("");
         
         if (data.user.role === "CLIENT") {
-          setActiveTab("client");
+          setClientSubTab("upload");
+          goTo("client");
         } else if (data.user.role === "MAKER") {
-          setActiveTab("maker");
+          goTo("maker");
           if (data.user.profile) {
-            setMakerProfile(data.user.profile);
+            setMakerProfile({
+              ...data.user.profile,
+              name: data.user.profile.name || data.user.name,
+            });
           } else {
             setMakerProfile(null);
           }
+          saveSession(data.user, data.user.profile || null, {
+            makerToken: data.makerToken || null,
+            adminToken: null,
+          });
         } else if (data.user.role === "ADMIN") {
-          setActiveTab("admin");
+          saveSession(data.user, null, { adminToken: data.adminToken || null, makerToken: null });
+          goTo("admin");
         } else if (data.user.role === "DESIGNER") {
           setActiveTab("designer");
         } else if (data.user.role === "MODERATOR") {
@@ -1428,10 +1799,10 @@ export default function Home() {
         setIsSignUp(false);
         
         if (data.user.role === "CLIENT") {
-          setActiveTab("client");
+          goTo("client");
           alert("Cadastro de Cliente realizado com sucesso! Bem-vindo à FabMakers.");
         } else if (data.user.role === "MAKER") {
-          setActiveTab("maker");
+          goTo("maker");
           setMakerProfile(null); // Abre o formulário/wizard de onboarding para preenchimento
           alert("Cadastro de Maker realizado com sucesso! Preencha agora a calibração técnica e dados para homologação.");
         }
@@ -1449,33 +1820,54 @@ export default function Home() {
   // Realizar o logout
   const handleLogout = () => {
     setCurrentUser(null);
-    setActiveTab("home");
     setMakerProfile(null);
+    saveSession(null);
+    goTo("home", "maker");
+  };
+
+  const openAdminLogin = () => {
+    setLoginRole("ADMIN");
+    setLoginEmail("");
+    setLoginPassword("");
+    setLoginError("");
+    setShowLoginModal(true);
+  };
+
+  const openMakerLogin = () => {
+    setLoginRole("MAKER");
+    setLoginEmail("roda@fabmakers.com.br");
+    setLoginPassword("");
+    setLoginError("");
+    setShowLoginModal(true);
   };
 
   return (
     <div className={`min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#d44d00]/30 selection:text-white transition-colors duration-300 ${theme}`}>
       
       {/* HEADER TÉCNICO - Minimalista, com logo PNG calibrado */}
-      <header className="border-b border-[#18181b] bg-background sticky top-0 z-50 transition-colors duration-300">
+      <header className={`sticky top-0 z-50 transition-colors duration-300 backdrop-blur-md ${
+        theme === "light"
+          ? "border-b border-[#ebebef]/80 bg-[#f5f5f7]/85"
+          : "border-b border-[#18181b] bg-background"
+      }`}>
         <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
           <div className="flex items-center gap-8">
             <div 
               className="flex items-center cursor-pointer"
               onClick={() => {
                 if (currentUser) {
-                  if (currentUser.role === "CLIENT") setActiveTab("client");
-                  else if (currentUser.role === "MAKER") setActiveTab("maker");
-                  else if (currentUser.role === "ADMIN") setActiveTab("admin");
+                  if (currentUser.role === "CLIENT") goTo("client");
+                  else if (currentUser.role === "MAKER") goTo("maker");
+                  else if (currentUser.role === "ADMIN") goTo("admin");
                 } else {
-                  setActiveTab("home");
+                  goTo("home", "maker");
                 }
               }}
             >
               <Image 
-                src={logoImg} 
+                src={logoMark} 
                 alt="FAB MAKERS" 
-                className={`h-16 w-auto select-none transition-all duration-300 ${theme === "light" ? "invert" : ""}`}
+                className="logo-mark select-none transition-all duration-300"
                 priority 
               />
             </div>
@@ -1483,11 +1875,17 @@ export default function Home() {
             {/* Perfil do usuário logado (exibido em vez das abas de navegação globais) */}
             {currentUser && (
               <div className="hidden md:flex items-center gap-2.5">
-                <span className="text-xs px-2 py-0.5 bg-[#18181b] border border-[#27272a] text-[#a1a1aa] rounded uppercase font-bold tracking-wider mono-text">
-                  {currentUser.role === "ADMIN" ? "ADMIN" : currentUser.role === "MAKER" ? "MAKER PARTNER" : "CLIENTE"}
+                <span className={`text-xs px-2.5 py-1 rounded-full font-medium tracking-wide ${
+                  theme === "light"
+                    ? "bg-[#f0f0f3] text-[#5c5c66]"
+                    : "bg-[#18181b] border border-[#27272a] text-[#a1a1aa] uppercase mono-text text-[10px] tracking-wider font-bold"
+                }`}>
+                  {currentUser.role === "ADMIN" ? "ADMIN" : currentUser.role === "MAKER" ? "Maker Partner" : "Cliente"}
                 </span>
-                <span className="text-xs text-[#27272a]">|</span>
-                <span className="text-xs text-[#a1a1aa] font-medium">Logado como: <span className="text-white font-bold">{currentUser.name}</span></span>
+                <span className={`text-xs ${theme === "light" ? "text-[#c4c4cc]" : "text-[#27272a]"}`}>|</span>
+                <span className={`text-xs font-medium ${theme === "light" ? "text-[#6b6b73]" : "text-[#a1a1aa]"}`}>
+                  Logado como: <span className={`font-semibold ${theme === "light" ? "text-[#111]" : "text-white"}`}>{currentUser.name}</span>
+                </span>
               </div>
             )}
           </div>
@@ -1495,21 +1893,23 @@ export default function Home() {
           <div className="flex items-center gap-3">
             {/* Alternador de Tema Híbrido (Light/Dark) */}
             <button
-              onClick={() => setTheme(prev => prev === "dark" ? "light" : "dark")}
-              className={`p-2 rounded-md transition text-xs font-semibold cursor-pointer border ${
-                theme === "dark" 
-                  ? "border-white/10 hover:bg-white/5 text-[#a1a1aa] hover:text-white" 
-                  : "border-black/10 hover:bg-black/5 text-[#52525b] hover:text-black"
+              type="button"
+              onClick={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+              className={`p-2 rounded-full transition cursor-pointer border ${
+                theme === "dark"
+                  ? "border-white/10 hover:bg-white/5 text-[#a1a1aa] hover:text-white"
+                  : "border-[#e4e4ea] hover:bg-black/5 text-[#5c5c66] hover:text-[#111]"
               }`}
-              title={theme === "dark" ? "Mudar para Modo Claro" : "Mudar para Modo Escuro"}
+              title={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
+              aria-label={theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro"}
             >
-              {theme === "dark" ? "☀️" : "🌙"}
+              <Icon name={theme === "dark" ? "light_mode" : "dark_mode"} size={20} />
             </button>
             {!currentUser ? (
               <>
                 <button
                   onClick={() => {
-                    setLoginRole("CLIENT");
+                    setLoginRole("MAKER");
                     setLoginEmail("");
                     setLoginPassword("");
                     setLoginError("");
@@ -1517,7 +1917,7 @@ export default function Home() {
                   }}
                   className="text-xs bg-[#d44d00] hover:bg-[#b04000] text-white px-4 py-2 font-medium transition rounded-md cursor-pointer"
                 >
-                  Entrar na Plataforma
+                  Entrar como Fab
                 </button>
               </>
             ) : (
@@ -1555,7 +1955,6 @@ export default function Home() {
         {activeTab === "home" && (
           <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
             
-             {/* BOTÃO VOLTAR PARA SELEÇÃO DE PERFIS */}
              {homeMode !== "select" && (
                <div className="flex justify-between items-center pb-4 border-b border-[#18181b]/30">
                  <button
@@ -1564,31 +1963,32 @@ export default function Home() {
                      theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
                    }`}
                  >
-                   &larr; Voltar para Seleção de Perfis
+                   &larr; Visão geral
                  </button>
                  <div className={`rounded-lg p-1 flex gap-1 border ${
                    theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#f4f4f5] border-[#e4e4e7]"
                  }`}>
                    <button
-                     onClick={() => setHomeMode("client")}
-                     className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer ${
-                       homeMode === "client" 
-                         ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
-                         : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
-                     }`}
-                   >
-                     Cliente
-                   </button>
-                   <button
-                     onClick={() => setHomeMode("maker")}
+                     onClick={() => goTo("home", "maker")}
                      className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer ${
                        homeMode === "maker" 
                          ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
                          : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
                      }`}
                    >
-                     Maker
+                     Fab / Maker
                    </button>
+                   <button
+                     onClick={() => goTo("home", "client")}
+                     className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer ${
+                       homeMode === "client" 
+                         ? theme === "dark" ? "bg-white text-black" : "bg-black text-white" 
+                         : theme === "dark" ? "text-[#a1a1aa] hover:text-white" : "text-[#52525b] hover:text-black"
+                     }`}
+                   >
+                     Seed demanda
+                   </button>
+                   {SHOW_LATER_UI && (
                    <button
                      onClick={() => setHomeMode("designer")}
                      className={`px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded transition cursor-pointer ${
@@ -1599,109 +1999,69 @@ export default function Home() {
                    >
                      Designer
                    </button>
+                   )}
                  </div>
                </div>
              )}
 
-             {/* TELA DE SELEÇÃO INICIAL (3 CARDS PREMIUM: CLIENTE, MAKER, DESIGNER) */}
+             {/* TELA DE SELEÇÃO — Supply-first: fab em primeiro plano */}
              {homeMode === "select" && (
-               <div className="py-12 space-y-10 text-center max-w-4xl mx-auto">
+               <div className="py-12 space-y-10 text-center max-w-3xl mx-auto">
                  <div className="space-y-4">
+                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#d44d00] mono-text">FabMakers</p>
                    <h1 className={`text-4xl md:text-5xl font-black tracking-tight leading-none ${
                      theme === "dark" ? "text-white" : "text-black"
                    }`}>
-                     Bem-vindo à Rede <span className="text-[#d44d00]">FabMakers</span>
+                     Fabs homologadas pegam jobs da fila
                    </h1>
                    <p className={`text-sm md:text-base max-w-xl mx-auto ${
                      theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
                    }`}>
-                     Conectamos ideias, manufatura local distribuída e design 3D de ponta. Escolha seu perfil abaixo para acessar a plataforma sob medida.
+                     Rede brasileira de impressão 3D sob demanda. Cadastre sua fab, aceite trabalhos pagos e produza com QA.
                    </p>
                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
-                   {/* CARD 1: CLIENTE */}
-                   <div 
-                     onClick={() => setHomeMode("client")}
-                     className={`group border rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between h-[360px] ${
-                       theme === "dark" 
-                         ? "border-[#18181b] bg-[#09090b]/40 hover:border-[#d44d00]/30 hover:bg-[#09090b]/80" 
-                         : "border-[#e4e4e7] bg-white hover:border-[#d44d00]/30 hover:shadow-lg shadow-sm"
+                 <div className="flex flex-col sm:flex-row gap-4 justify-center pt-2">
+                   <button
+                     onClick={() => {
+                       if (currentUser?.role === "MAKER") {
+                         goTo("maker");
+                       } else if (currentUser) {
+                         goTo("home", "maker");
+                       } else {
+                         setLoginRole("MAKER");
+                         setLoginEmail("");
+                         setLoginPassword("");
+                         setLoginError("");
+                         setShowLoginModal(true);
+                       }
+                     }}
+                     className="px-8 py-3.5 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                   >
+                     Quero produzir na rede
+                   </button>
+                   <button
+                     onClick={() => goTo("home", "maker")}
+                     className={`px-8 py-3.5 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer border ${
+                       theme === "dark"
+                         ? "border-white/15 text-white hover:bg-white/5"
+                         : "border-black/15 text-black hover:bg-black/5"
                      }`}
                    >
-                     <div className="space-y-4">
-                       <div className="w-12 h-12 rounded-xl bg-[#d44d00]/10 flex items-center justify-center text-[#d44d00] border border-[#d44d00]/20 group-hover:bg-[#d44d00] group-hover:text-white transition duration-300">
-                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                         </svg>
-                       </div>
-                       <div className="space-y-2">
-                         <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Comprar Impressão (Cliente)</h3>
-                         <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
-                           Precisa de uma peça impressa em 3D? Cote modelos STL ou escolha da nossa galeria e receba na sua casa.
-                         </p>
-                       </div>
-                     </div>
-                     <span className="text-xs font-bold text-[#d44d00] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                       Entrar como Cliente &rarr;
-                     </span>
-                   </div>
-
-                   {/* CARD 2: MAKER */}
-                   <div 
-                     onClick={() => setHomeMode("maker")}
-                     className={`group border rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between h-[360px] ${
-                       theme === "dark" 
-                         ? "border-[#18181b] bg-[#09090b]/40 hover:border-[#d44d00]/30 hover:bg-[#09090b]/80" 
-                         : "border-[#e4e4e7] bg-white hover:border-[#d44d00]/30 hover:shadow-lg shadow-sm"
-                     }`}
-                   >
-                     <div className="space-y-4">
-                       <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500 border border-orange-500/20 group-hover:bg-orange-500 group-hover:text-white transition duration-300">
-                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                         </svg>
-                       </div>
-                       <div className="space-y-2">
-                         <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Produzir Serviços (Maker)</h3>
-                         <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
-                           Possui impressora 3D? Cadastre suas máquinas, defina seus valores e fature imprimindo sob demanda.
-                         </p>
-                       </div>
-                     </div>
-                     <span className="text-xs font-bold text-[#d44d00] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                       Entrar como Maker &rarr;
-                     </span>
-                   </div>
-
-                   {/* CARD 3: DESIGNER */}
-                   <div 
-                     onClick={() => setHomeMode("designer")}
-                     className={`group border rounded-2xl p-6 text-left cursor-pointer transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between h-[360px] ${
-                       theme === "dark" 
-                         ? "border-[#18181b] bg-[#09090b]/40 hover:border-[#d44d00]/30 hover:bg-[#09090b]/80" 
-                         : "border-[#e4e4e7] bg-white hover:border-[#d44d00]/30 hover:shadow-lg shadow-sm"
-                     }`}
-                   >
-                     <div className="space-y-4">
-                       <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 border border-yellow-500/20 group-hover:bg-yellow-500 group-hover:text-white transition duration-300">
-                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                         </svg>
-                       </div>
-                       <div className="space-y-2">
-                         <h3 className={`text-lg font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>Oferecer Modelagem (Designer)</h3>
-                         <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
-                           Modele sob encomenda para a rede, venda suas obras 3D autorais e precifique sua hora de trabalho.
-                         </p>
-                       </div>
-                     </div>
-                     <span className="text-xs font-bold text-[#d44d00] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                       Entrar como Designer &rarr;
-                     </span>
-                   </div>
+                     Ver como funciona
+                   </button>
                  </div>
+
+                 <p className={`text-xs pt-4 ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
+                   Precisa só alimentar a fila com um STL?{" "}
+                   <button
+                     type="button"
+                     onClick={() => goTo("home", "client")}
+                     className="text-[#d44d00] font-bold underline underline-offset-2 cursor-pointer"
+                   >
+                     Criar demanda seed
+                   </button>
+                 </p>
                </div>
              )}
 
@@ -1729,8 +2089,16 @@ export default function Home() {
                     <div className="flex flex-wrap gap-4 pt-2">
                       <button
                         onClick={() => {
+                          document.getElementById("catalogo-curado")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                        className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
+                      >
+                        Ver catálogo e cotar
+                      </button>
+                      <button
+                        onClick={() => {
                           if (currentUser) {
-                            setActiveTab("client");
+                            goTo("client");
                             setClientSubTab("upload");
                           } else {
                             setLoginRole("CLIENT");
@@ -1740,10 +2108,27 @@ export default function Home() {
                             setShowLoginModal(true);
                           }
                         }}
-                        className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer animate-pulse"
+                        className={`px-6 py-3 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer border ${
+                          theme === "dark" 
+                            ? "border-white/15 text-white hover:bg-white/5 bg-transparent" 
+                            : "border-black/15 text-black hover:bg-black/5 bg-transparent"
+                        }`}
                       >
-                        Enviar STL & Cotar Agora
+                        Enviar STL próprio
                       </button>
+                      {!SHOW_LATER_UI && (
+                      <button
+                        onClick={() => goTo("home", "maker")}
+                        className={`px-6 py-3 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer border ${
+                          theme === "dark" 
+                            ? "border-white/15 text-white hover:bg-white/5 bg-transparent" 
+                            : "border-black/15 text-black hover:bg-black/5 bg-transparent"
+                        }`}
+                      >
+                        Voltar ao portal da fab
+                      </button>
+                      )}
+                      {SHOW_LATER_UI && (
                       <button
                         onClick={() => {
                           const element = document.getElementById("populares-makerworld");
@@ -1757,6 +2142,7 @@ export default function Home() {
                       >
                         Ver Modelos Populares
                       </button>
+                      )}
                     </div>
                   </div>
 
@@ -1801,7 +2187,59 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Grid de Modelos Populares */}
+                {/* Catálogo curado (D006) — Support: demanda → orçamento → fila */}
+                <div id="catalogo-curado" className={`space-y-6 pt-6 border-t ${theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"}`}>
+                  <div>
+                    <h2 className={`text-lg font-bold uppercase tracking-tight mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>
+                      Catálogo FabMakers
+                    </h2>
+                    <p className={`text-xs mt-1 max-w-2xl ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>
+                      Escolha um modelo, ajuste material e preenchimento, receba o orçamento e envie para a fila das fabs homologadas.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {CURATED_CATALOG.map((item) => (
+                      <div
+                        key={item.id}
+                        className={`bg-transparent border rounded-lg overflow-hidden flex flex-col justify-between transition group hover:border-[#d44d00]/40 ${
+                          theme === "dark" ? "border-[#18181b] hover:bg-[#18181b]/30" : "border-[#e4e4e7] hover:bg-[#f4f4f5]"
+                        }`}
+                      >
+                        <div className={`aspect-video w-full relative overflow-hidden ${theme === "dark" ? "bg-[#18181b]" : "bg-[#f4f4f5]"}`}>
+                          <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                        </div>
+                        <div className="p-4 flex-grow flex flex-col justify-between space-y-3">
+                          <div>
+                            <p className={`text-[10px] uppercase tracking-wider mb-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
+                              {item.category}
+                            </p>
+                            <h4 className={`font-bold text-xs leading-snug ${theme === "dark" ? "text-white" : "text-black"}`} title={item.title}>
+                              {item.title}
+                            </h4>
+                            <p className={`text-xs mt-1 line-clamp-2 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>
+                              {item.description}
+                            </p>
+                          </div>
+                          <div className={`flex justify-between items-center pt-2 border-t ${theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"}`}>
+                            <span className={`text-[10px] mono-text ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>
+                              {item.defaultMaterial}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => selectCuratedModel(item)}
+                              className="px-2.5 py-1 bg-[#d44d00] hover:bg-[#b04000] text-xs font-bold text-white uppercase rounded transition cursor-pointer"
+                            >
+                              Cotar
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grid de Modelos Populares — Park (MakerWorld) */}
+                {SHOW_LATER_UI && (
                 <div id="populares-makerworld" className={`space-y-6 pt-6 border-t ${theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"}`}>
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
@@ -1929,7 +2367,7 @@ export default function Home() {
                                           });
                                           setClientZip("01001-000"); // CEP Padrão para facilitar
                                           if (currentUser) {
-                                            setActiveTab("client");
+                                            goTo("client");
                                             setClientSubTab("upload");
                                           } else {
                                             setLoginRole("CLIENT");
@@ -2006,10 +2444,11 @@ export default function Home() {
                     </>
                   )}
                 </div>
+                )}
               </div>
             )}
 
-            {/* MODO MAKER: LOJA DE INSUMOS E RENTABILIZAÇÃO DE IMPRESSORAS */}
+            {/* MODO MAKER: caminho feliz Supply-first */}
             {homeMode === "maker" && (
               <div className="space-y-16">
                 {/* Hero do Maker */}
@@ -2017,24 +2456,25 @@ export default function Home() {
                   <div className="lg:col-span-7 space-y-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#d44d00]/10 border border-[#d44d00]/20 rounded-full">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#d44d00] animate-pulse"></span>
-                      <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Adesão Gratuita & Sem Taxas Fixas</span>
+                      <span className="text-xs font-bold uppercase tracking-wider text-[#d44d00] mono-text">Fila de jobs para fabs homologadas</span>
                     </div>
                     <h1 className={`text-4xl md:text-6xl font-extrabold tracking-tighter leading-none ${
                       theme === "dark" ? "text-white" : "text-black"
                     }`}>
-                      Sua impressora 3D está ociosa? <br />
-                      <span className="text-[#d44d00]">Ganhe dinheiro produzindo na nossa rede.</span>
+                      <span className="text-[#d44d00]">FabMakers</span>
+                      <br />
+                      Sua impressora ociosa vira trabalho pago.
                     </h1>
                     <p className={`text-sm md:text-base leading-relaxed max-w-xl ${
                       theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
                     }`}>
-                      Seja você uma pessoa física com uma máquina no quarto ou uma empresa/bureau com dezenas de equipamentos. A FabMakers conecta você a clientes locais de forma inteligente. Sem taxas fixas: aplicamos planos e comissões flexíveis de acordo com cada proposta de trabalho!
+                      Cadastre a fab, passe por KYC e calibração, veja a fila de demandas e aceite jobs com instruções claras — QA e pagamento na plataforma.
                     </p>
                     <div className="flex flex-wrap gap-4 pt-2">
                       <button
                         onClick={() => {
                           if (currentUser && currentUser.role === "MAKER") {
-                            setActiveTab("maker");
+                            goTo("maker");
                           } else {
                             setLoginRole("MAKER");
                             setLoginEmail("");
@@ -2045,12 +2485,11 @@ export default function Home() {
                         }}
                         className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer"
                       >
-                        Quero Produzir / Credenciar Máquina
+                        Credenciar fab / entrar
                       </button>
                       <button
                         onClick={() => {
-                          const element = document.getElementById("insumos-shopee");
-                          if (element) element.scrollIntoView({ behavior: "smooth" });
+                          document.getElementById("maker-como-funciona")?.scrollIntoView({ behavior: "smooth" });
                         }}
                         className={`px-6 py-3 border font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer ${
                           theme === "dark" 
@@ -2058,29 +2497,31 @@ export default function Home() {
                             : "border-black/10 text-black hover:bg-black/5 bg-transparent"
                         }`}
                       >
-                        Comprar/Revender Insumos
+                        Ver caminho feliz
                       </button>
                     </div>
                   </div>
 
-                  <div className={`lg:col-span-5 rounded-lg p-6 space-y-4 border ${
+                  <div id="maker-como-funciona" className={`lg:col-span-5 rounded-lg p-6 space-y-4 border ${
                     theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-white border-[#e4e4e7] shadow-sm"
                   }`}>
                     <h3 className={`text-xs font-bold uppercase tracking-wider mono-text border-b pb-2 ${
                       theme === "dark" ? "text-white border-[#18181b]" : "text-black border-[#e4e4e7]"
-                    }`}>Oportunidade Comercial</h3>
-                    <ul className={`space-y-3 text-xs list-disc pl-4 leading-relaxed ${
+                    }`}>Caminho feliz (5 passos)</h3>
+                    <ol className={`space-y-3 text-xs list-decimal pl-4 leading-relaxed ${
                       theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"
                     }`}>
-                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Taxa Fixa Zero:</strong> Sem custo de filiação mensal.</li>
-                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Planos & Comissões Flexíveis:</strong> Calculados com base no perfil de máquina e tipo de peça, apresentados em cada proposta de trabalho.</li>
-                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Programa de Afiliados:</strong> Divulgue produtos da nossa loja de insumos e receba comissões diretas de até 10% do valor do produto sem precisar de estoque!</li>
-                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Empresas e Físicas:</strong> Aceitamos cadastros CPF e CNPJ com repasse bancário quinzenal.</li>
-                    </ul>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Cadastro:</strong> conta maker + máquinas e materiais.</li>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>KYC + calibração:</strong> cubo de teste e documentos.</li>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Homologação:</strong> admin libera sandbox / rede.</li>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Fila:</strong> aceite o job com prazo e instruções.</li>
+                      <li><strong className={theme === "dark" ? "text-white" : "text-black"}>Entrega + pagamento:</strong> status até liberação.</li>
+                    </ol>
                   </div>
                 </div>
 
-                {/* Loja de Insumos & Afiliados */}
+                {SHOW_LATER_UI && (
+                /* Loja de Insumos & Afiliados — Park/Cut (Shopee) */
                 <div id="insumos-shopee" className={`space-y-6 pt-6 border-t ${
                   theme === "dark" ? "border-[#18181b]/50" : "border-[#e4e4e7]"
                 }`}>
@@ -2178,11 +2619,12 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
+                )}
               </div>
             )}
 
-            {/* MODO DESIGNER: CADASTRO DE MODELADORES FREELANCERS E EXIBIÇÃO DE PORTFÓLIO */}
-            {homeMode === "designer" && (
+            {/* MODO DESIGNER — Later (SHOW_LATER_UI) */}
+            {SHOW_LATER_UI && homeMode === "designer" && (
               <div className="space-y-16">
                 {/* Hero do Designer */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center py-4">
@@ -2358,7 +2800,7 @@ export default function Home() {
                                   metrics: { rawVolumeMm3: 15000, realVolumeCm3: 15.0, weightG: 18.0, timeHours: 1.2, timeFormatted: "1h 12m" },
                                   pricing: { materialCost: 2.16, machineCost: 14.40, makerProfit: 6.62, makerPayout: 32.0, platformFee: 8.0, royaltyPrice: obra.price, totalPrice: 40.0 + obra.price }
                                 });
-                                setActiveTab("client");
+                                goTo("client");
                                 setClientSubTab("upload");
                                 alert(`Arquivo "${obra.title}" licenciado com sucesso por R$ ${obra.price.toFixed(2)} (royalties inclusos na cotação técnica do fatiador).`);
                               }}
@@ -2403,6 +2845,23 @@ export default function Home() {
                   <span className={`text-[10px] font-bold uppercase tracking-widest px-3 block mb-2 ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>Navegação</span>
                   
                   <button
+                    onClick={() => setClientSubTab("upload")}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer text-left ${
+                      clientSubTab === "upload"
+                        ? "bg-[#d44d00]/10 text-[#d44d00] border-l-2 border-[#d44d00]"
+                        : theme === "dark"
+                          ? "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]"
+                          : "text-[#52525b] hover:text-black hover:bg-[#f4f4f5]"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>Fatiador & Cotação (seed)</span>
+                  </button>
+
+                  {SHOW_LATER_UI && (
+                  <button
                     onClick={() => setClientSubTab("gallery")}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer text-left ${
                       clientSubTab === "gallery"
@@ -2417,23 +2876,9 @@ export default function Home() {
                     </svg>
                     <span>Todos os Modelos</span>
                   </button>
+                  )}
 
-                  <button
-                    onClick={() => setClientSubTab("upload")}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer text-left ${
-                      clientSubTab === "upload"
-                        ? "bg-[#d44d00]/10 text-[#d44d00] border-l-2 border-[#d44d00]"
-                        : theme === "dark"
-                          ? "text-[#a1a1aa] hover:text-white hover:bg-[#18181b]"
-                          : "text-[#52525b] hover:text-black hover:bg-[#f4f4f5]"
-                    }`}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                    <span>Fatiador & Cotação</span>
-                  </button>
-
+                  {SHOW_LATER_UI && (
                   <button
                     onClick={() => setClientSubTab("ai")}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold transition cursor-pointer text-left ${
@@ -2449,9 +2894,12 @@ export default function Home() {
                     </svg>
                     <span>Assistente de IA 3D</span>
                   </button>
+                  )}
 
                 </div>
 
+                {SHOW_LATER_UI && (
+                <>
                 <div className={`h-[1px] ${theme === "dark" ? "bg-[#18181b]" : "bg-[#e4e4e7]"}`}></div>
 
                 {/* Categorias */}
@@ -2543,6 +2991,8 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                </>
+                )}
               </div>
 
               {/* COLUNA DIREITA: CONTEÚDO PRINCIPAL (lg:col-span-9) */}
@@ -2552,9 +3002,9 @@ export default function Home() {
                 {clientSubTab === "upload" && (
                   <div className="space-y-6">
                     <div>
-                      <h2 className={`text-xl font-bold tracking-tight uppercase mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Área de Cotação de Geometria</h2>
+                      <h2 className={`text-xl font-bold tracking-tight uppercase mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>Seed de demanda — Cotação STL</h2>
                       <p className={`text-xs mt-1 leading-relaxed ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>
-                        Faça o upload do seu arquivo STL. Nosso motor calcula instantaneamente o faturamento e inicia o roteamento para a fazenda de impressão mais próxima.
+                        Upload do STL alimenta a fila de jobs das fabs. Orçamento automático e roteamento para maker homologado.
                       </p>
                     </div>
 
@@ -2595,43 +3045,63 @@ export default function Home() {
                             </button>
                             <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>Arraste o arquivo geométrico</p>
                           </div>
-                          <button onClick={handleSimulateExample} className={`text-xs mono-text px-3 py-1.5 rounded transition cursor-pointer border ${
+                          <button
+                            type="button"
+                            onClick={handleSimulateExample}
+                            className={`text-xs mono-text px-3 py-1.5 rounded transition cursor-pointer border inline-flex items-center gap-1.5 ${
                             theme === "dark" 
                               ? "text-[#a1a1aa] hover:text-white bg-[#18181b] border-[#27272a]" 
                               : "text-[#52525b] hover:text-black bg-[#e4e4e7] border-[#d4d4d8]"
                           }`}>
-                            💡 Usar Engrenagem de Exemplo
+                            <Icon name="precision_manufacturing" className="text-[16px]" />
+                            Usar engrenagem de exemplo
                           </button>
                         </div>
                       ) : (
-                        <div className="flex justify-between items-center bg-[#18181b]/50 border border-[#27272a] p-4 rounded">
+                        <div className={`flex justify-between items-center border p-4 rounded ${
+                          theme === "dark" ? "bg-[#18181b]/50 border-[#27272a]" : "bg-[#fafafa] border-[#e4e4e7]"
+                        }`}>
                           <div className="flex items-center gap-3 text-left">
                             {selectedModelImage ? (
-                              <div className="w-12 h-12 rounded overflow-hidden border border-[#27272a] bg-[#18181b] flex-shrink-0">
+                              <div className={`w-12 h-12 rounded overflow-hidden border flex-shrink-0 ${
+                                theme === "dark" ? "border-[#27272a] bg-[#18181b]" : "border-[#e4e4e7] bg-white"
+                              }`}>
                                 <img src={selectedModelImage} alt="Preview do modelo" className="w-full h-full object-cover" />
                               </div>
                             ) : (
                               <div className="w-8 h-8 rounded bg-[#10b981]/15 text-[#10b981] flex items-center justify-center border border-[#10b981]/20">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                                <Icon name="check_circle" className="text-[18px]" />
                               </div>
                             )}
                             <div>
-                              <h4 className="font-semibold text-white text-xs truncate max-w-[200px] mono-text">{file.name}</h4>
-                              <p className="text-xs text-[#71717a]">Arquivo de engenharia carregado</p>
+                              <h4 className={`font-semibold text-xs truncate max-w-[200px] mono-text ${
+                                theme === "dark" ? "text-white" : "text-black"
+                              }`}>{file.name}</h4>
+                              <p className={`text-xs ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>
+                                {curatedCatalogId ? "Modelo do catálogo FabMakers" : "Arquivo de engenharia carregado"}
+                              </p>
                             </div>
                           </div>
-                          <button onClick={handleClear} className="text-[#71717a] hover:text-red-400 p-1.5 hover:bg-[#18181b] rounded transition">
-                            ✕
+                          <button
+                            type="button"
+                            onClick={handleClear}
+                            className={`p-1.5 rounded transition ${
+                              theme === "dark" ? "text-[#71717a] hover:text-red-400 hover:bg-[#18181b]" : "text-[#71717a] hover:text-red-600 hover:bg-[#f4f4f5]"
+                            }`}
+                          >
+                            <Icon name="close" className="text-[18px]" />
                           </button>
                         </div>
                       )}
                     </div>
 
                     {/* Parâmetros */}
-                    <div className="technical-panel rounded p-6 space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">Configurações Físicas</h3>
+                    <div className={`technical-panel rounded p-6 space-y-6 border ${
+                      theme === "dark" ? "border-[#18181b]" : "border-[#e4e4e7] bg-white"
+                    }`}>
+                      <h3 className={`text-xs font-semibold uppercase tracking-wider mono-text border-b pb-3 ${
+                        theme === "dark" ? "text-white border-[#18181b]" : "text-black border-[#e4e4e7]"
+                      }`}>Configurações Físicas</h3>
                       
                       <div className="space-y-3">
                         <label className={`text-xs font-semibold uppercase tracking-wider mono-text ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#4b5563]"}`}>Material do Filamento</label>
@@ -2661,19 +3131,23 @@ export default function Home() {
                         const details = materialDetails[material as keyof typeof materialDetails];
                         if (!details) return null;
                         return (
-                          <div className="bg-[#09090b] border border-[#18181b] p-4 rounded space-y-3">
-                            <div className="flex justify-between items-center border-b border-[#18181b]/60 pb-2">
-                              <span className="text-xs font-bold text-white mono-text">{details.name}</span>
+                          <div className={`border p-4 rounded space-y-3 ${
+                            theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-[#fafafa] border-[#e4e4e7]"
+                          }`}>
+                            <div className={`flex justify-between items-center border-b pb-2 ${
+                              theme === "dark" ? "border-[#18181b]/60" : "border-[#e4e4e7]"
+                            }`}>
+                              <span className={`text-xs font-bold mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>{details.name}</span>
                               <span className="text-[9px] text-[#71717a] uppercase font-bold tracking-wider">Ficha Técnica</span>
                             </div>
-                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                              <span className="text-white font-semibold">O que é:</span> {details.description}
+                            <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>
+                              <span className={`font-semibold ${theme === "dark" ? "text-white" : "text-black"}`}>O que é:</span> {details.description}
                             </p>
-                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                              <span className="text-white font-semibold">Resistência:</span> {details.resistance}
+                            <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>
+                              <span className={`font-semibold ${theme === "dark" ? "text-white" : "text-black"}`}>Resistência:</span> {details.resistance}
                             </p>
-                            <p className="text-xs text-[#a1a1aa] leading-relaxed">
-                              <span className="text-white font-semibold">Aplicações:</span> {details.application}
+                            <p className={`text-xs leading-relaxed ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>
+                              <span className={`font-semibold ${theme === "dark" ? "text-white" : "text-black"}`}>Aplicações:</span> {details.application}
                             </p>
                           </div>
                         );
@@ -2875,7 +3349,11 @@ export default function Home() {
                                 }`} 
                               />
                               {clientZipLoading && <p className="text-xs text-yellow-500 mono-text animate-pulse">Buscando localidade e calculando frete...</p>}
-                              {clientAddress && <p className="text-xs text-[#10b981] font-semibold mono-text mt-0.5">📍 {clientAddress}</p>}
+                              {clientAddress && (
+                                <p className="text-xs text-[#10b981] font-semibold mono-text mt-0.5 flex items-center gap-1">
+                                  <Icon name="location_on" size={14} /> {clientAddress}
+                                </p>
+                              )}
                             </div>
 
                             {/* Sonar / Radar de Proximidade */}
@@ -2929,11 +3407,14 @@ export default function Home() {
                                               </div>
                                               <div className="flex justify-between items-center text-[10px] text-[#71717a]">
                                                 <span>Máquina: {maker.machine}</span>
-                                                <span>Nota: ★{maker.rating.toFixed(1)}</span>
+                                                <span className="inline-flex items-center gap-0.5">Nota: <Icon name="star" size={14} filled className="text-amber-500" />{maker.rating.toFixed(1)}</span>
                                               </div>
                                               {!isCompatible && (
                                                 <p className="text-[8px] text-red-400 font-semibold mono-text mt-0.5">
-                                                  ⚠️ {!fitsVolume ? "Mesa útil menor que a peça" : "Exige impressora fechada"}
+                                                  <span className="inline-flex items-center gap-1">
+                                                    <Icon name="warning" size={14} />
+                                                    {!fitsVolume ? "Mesa útil menor que a peça" : "Exige impressora fechada"}
+                                                  </span>
                                                 </p>
                                               )}
                                             </div>
@@ -2950,25 +3431,20 @@ export default function Home() {
 
                             <button
                               onClick={dispatchOrder}
-                              disabled={clientZip.replace(/\D/g, "").length !== 8 || nearbyMakers.filter(m => {
-                                const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
-                                const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
-                                const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
-                                return fitsVol && meetsEnc;
-                              }).length === 0}
-                              className={`w-full py-3 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition cursor-pointer ${
-                                clientZip.replace(/\D/g, "").length === 8 && nearbyMakers.filter(m => {
-                                  const preset = PRINTER_PRESETS.find(p => `${p.brand} ${p.model}` === m.machine);
-                                  const fitsVol = preset ? (preset.volumeX >= quote.boundingBox.width && preset.volumeY >= quote.boundingBox.depth && preset.volumeZ >= quote.boundingBox.height) : true;
-                                  const meetsEnc = (material === "ABS" || material === "ASA") ? (preset ? preset.hasEnclosure : true) : true;
-                                  return fitsVol && meetsEnc;
-                                }).length > 0
-                                  ? "bg-[#d44d00] hover:bg-[#b04000] shadow-md shadow-[#d44d00]/10"
-                                  : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
+                              disabled={clientZip.replace(/\D/g, "").length !== 8}
+                              className={`w-full py-3 font-bold text-xs uppercase tracking-wider rounded-lg transition cursor-pointer ${
+                                clientZip.replace(/\D/g, "").length === 8
+                                  ? "bg-[#d44d00] hover:bg-[#b04000] text-white shadow-md shadow-[#d44d00]/10"
+                                  : theme === "dark"
+                                    ? "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
+                                    : "bg-[#e4e4e7] border border-[#d4d4d8] text-[#71717a] cursor-not-allowed"
                               }`}
                             >
-                              Despachar para Fabricação Local
+                              Enviar para a fila das fabs
                             </button>
+                            <p className={`text-[10px] text-center mono-text ${theme === "dark" ? "text-[#71717a]" : "text-[#71717a]"}`}>
+                              O pedido entra em WAITING_MAKER — fabs homologadas aceitam na fila.
+                            </p>
                           </div>
                         ) : (
                           <div className={`technical-panel rounded-lg p-10 text-center flex flex-col items-center justify-center min-h-[180px] border ${
@@ -3039,7 +3515,13 @@ export default function Home() {
                                           <div className={`absolute left-1/2 top-1/2 -translate-y-1/2 -translate-x-1/2 text-[7px] font-bold px-1.5 py-0.5 rounded mono-text z-10 border ${
                                             theme === "dark" ? "bg-[#09090b] border-[#18181b] text-white" : "bg-white border-[#e4e4e7] text-black"
                                           }`}>
-                                            {ord.status === "PRINTING" ? "⚙️ IMPRIMINDO" : "🚚 TRANSIT"}
+                                            <span className="inline-flex items-center gap-1">
+                                              {ord.status === "PRINTING" ? (
+                                                <><Icon name="print" size={14} /> IMPRIMINDO</>
+                                              ) : (
+                                                <><Icon name="local_shipping" size={14} /> TRANSIT</>
+                                              )}
+                                            </span>
                                           </div>
                                         )}
 
@@ -3279,149 +3761,377 @@ export default function Home() {
           </div>
         )}
 
-        {/* TAB 3: PAINEL MAKER (CADASTRO PASSO A PASSO + NOTIFICAÇÕES SOB DEMANDA + REPUTAÇÃO E BANIMENTO) */}
-        {activeTab === "maker" && (
+        {/* TAB 3: PORTAL MAKER — outro role vê gate; visitante/MAKER vê wizard ou painel */}
+        {activeTab === "maker" && currentUser && currentUser.role !== "MAKER" && (
+          <div className="max-w-lg mx-auto px-6 py-20 text-center space-y-5">
+            <div className={`rounded-2xl border p-8 space-y-4 ${
+              theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#ebebef] bg-white"
+            }`}>
+              <Icon name="precision_manufacturing" size={36} className="text-[#d44d00] mx-auto" />
+              <h2 className={`text-xl font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-[#111]"}`}>
+                Portal da fab
+              </h2>
+              <p className={`text-sm ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#5c5c66]"}`}>
+                A fila de jobs é só para makers homologados.
+                {` Sua sessão atual (${currentUser.role}) não tem permissão.`}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={openMakerLogin}
+                  className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded-full transition cursor-pointer"
+                >
+                  Entrar como maker
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goTo("home", "maker")}
+                  className={`px-6 py-3 text-xs font-bold uppercase tracking-wider rounded-full border transition cursor-pointer ${
+                    theme === "dark"
+                      ? "border-white/15 text-white hover:bg-white/5"
+                      : "border-black/10 text-[#111] hover:bg-black/5"
+                  }`}
+                >
+                  Voltar ao início
+                </button>
+              </div>
+              <p className="text-[10px] text-[#71717a] mono-text pt-2">MVP: roda@fabmakers.com.br / 123</p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "maker" && (!currentUser || currentUser.role === "MAKER") && (
           <div className="max-w-7xl mx-auto px-6 py-12">
-{/* 1. SE O MAKER NÃO ESTÁ CADASTRADO: WIZARD DE CADASTRO DETALHADO */}
+{/* 1. SE O MAKER NÃO ESTÁ CADASTRADO: WIZARD DE CREDENCIAMENTO */}
             {!makerProfile ? (
-              <div className="max-w-3xl mx-auto space-y-8">
-                <div className="border-b border-[#18181b] pb-4">
-                  <h2 className="text-xl font-bold text-white uppercase tracking-tight mono-text">Formulário de Entrada - Maker</h2>
-                  {/* Indicador de passos */}
-                </div>
-                <div className="flex justify-between text-xs text-[#71717a] font-semibold uppercase tracking-wider mono-text border-b border-[#18181b] pb-3">
-                  <span className={wizardStep === 1 ? "text-[#d44d00]" : ""}>1. Conta & E-mail</span>
-                  <span className={wizardStep === 2 ? "text-[#d44d00]" : ""}>2. Contrato SLA</span>
-                  <span className={wizardStep === 3 ? "text-[#d44d00]" : ""}>3. Máquinas</span>
-                  <span className={wizardStep === 4 ? "text-[#d44d00]" : ""}>4. Estoque</span>
-                  <span className={wizardStep === 5 ? "text-[#d44d00]" : ""}>5. Carga & KYC</span>
+              <div className="max-w-xl mx-auto space-y-10 py-4">
+                {(() => {
+                  const wizardSteps = [
+                    { n: 1, label: "Conta" },
+                    { n: 2, label: "Contrato" },
+                    { n: 3, label: "Máquinas" },
+                    { n: 4, label: "Estoque" },
+                    { n: 5, label: "KYC" },
+                  ];
+                  const isLight = theme === "light";
+                  const labelCls = isLight
+                    ? "text-[12px] font-medium text-[var(--wizard-muted)]"
+                    : "text-[10px] uppercase tracking-wider text-[#71717a] mono-text";
+                  const titleCls = isLight ? "text-[#111111]" : "text-white";
+                  const bodyCls = isLight ? "text-[#5c5c66] leading-relaxed" : "text-[#a1a1aa]";
+                  const btnBack = isLight
+                    ? "flex-1 py-3.5 border border-[#e4e4ea] text-[#111] font-semibold text-sm rounded-full transition hover:bg-white cursor-pointer"
+                    : "flex-1 py-3 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded-md transition cursor-pointer hover:border-[#27272a]";
+                  const btnNext = isLight
+                    ? "flex-1 py-3.5 bg-[#111111] text-white font-semibold text-sm rounded-full transition hover:bg-[#2a2a2a] cursor-pointer"
+                    : "flex-1 py-3 bg-white text-black font-bold text-xs uppercase tracking-wider rounded-md transition cursor-pointer hover:bg-[#e4e4e7]";
+                  const btnNextDisabled = isLight
+                    ? "flex-1 py-3.5 bg-[#ebebef] text-[#9a9aa3] font-semibold text-sm rounded-full cursor-not-allowed"
+                    : "flex-1 py-3 bg-[#18181b] border border-[#27272a] text-[#71717a] font-bold text-xs uppercase tracking-wider rounded-md cursor-not-allowed";
+                  const btnAccent = "w-full py-3.5 bg-[#d44d00] hover:bg-[#b04000] text-white text-sm font-semibold rounded-full transition cursor-pointer";
+                  return (
+                <>
+                <div className="space-y-8 text-center sm:text-left">
+                  <div className="space-y-3">
+                    <p className={`text-[11px] font-medium tracking-[0.18em] uppercase ${isLight ? "text-[#d44d00]" : "text-[#d44d00]"}`}>
+                      Credenciamento
+                    </p>
+                    <h2 className={`text-3xl sm:text-4xl font-semibold tracking-tight ${titleCls}`}>
+                      Cadastre sua fab
+                    </h2>
+                    <p className={`text-[15px] max-w-md mx-auto sm:mx-0 ${bodyCls}`}>
+                      Confirme a conta, aceite o contrato, declare máquinas e estoque, e prove identidade + calibração para entrar na fila de jobs.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className={`flex justify-between text-[12px] ${isLight ? "text-[#8a8a93]" : "text-[#71717a] mono-text uppercase tracking-wider text-[10px]"}`}>
+                      <span>Passo {wizardStep} de 5</span>
+                      <span>{wizardSteps[wizardStep - 1]?.label}</span>
+                    </div>
+                    <div className={`h-1 rounded-full overflow-hidden ${isLight ? "bg-[#e8e8ee]" : "bg-[#18181b]"}`}>
+                      <div
+                        className="h-full bg-[#d44d00] transition-all duration-500 ease-out rounded-full"
+                        style={{ width: `${(wizardStep / 5) * 100}%` }}
+                      />
+                    </div>
+                    <ol className="grid grid-cols-5 gap-1">
+                      {wizardSteps.map((s) => (
+                        <li
+                          key={s.n}
+                          className={`text-center text-[11px] font-medium truncate ${
+                            s.n === wizardStep
+                              ? "text-[#d44d00]"
+                              : s.n < wizardStep
+                                ? titleCls
+                                : isLight ? "text-[#b0b0b8]" : "text-[#52525b]"
+                          }`}
+                        >
+                          {s.label}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
                 </div>
 
-                <div className="technical-panel p-6 rounded-lg space-y-6">
-                  {/* PASSO 1: CONTA & E-MAIL (ZOHO SMTP) */}
+                <div className={`rounded-2xl p-7 sm:p-9 space-y-8 ${
+                  isLight
+                    ? "bg-white border border-[#ebebef] shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
+                    : "border border-[#18181b] bg-[#09090b]/80"
+                }`}>
+                  {/* PASSO 1: CONTA + IDENTIDADE LOCAL */}
                   {wizardStep === 1 && (
-                    <div className="space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Identificação de Conta & Confirmação de E-mail</h3>
-                      <div className="space-y-1.5">
-                        <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">E-mail de Cadastro (Autopreenchido)</label>
-                        <input 
-                          type="email" value={wizardEmail} disabled 
-                          className="w-full bg-[#18181b]/50 border border-[#27272a] rounded p-2.5 text-xs text-[#a1a1aa] focus:outline-none cursor-not-allowed opacity-80" 
-                        />
-                        <p className="text-[10px] text-[#71717a]">Seu e-mail de acesso já está associado e autenticado à sua sessão FabMakers.</p>
+                    <div className="space-y-7">
+                      <div className={`space-y-1.5 pb-4 border-b ${isLight ? "border-[#f0f0f3]" : "border-[#18181b]"}`}>
+                        <h3 className={`text-lg font-semibold tracking-tight ${titleCls}`}>Conta e localização</h3>
+                        <p className={`text-sm ${bodyCls}`}>Confirme o e-mail da sessão e diga quem você é e de onde fabrica.</p>
                       </div>
 
-                      {/* Confirmação de E-mail via Código Zoho SMTP */}
-                      <div className="border border-[#18181b] rounded p-4 bg-[#050506] space-y-4">
-                        <div className="flex justify-between items-center text-xs mono-text">
-                          <span className="text-[#a1a1aa] uppercase font-bold">Status do E-mail</span>
-                          <span className={emailVerified ? "text-[#10b981]" : "text-yellow-500 animate-pulse"}>
-                            {emailVerified ? "📧 Verificado com sucesso!" : "Aguardando Confirmação"}
+                      <div className="space-y-1.5">
+                        <label className={labelCls}>E-mail da sessão</label>
+                        <input
+                          type="email" value={wizardEmail} disabled
+                          className="wizard-input"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5" id="wizard-field-name">
+                          <label className={labelCls}>Nome completo</label>
+                          <input
+                            type="text"
+                            value={wizardName}
+                            onChange={(e) => {
+                              setWizardName(e.target.value);
+                              setWizardErrors((prev) => {
+                                const n = { ...prev };
+                                delete n.name;
+                                return n;
+                              });
+                            }}
+                            placeholder="Como no documento"
+                            className={`wizard-input ${wizardErrors.name ? "wizard-input-error" : ""}`}
+                          />
+                          {wizardErrors.name && <p className="text-[12px] text-red-500 font-medium">{wizardErrors.name}</p>}
+                        </div>
+                        <div className="space-y-1.5" id="wizard-field-zip">
+                          <label className={labelCls}>CEP de atuação</label>
+                          <input
+                            type="text"
+                            value={wizardZip}
+                            onChange={(e) => {
+                              handleMakerZipChange(e.target.value);
+                              setWizardErrors((prev) => {
+                                const n = { ...prev };
+                                delete n.zip;
+                                return n;
+                              });
+                            }}
+                            placeholder="00000-000"
+                            className={`wizard-input ${wizardErrors.zip ? "wizard-input-error" : ""}`}
+                          />
+                          {wizardErrors.zip && <p className="text-[12px] text-red-500 font-medium">{wizardErrors.zip}</p>}
+                          {makerZipLoading && <p className="text-xs text-amber-600 animate-pulse">Buscando localidade...</p>}
+                          {makerZipFeedback && <p className="text-xs text-[#0d9f6e] font-medium mt-0.5">{makerZipFeedback}</p>}
+                        </div>
+                      </div>
+
+                      <div className="wizard-nest space-y-4">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className={`font-medium ${isLight ? "text-[#5c5c66]" : "text-[#a1a1aa] uppercase text-xs mono-text tracking-wider"}`}>E-mail</span>
+                          <span className={emailVerified ? "text-[#0d9f6e] font-medium" : "text-amber-600 font-medium"}>
+                            {emailVerified ? "Confirmado" : "Pendente"}
                           </span>
                         </div>
+                        <p className={`text-sm ${bodyCls}`}>
+                          Enviamos um código de 6 dígitos. Sem SMTP no ambiente, o código aparece aqui (modo console).
+                        </p>
 
-                        {!emailSent ? (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!wizardEmail) {
-                                alert("Erro: E-mail da conta não identificado!");
-                                return;
-                              }
-                              const code = Math.floor(100000 + Math.random() * 900000).toString();
-                              setRealGeneratedCode(code);
-                              setEmailSent(true);
-                              // Simula o recebimento real do e-mail exibindo o código
-                              alert(`[ZOHO SMTP] E-mail enviado com sucesso para ${wizardEmail}!\n\nCódigo de Verificação: ${code}`);
-                            }}
-                            className="w-full py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
-                          >
-                            Enviar Código de Confirmação (Zoho SMTP)
-                          </button>
-                        ) : (
-                          <div className="space-y-4">
-                            {!emailVerified ? (
-                              <div className="space-y-3">
-                                <p className="text-xs text-[#71717a] text-center">
-                                  Enviamos um código de 6 dígitos para o e-mail <strong className="text-white">{wizardEmail}</strong>.<br />
-                                  Insira o código recebido abaixo para confirmar sua conta:
-                                </p>
+                        {!emailVerified ? (
+                          <div className="space-y-3">
+                            <button
+                              type="button"
+                              disabled={emailVerificationLoading}
+                              onClick={async () => {
+                                if (!wizardEmail) {
+                                  alert("E-mail da sessão não identificado. Faça login novamente.");
+                                  return;
+                                }
+                                setEmailVerificationLoading(true);
+                                try {
+                                  const res = await fetch("/api/auth/verify-email", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ action: "send", email: wizardEmail }),
+                                  });
+                                  const data = await res.json();
+                                  if (!data.success) {
+                                    alert(data.error || "Falha ao enviar código.");
+                                    return;
+                                  }
+                                  setEmailSent(true);
+                                  if (data.devCode) {
+                                    setRealGeneratedCode(data.devCode);
+                                    setEmailVerificationCode(data.devCode);
+                                  } else {
+                                    setRealGeneratedCode("");
+                                    setEmailVerificationCode("");
+                                  }
+                                  setWizardErrors((prev) => {
+                                    const n = { ...prev };
+                                    delete n.email;
+                                    return n;
+                                  });
+                                } catch (err) {
+                                  console.error(err);
+                                  alert("Erro de conexão ao enviar código.");
+                                } finally {
+                                  setEmailVerificationLoading(false);
+                                }
+                              }}
+                              className={btnAccent}
+                            >
+                              {emailVerificationLoading ? "Enviando…" : "Enviar código de verificação"}
+                            </button>
+
+                            {emailSent && (
+                              <div className="space-y-2">
+                                {realGeneratedCode ? (
+                                  <div className={`rounded-xl p-4 text-center ${isLight ? "bg-white border border-[#ebebef]" : "bg-[#18181b] border border-[#d44d00]/40"}`}>
+                                    <span className={`text-[11px] block mb-1 ${isLight ? "text-[#8a8a93]" : "text-[#71717a] uppercase"}`}>Código (modo console)</span>
+                                    <span className="text-xl font-semibold text-[#d44d00] tracking-[0.25em]">{realGeneratedCode}</span>
+                                  </div>
+                                ) : (
+                                  <p className={`text-xs ${isLight ? "text-[#5c5c66]" : "text-[#a1a1aa]"}`}>
+                                    Verifique sua caixa de entrada e digite o código abaixo.
+                                  </p>
+                                )}
                                 <div className="flex gap-2">
-                                  <input 
-                                    type="text" 
+                                  <input
+                                    type="text"
                                     maxLength={6}
-                                    placeholder="Digite o código" 
+                                    placeholder="Código"
                                     value={emailVerificationCode}
                                     onChange={(e) => setEmailVerificationCode(e.target.value)}
-                                    className="flex-grow bg-[#09090b] border border-[#18181b] rounded p-2 text-center text-sm font-bold text-white mono-text focus:outline-none focus:border-[#d44d00] tracking-widest"
+                                    className="wizard-input text-center tracking-widest font-semibold"
                                   />
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      if (emailVerificationCode === realGeneratedCode) {
+                                    disabled={emailVerificationLoading}
+                                    onClick={async () => {
+                                      if (!wizardEmail || !emailVerificationCode) {
+                                        alert("Informe o código.");
+                                        return;
+                                      }
+                                      setEmailVerificationLoading(true);
+                                      try {
+                                        const res = await fetch("/api/auth/verify-email", {
+                                          method: "POST",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({
+                                            action: "confirm",
+                                            email: wizardEmail,
+                                            code: emailVerificationCode,
+                                          }),
+                                        });
+                                        const data = await res.json();
+                                        if (!data.success) {
+                                          alert(data.error || "Código inválido.");
+                                          return;
+                                        }
                                         setEmailVerified(true);
-                                        alert("Sucesso! E-mail verificado no banco de dados SQLite/Turso.");
-                                      } else {
-                                        alert("Código incorreto! Verifique a caixa de entrada (ou o alerta do Zoho) e digite novamente.");
+                                        setWizardErrors((prev) => {
+                                          const n = { ...prev };
+                                          delete n.email;
+                                          return n;
+                                        });
+                                      } catch (err) {
+                                        console.error(err);
+                                        alert("Erro ao validar código.");
+                                      } finally {
+                                        setEmailVerificationLoading(false);
                                       }
                                     }}
-                                    className="px-4 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
+                                    className="px-5 rounded-full bg-[#0d9f6e] hover:bg-[#0b8a5f] text-white text-sm font-semibold transition cursor-pointer"
                                   >
                                     Validar
                                   </button>
                                 </div>
                               </div>
-                            ) : (
-                              <div className="bg-[#10b981]/10 border border-[#10b981]/20 p-3 rounded text-center text-xs text-[#10b981] font-semibold">
-                                E-mail confirmado com sucesso. Prossiga para o credenciamento.
-                              </div>
                             )}
+
+                            <details className={`pt-2 ${isLight ? "border-t border-[#ebebef]" : "border-t border-[#18181b]"}`}>
+                              <summary className={`text-[12px] cursor-pointer select-none py-2 ${isLight ? "text-[#8a8a93]" : "text-[#71717a] uppercase tracking-wider mono-text"}`}>
+                                MVP — confirmar e-mail da sessão (sem código)
+                              </summary>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEmailSent(true);
+                                  setEmailVerified(true);
+                                  setWizardErrors((prev) => {
+                                    const n = { ...prev };
+                                    delete n.email;
+                                    return n;
+                                  });
+                                }}
+                                className={`${btnBack} mt-2 w-full`}
+                              >
+                                Confirmar e-mail da sessão
+                              </button>
+                            </details>
                           </div>
+                        ) : (
+                          <p className={`text-sm font-medium ${isLight ? "text-[#0d9f6e]" : "text-[#10b981]"}`}>
+                            E-mail verificado — pode seguir o cadastro.
+                          </p>
                         )}
                       </div>
 
-                      <button 
-                        onClick={() => setWizardStep(2)} 
+                      <button
+                        type="button"
+                        onClick={() => setWizardStep(2)}
                         disabled={!emailVerified}
-                        className={`w-full py-2.5 font-bold text-xs uppercase tracking-wider rounded transition ${
-                          emailVerified 
-                            ? "bg-white text-black hover:bg-[#e4e4e7] cursor-pointer" 
-                            : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
-                        }`}
+                        className={!emailVerified ? btnNextDisabled : (isLight ? `${btnNext} w-full` : `w-full py-3 font-bold text-xs uppercase tracking-wider rounded-md transition bg-white text-black hover:bg-[#e4e4e7] cursor-pointer`)}
                       >
-                        Avançar para Contrato SLA
+                        Continuar
                       </button>
                     </div>
                   )}
 
-                  {/* PASSO 2: CONTRATO SLA (INTERMEDIAÇÃO DESCENTRALIZADA) */}
+                  {/* PASSO 2: CONTRATO SLA */}
                   {wizardStep === 2 && (
-                    <div className="space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Contrato de Credenciamento, Parceria & Isenção Tributária</h3>
+                    <div className="space-y-7">
+                      <div className={`space-y-1.5 pb-4 border-b ${isLight ? "border-[#f0f0f3]" : "border-[#18181b]"}`}>
+                        <h3 className={`text-lg font-semibold tracking-tight ${titleCls}`}>Contrato de credenciamento</h3>
+                        <p className={`text-sm ${bodyCls}`}>Leia os termos. Sem vínculo empregatício — você fabrica, a plataforma orquestra.</p>
+                      </div>
                       
                       {/* Corpo do Contrato */}
-                      <div className="h-64 overflow-y-auto border border-[#18181b] p-4 bg-[#050506] rounded space-y-4 text-xs text-[#a1a1aa] leading-relaxed">
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">1. DA NATUREZA DA INTERMEDIAÇÃO DIGITAL P2P</h4>
+                      <div className={`h-56 overflow-y-auto p-5 space-y-4 text-sm leading-relaxed rounded-2xl ${
+                        isLight ? "bg-[#fafafa] border border-[#ebebef] text-[#5c5c66]" : "border border-[#18181b] bg-[#050506] text-[#a1a1aa]"
+                      }`}>
+                        <h4 className={`text-xs font-semibold tracking-wide ${titleCls}`}>1. Da natureza da intermediação digital P2P</h4>
                         <p>
                           A FAB MAKERS atua exclusivamente como provedora de infraestrutura tecnológica e de intermediação comercial. A plataforma conecta de forma algorítmica a lei da oferta e da procura: de um lado, clientes demandantes de peças customizadas; de outro, Makers (Pessoas Físicas operando hardware ocioso doméstico ou Empresas/Bureaus corporativos de manufatura). O Maker declara estar ciente de que não há qualquer vínculo empregatício ou societário com a FAB MAKERS.
                         </p>
                         
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">2. DA TAXA DE INTERMEDIAÇÃO E COMISSÃO</h4>
-                        <p className="text-white font-semibold">
+                        <h4 className={`text-xs font-semibold tracking-wide ${titleCls}`}>2. Da taxa de intermediação e comissão</h4>
+                        <p className={`font-medium ${titleCls}`}>
                           O credenciamento na plataforma é 100% gratuito. Pela intermediação tecnológica e facilitação de cobrança, a FAB MAKERS aplicará taxas e comissões flexíveis de acordo com o plano de maker e a complexidade de cada projeto, previamente detalhadas e informadas no momento do aceite de cada proposta de trabalho. O repasse financeiro do valor líquido acordado será depositado de forma digital e quinzenal na conta bancária do parceiro cadastrado.
                         </p>
 
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">3. DA ISENÇÃO DE RESPONSABILIDADE FISCAL E HARDWARE</h4>
+                        <h4 className={`text-xs font-semibold tracking-wide ${titleCls}`}>3. Da isenção de responsabilidade fiscal e hardware</h4>
                         <p>
                           O Maker assume inteira e exclusiva responsabilidade pelos custos de hardware de sua operação (energia elétrica, depreciação física de bicos/extrusoras, compra de filamentos, falhas de impressão e perdas de material). A FAB MAKERS atua apenas na facilitação do pagamento. A nota fiscal dos insumos e produtos comprados via dropshipping é de responsabilidade do fornecedor original, cabendo ao Maker a regularização de seus serviços de fabricação perante os órgãos tributários.
                         </p>
 
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">4. DO SIGILO DOS ARQUIVOS E PROPRIEDADE INTELECTUAL</h4>
-                        <p className="text-white font-semibold">
+                        <h4 className={`text-xs font-semibold tracking-wide ${titleCls}`}>4. Do sigilo dos arquivos e propriedade intelectual</h4>
+                        <p className={`font-medium ${titleCls}`}>
                           Os arquivos geométricos (STL, OBJ, STEP, etc.) enviados pelos clientes são de propriedade intelectual exclusiva dos mesmos. O Maker obriga-se a manter sigilo absoluto sobre tais arquivos, comprometendo-se a deletá-los de seus sistemas e fatiadores locais logo após a conclusão física e despacho da ordem. É expressamente proibido revender, distribuir, arquivar ou reproduzir as peças dos clientes para fins comerciais próprios. O descumprimento gera banimento imediato e instauração de responsabilidade civil e criminal.
                         </p>
 
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text">5. DA NÃO CONCORRÊNCIA E CANAL EXCLUSIVO</h4>
+                        <h4 className={`text-xs font-semibold tracking-wide ${titleCls}`}>5. Da não concorrência e canal exclusivo</h4>
                         <p>
                           Fica vedado ao Maker negociar diretamente ou receber pagamentos por fora dos clientes apresentados originalmente pela FAB MAKERS. O desvio de canal ensejará multa correspondente ao triplo da média de faturamento mensal do parceiro, além do bloqueio permanente e retenção de saldos para indenização de prejuízos.
                         </p>
@@ -3432,62 +4142,45 @@ export default function Home() {
                         <input 
                           type="checkbox" checked={contractAccepted} 
                           onChange={(e) => setContractAccepted(e.target.checked)} 
-                          className="mt-0.5 accent-[#d44d00]" 
+                          className="mt-1 accent-[#d44d00] scale-110" 
                         />
-                        <span className="text-xs text-[#71717a] leading-tight">
+                        <span className={`text-sm leading-snug ${bodyCls}`}>
                           Declaro que li, compreendi e concordo com todos os termos do Contrato de Credenciamento da FAB MAKERS, assumindo total responsabilidade pelo sigilo das peças 3D e calibração dimensional.
                         </span>
                       </label>
 
-                      <div className="flex gap-4">
-                        <button onClick={() => setWizardStep(1)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => setWizardStep(1)} className={btnBack}>
                           Voltar
                         </button>
                         <button 
+                          type="button"
                           onClick={() => setWizardStep(3)} 
                           disabled={!contractAccepted}
-                          className={`flex-1 py-2.5 font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer ${
-                            contractAccepted 
-                              ? "bg-white text-black hover:bg-[#e4e4e7]" 
-                              : "bg-[#18181b] border border-[#27272a] text-[#71717a] cursor-not-allowed"
-                          }`}
+                          className={contractAccepted ? btnNext : btnNextDisabled}
                         >
-                          Avançar para Máquinas
+                          Continuar
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* PASSO 3: MÁQUINAS (ANTIGO PASSO 1) */}
+                  {/* PASSO 3: MÁQUINAS */}
                   {wizardStep === 3 && (
-                    <div className="space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Informações Pessoais & Cadastro de Equipamentos</h3>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Nome Completo</label>
-                          <input 
-                            type="text" value={wizardName} onChange={(e) => setWizardName(e.target.value)} placeholder="Ex: Maria Souza" 
-                            className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">CEP de Atuação</label>
-                          <input 
-                            type="text" value={wizardZip} 
-                            onChange={(e) => handleMakerZipChange(e.target.value)} 
-                            placeholder="Ex: 13083-970" 
-                            className="w-full bg-[#050506] border border-[#18181b] rounded p-2.5 text-xs text-white focus:border-[#d44d00] focus:outline-none transition" 
-                          />
-                          {makerZipLoading && <p className="text-xs text-yellow-500 mono-text animate-pulse">Buscando localidade...</p>}
-                          {makerZipFeedback && <p className="text-xs text-[#10b981] font-semibold mono-text mt-0.5">📍 {makerZipFeedback}</p>}
-                        </div>
+                    <div className="space-y-7">
+                      <div className={`space-y-1.5 pb-4 border-b ${isLight ? "border-[#f0f0f3]" : "border-[#18181b]"}`}>
+                        <h3 className={`text-lg font-semibold tracking-tight ${titleCls}`}>Suas impressoras</h3>
+                        <p className={`text-sm ${bodyCls}`}>Declare o hardware ocioso que vai receber jobs da fila.</p>
                       </div>
+                      {(wizardErrors.machines) && (
+                        <p className="text-[12px] text-red-500 font-medium">{wizardErrors.machines}</p>
+                      )}
 
                       {/* Lista de Máquinas */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Suas Impressoras 3D</label>
-                          <button onClick={addMachine} className="text-xs text-[#d44d00] hover:underline font-bold">+ Adicionar Máquina</button>
+                          <label className={labelCls}>Equipamentos</label>
+                          <button type="button" onClick={addMachine} className="text-sm text-[#d44d00] hover:opacity-80 font-semibold">+ Adicionar</button>
                         </div>
                         
                         {wizardMachines.map((mach, index) => {
@@ -3495,13 +4188,13 @@ export default function Home() {
                           const isCustom = !mach.brand || mach.brand === "Personalizada";
                           
                           return (
-                            <div key={mach.id} className="border border-[#18181b] p-4 rounded bg-[#050506] space-y-4">
-                              <div className="flex justify-between items-center text-xs font-bold text-[#a1a1aa] border-b border-[#18181b] pb-2">
-                                <span className="mono-text text-xs tracking-wider text-[#71717a]">MÁQUINA #{index + 1}</span>
+                            <div key={mach.id} className="wizard-nest space-y-4">
+                              <div className={`flex justify-between items-center text-sm pb-2 border-b ${isLight ? "border-[#ebebef]" : "border-[#18181b]"}`}>
+                                <span className={`font-medium ${isLight ? "text-[#5c5c66]" : "text-[#71717a] mono-text text-xs tracking-wider"}`}>Máquina #{index + 1}</span>
                                 {wizardMachines.length > 1 && (
                                   <button 
                                     onClick={() => setWizardMachines(wizardMachines.filter(m => m.id !== mach.id))}
-                                    className="text-red-500 hover:text-red-400 font-normal hover:underline text-xs"
+                                    className="text-red-500 hover:text-red-400 font-medium text-xs"
                                   >
                                     Remover
                                   </button>
@@ -3510,7 +4203,7 @@ export default function Home() {
 
                               <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                  <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Fabricante</label>
+                                  <label className={labelCls}>Fabricante</label>
                                   <select 
                                     value={mach.brand || ""} 
                                     onChange={(e) => {
@@ -3535,7 +4228,7 @@ export default function Home() {
                                       }
                                       setWizardMachines(newM);
                                     }}
-                                    className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]" 
+                                    className="wizard-select" 
                                   >
                                     <option value="">-- Selecione a marca --</option>
                                     {uniqueBrands.map(b => (
@@ -3547,7 +4240,7 @@ export default function Home() {
 
                                 {!isCustom && (
                                   <div className="space-y-1">
-                                    <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Modelo do Equipamento</label>
+                                    <label className={labelCls}>Modelo</label>
                                     <select 
                                       value={mach.model || ""} 
                                       onChange={(e) => {
@@ -3571,7 +4264,7 @@ export default function Home() {
                                           setWizardMachines(newM);
                                         }
                                       }}
-                                      className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]"
+                                      className="wizard-select"
                                     >
                                       <option value="">-- Selecione o modelo --</option>
                                       {filteredModels.map(m => (
@@ -3593,11 +4286,11 @@ export default function Home() {
                                         newM[index].brand = e.target.value;
                                         setWizardMachines(newM);
                                       }}
-                                      className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]"
+                                      className="wizard-input"
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Modelo Livre</label>
+                                    <label className={labelCls}>Modelo livre</label>
                                     <input 
                                       type="text" value={mach.model} placeholder="Ex: Ender 3 V2"
                                       onChange={(e) => {
@@ -3605,11 +4298,11 @@ export default function Home() {
                                         newM[index].model = e.target.value;
                                         setWizardMachines(newM);
                                       }}
-                                      className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]"
+                                      className="wizard-input"
                                     />
                                   </div>
                                   <div className="space-y-1">
-                                    <label className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text">Volume (XxYxZ mm)</label>
+                                    <label className={labelCls}>Volume (XxYxZ)</label>
                                     <input 
                                       type="text" value={mach.volume} placeholder="Ex: 220x220x250mm"
                                       onChange={(e) => {
@@ -3617,26 +4310,26 @@ export default function Home() {
                                         newM[index].volume = e.target.value;
                                         setWizardMachines(newM);
                                       }}
-                                      className="w-full bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]"
+                                      className="wizard-input"
                                     />
                                   </div>
                                 </div>
                               ) : (
                                 mach.model && (
-                                  <div className="bg-[#09090b] border border-[#18181b] p-3 rounded text-xs text-[#a1a1aa] space-y-2 mono-text">
+                                  <div className="wizard-spec space-y-2">
                                     <div className="grid grid-cols-3 gap-y-1.5 gap-x-2">
-                                      <p>Tecnologia: <span className="text-white">{mach.technology}</span></p>
-                                      <p>Volume Útil: <span className="text-white">{mach.volume}</span></p>
-                                      <p>Câmara: <span className="text-white">{mach.hasEnclosure ? "Fechada (Sim)" : "Aberta (Não)"}</span></p>
-                                      <p>Multicor: <span className="text-white">{mach.hasMulticolor ? "Suporta AMS/MMU" : "Não"}</span></p>
-                                      <p>Bico Máx: <span className="text-white">{mach.maxNozzleTemp}°C</span></p>
-                                      <p>Mesa Máx: <span className="text-white">{mach.maxBedTemp}°C</span></p>
-                                      <p>Velocidade: <span className="text-white">{mach.maxSpeed} mm/s</span></p>
-                                      <p>Precisão: <span className="text-white">±{mach.typicalPrecision} mm</span></p>
-                                      <p>Carga Máx Z: <span className="text-white">{mach.maxPartWeightG}g</span></p>
+                                      <p>Tecnologia: <span className={titleCls}>{mach.technology}</span></p>
+                                      <p>Volume: <span className={titleCls}>{mach.volume}</span></p>
+                                      <p>Câmara: <span className={titleCls}>{mach.hasEnclosure ? "Fechada" : "Aberta"}</span></p>
+                                      <p>Multicor: <span className={titleCls}>{mach.hasMulticolor ? "Sim" : "Não"}</span></p>
+                                      <p>Bico máx: <span className={titleCls}>{mach.maxNozzleTemp}°C</span></p>
+                                      <p>Mesa máx: <span className={titleCls}>{mach.maxBedTemp}°C</span></p>
+                                      <p>Velocidade: <span className={titleCls}>{mach.maxSpeed} mm/s</span></p>
+                                      <p>Precisão: <span className={titleCls}>±{mach.typicalPrecision} mm</span></p>
+                                      <p>Carga Z: <span className={titleCls}>{mach.maxPartWeightG}g</span></p>
                                     </div>
-                                    <div className="border-t border-[#18181b] pt-1.5 text-xs">
-                                      <p className="truncate">Materiais Compatíveis: <span className="text-white">{(mach.compatibleMaterials || []).join(", ")}</span></p>
+                                    <div className={`border-t pt-1.5 text-xs ${isLight ? "border-[#ebebef]" : "border-[#18181b]"}`}>
+                                      <p className="truncate">Materiais: <span className={titleCls}>{(mach.compatibleMaterials || []).join(", ")}</span></p>
                                     </div>
                                   </div>
                                 )
@@ -3646,28 +4339,31 @@ export default function Home() {
                         })}
                       </div>
 
-                      <div className="flex gap-4">
-                        <button onClick={() => setWizardStep(2)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => setWizardStep(2)} className={btnBack}>
                           Voltar
                         </button>
-                        <button onClick={() => setWizardStep(4)} className="flex-1 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
-                          Avançar para Insumos
+                        <button type="button" onClick={() => setWizardStep(4)} className={btnNext}>
+                          Continuar
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* PASSO 4: INSUMOS EM ESTOQUE (ANTIGO PASSO 2) */}
+                  {/* PASSO 4: INSUMOS */}
                   {wizardStep === 4 && (
-                    <div className="space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Controle de Filamento & Matéria-Prima</h3>
+                    <div className="space-y-7">
+                      <div className={`space-y-1.5 pb-4 border-b ${isLight ? "border-[#f0f0f3]" : "border-[#18181b]"}`}>
+                        <h3 className={`text-lg font-semibold tracking-tight ${titleCls}`}>Estoque de filamento</h3>
+                        <p className={`text-sm ${bodyCls}`}>O que você tem pronto para imprimir agora.</p>
+                      </div>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text">Seu Estoque de Filamento</label>
-                          <button onClick={addFilament} className="text-xs text-[#d44d00] hover:underline font-bold">+ Adicionar Filamento</button>
+                          <label className={labelCls}>Materiais</label>
+                          <button type="button" onClick={addFilament} className="text-sm text-[#d44d00] hover:opacity-80 font-semibold">+ Adicionar</button>
                         </div>
                         {wizardFilaments.map((fil, index) => (
-                          <div key={fil.id} className="border border-[#18181b] p-3 rounded grid grid-cols-3 gap-2 bg-[#050506]">
+                          <div key={fil.id} className="wizard-nest grid grid-cols-3 gap-2 !py-3">
                             <select 
                               value={fil.type} 
                               onChange={(e) => {
@@ -3675,7 +4371,7 @@ export default function Home() {
                                 newF[index].type = e.target.value;
                                 setWizardFilaments(newF);
                               }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-[#a1a1aa] focus:outline-none"
+                              className="wizard-select"
                             >
                               <option value="PLA">PLA</option>
                               <option value="ABS">ABS</option>
@@ -3690,40 +4386,43 @@ export default function Home() {
                                 newF[index].color = e.target.value;
                                 setWizardFilaments(newF);
                               }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]" 
+                              className="wizard-input !py-2.5" 
                             />
                             <input 
-                              type="number" value={fil.weightG} placeholder="Peso em Gramas" 
+                              type="number" value={fil.weightG} placeholder="Gramas" 
                               onChange={(e) => {
                                 const newF = [...wizardFilaments];
                                 newF[index].weightG = parseInt(e.target.value) || 0;
                                 setWizardFilaments(newF);
                               }}
-                              className="bg-[#09090b] border border-[#18181b] rounded p-2 text-xs text-white focus:outline-none focus:border-[#d44d00]" 
+                              className="wizard-input !py-2.5" 
                             />
                           </div>
                         ))}
                       </div>
 
-                      <div className="flex gap-4">
-                        <button onClick={() => setWizardStep(3)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => setWizardStep(3)} className={btnBack}>
                           Voltar
                         </button>
-                        <button onClick={() => setWizardStep(5)} className="flex-1 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
-                          Avançar para Carga & KYC
+                        <button type="button" onClick={() => setWizardStep(5)} className={btnNext}>
+                          Continuar
                         </button>
                       </div>
                     </div>
                   )}
 
-                  {/* PASSO 5: CARGA OPERACIONAL, KYC E CALIBRAÇÃO */}
+                  {/* PASSO 5: AGENDA, KYC E CALIBRAÇÃO */}
                   {wizardStep === 5 && (
-                    <div className="space-y-6">
-                      <h3 className="text-xs font-semibold text-white uppercase tracking-wider mono-text border-b border-[#18181b] pb-2">Capacidade Diária, Verificação KYC e Calibração Técnica</h3>
+                    <div className="space-y-8">
+                      <div className={`space-y-1.5 pb-4 border-b ${theme === "light" ? "border-[#f0f0f3]" : "border-[#18181b]"}`}>
+                        <h3 className={`text-lg font-semibold tracking-tight ${theme === "light" ? "text-[#111]" : "text-white"}`}>Disponibilidade, identidade e calibração</h3>
+                        <p className={`text-sm ${theme === "light" ? "text-[#5c5c66]" : "text-[#71717a]"}`}>Último passo antes da homologação — quando você imprime, quem você é, e prova dimensional.</p>
+                      </div>
                       
                       {/* Calendário interativo de escala */}
                       <div className="space-y-4">
-                        <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Grade de Escala Semanal (Escolha os dias de Trabalho)</label>
+                        <label className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">Dias disponíveis</label>
                         
                         <div className="grid grid-cols-7 gap-2 text-center text-xs">
                           {["seg", "ter", "qua", "qui", "sex", "sab", "dom"].map((day) => (
@@ -3738,11 +4437,13 @@ export default function Home() {
                                     [day]: isEscalado ? 0 : 8
                                   }));
                                 }}
-                                className={`w-full py-2 border rounded font-semibold text-xs uppercase transition cursor-pointer ${
-                                  wizardDays.includes(day) ? "border-[#d44d00] bg-[#d44d00]/5 text-white" : "border-[#18181b] bg-[#050506] text-[#71717a]"
+                                className={`w-full py-2.5 border rounded-xl font-medium text-[11px] transition cursor-pointer ${
+                                  wizardDays.includes(day)
+                                    ? (theme === "light" ? "border-[#d44d00]/50 bg-[#d44d00]/8 text-[#111]" : "border-[#d44d00] bg-[#d44d00]/5 text-white")
+                                    : (theme === "light" ? "border-[#e4e4ea] bg-white text-[#8a8a93]" : "border-[#18181b] bg-[#050506] text-[#71717a]")
                                 }`}
                               >
-                                {wizardDays.includes(day) ? "Escalado" : "Folga"}
+                                {wizardDays.includes(day) ? "On" : "Off"}
                               </button>
                             </div>
                           ))}
@@ -3755,8 +4456,10 @@ export default function Home() {
                           <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Capacidade Horária por Dia (Carga Máquina)</label>
                           <div className="space-y-2">
                             {wizardDays.map((day) => (
-                              <div key={day} className="flex justify-between items-center gap-4 bg-[#09090b] border border-[#18181b] p-2.5 rounded text-xs">
-                                <span className="font-bold text-white uppercase mono-text w-12">{day}</span>
+                              <div key={day} className={`flex justify-between items-center gap-4 p-3 rounded-xl text-sm ${
+                                theme === "light" ? "bg-[#fafafa] border border-[#ebebef]" : "bg-[#09090b] border border-[#18181b] text-xs"
+                              }`}>
+                                <span className={`font-medium uppercase w-12 ${theme === "light" ? "text-[#111]" : "text-white mono-text"}`}>{day}</span>
                                 <input 
                                   type="range" min="1" max="24" step="1"
                                   value={wizardDailyHours[day] !== undefined ? wizardDailyHours[day] : 8}
@@ -3766,184 +4469,243 @@ export default function Home() {
                                       [day]: parseInt(e.target.value)
                                     }));
                                   }}
-                                  className="flex-1 accent-[#d44d00] h-1 bg-[#18181b] rounded-lg appearance-none cursor-pointer"
+                                  className={`flex-1 accent-[#d44d00] h-1 rounded-lg appearance-none cursor-pointer ${theme === "light" ? "bg-[#e8e8ee]" : "bg-[#18181b]"}`}
                                 />
-                                <span className="text-[#d44d00] font-bold w-16 text-right mono-text">
-                                  {wizardDailyHours[day] !== undefined ? wizardDailyHours[day] : 8} horas
+                                <span className="text-[#d44d00] font-semibold w-16 text-right text-sm">
+                                  {wizardDailyHours[day] !== undefined ? wizardDailyHours[day] : 8}h
                                 </span>
                               </div>
                             ))}
                           </div>
 
                           {/* Mostrador de Capacidade Máquina Total Semanal */}
-                          <div className="bg-[#10b981]/5 border border-[#10b981]/15 p-4 rounded-lg space-y-2 mono-text text-xs text-[#10b981]">
+                          <div className="bg-[#10b981]/5 border border-[#10b981]/15 p-4 rounded-md space-y-1 mono-text text-xs text-[#10b981]">
                             <div className="flex justify-between items-center font-bold">
-                              <span>CAPACIDADE OPERACIONAL DA REDE</span>
+                              <span>Capacidade semanal</span>
                               <span>
-                                {wizardDays.reduce((acc, d) => acc + (wizardDailyHours[d] || 8), 0) * wizardMachines.length}h / semana
+                                {wizardDays.reduce((acc, d) => acc + (wizardDailyHours[d] || 8), 0) * wizardMachines.length}h
                               </span>
                             </div>
-                            <p className="text-xs text-[#71717a] font-normal normal-case">
-                              Calculado com base em {wizardMachines.length} máquina(s) cadastrada(s) na etapa 3 e horas produtivas.
+                            <p className="text-[10px] text-[#71717a] font-normal normal-case">
+                              {wizardMachines.length} máquina(s) × horas declaradas.
                             </p>
                           </div>
                         </div>
                       )}
 
-                      {/* UPLOAD DE KYC (DOCUMENTOS) */}
-                      <div className="border-t border-[#18181b] pt-4 space-y-4">
-                        <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Documentação KYC (Verificação de Identidade)</label>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Documento de Identidade (RG ou CNH)</span>
+                      <div className="border-t border-[#18181b] pt-6 space-y-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">Identidade (KYC)</label>
+                          <p className="text-xs text-[#71717a]">Documento + selfie. O nome abaixo deve bater com o do passo 1.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className={`space-y-1.5 rounded-md p-2 ${wizardErrors.kycDoc ? "ring-2 ring-red-500/50 border border-red-500 bg-red-500/5" : ""}`}>
+                            <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">RG ou CNH</span>
                             <div className="flex items-center gap-2">
-                              <label className="px-3 py-2 bg-[#050506] border border-[#18181b] rounded text-xs text-[#a1a1aa] hover:border-[#d44d00] cursor-pointer transition">
-                                📁 Selecionar Arquivo
+                              <label className={`wizard-file-btn ${
+                                wizardErrors.kycDoc ? "border-red-500 text-red-500" : ""
+                              }`}>
+                                Selecionar
                                 <input 
                                   type="file" accept="image/*" className="hidden" 
                                   onChange={(e) => {
-                                    if (e.target.files?.[0]) setKycDocumentName(e.target.files[0].name);
+                                    if (e.target.files?.[0]) {
+                                      setKycDocumentName(e.target.files[0].name);
+                                      setWizardErrors(prev => { const n = { ...prev }; delete n.kycDoc; return n; });
+                                    }
                                   }} 
                                 />
                               </label>
-                              <span className="text-xs text-white truncate max-w-[120px]">{kycDocumentName || "Nenhum arquivo"}</span>
+                              <span className={`text-xs truncate max-w-[140px] ${kycDocumentName ? "text-[#10b981]" : "text-[#71717a]"}`}>
+                                {kycDocumentName || "Nenhum arquivo"}
+                              </span>
                             </div>
+                            {wizardErrors.kycDoc && <p className="text-[10px] text-red-400 font-bold">{wizardErrors.kycDoc}</p>}
                           </div>
 
-                          <div className="space-y-1.5">
-                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Selfie Segurando Documento</span>
+                          <div className={`space-y-1.5 rounded-md p-2 ${wizardErrors.kycSelfie ? "ring-2 ring-red-500/50 border border-red-500 bg-red-500/5" : ""}`}>
+                            <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">Selfie com documento</span>
                             <div className="flex items-center gap-2">
-                              <label className="px-3 py-2 bg-[#050506] border border-[#18181b] rounded text-xs text-[#a1a1aa] hover:border-[#d44d00] cursor-pointer transition">
-                                📸 Anexar Foto
+                              <label className={`wizard-file-btn ${
+                                wizardErrors.kycSelfie ? "border-red-500 text-red-500" : ""
+                              }`}>
+                                Anexar
                                 <input 
                                   type="file" accept="image/*" className="hidden" 
                                   onChange={(e) => {
-                                    if (e.target.files?.[0]) setKycSelfieName(e.target.files[0].name);
+                                    if (e.target.files?.[0]) {
+                                      setKycSelfieName(e.target.files[0].name);
+                                      setWizardErrors(prev => { const n = { ...prev }; delete n.kycSelfie; return n; });
+                                    }
                                   }} 
                                 />
                               </label>
-                              <span className="text-xs text-white truncate max-w-[120px]">{kycSelfieName || "Nenhum arquivo"}</span>
+                              <span className={`text-xs truncate max-w-[140px] ${kycSelfieName ? "text-[#10b981]" : "text-[#71717a]"}`}>
+                                {kycSelfieName || "Nenhum arquivo"}
+                              </span>
                             </div>
+                            {wizardErrors.kycSelfie && <p className="text-[10px] text-red-400 font-bold">{wizardErrors.kycSelfie}</p>}
                           </div>
                         </div>
                         
                         {kycDocumentName && kycSelfieName && (
-                          <div className="p-4 rounded bg-[#09090b] border border-[#18181b] space-y-3 mt-3">
+                          <div className="p-4 rounded-md bg-[#09090b] border border-[#18181b] space-y-3">
                             <div className="flex justify-between items-center text-xs mono-text">
-                              <span className="text-[#10b981] font-bold uppercase tracking-wider">Verificação Antifraude com IA</span>
-                              <span className="text-[#71717a]">Motor: FabMakers KYC-AI v1.0</span>
+                              <span className="text-[#10b981] font-bold uppercase tracking-wider">Pré-checagem</span>
+                              <span className="text-[#71717a]">MVP · simulado</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-4 text-xs">
-                              <div className="space-y-1 bg-[#050506] border border-[#18181b] p-2.5 rounded">
-                                <span className="text-[#71717a] block">Face Match / Liveness</span>
-                                <span className="text-[#10b981] font-bold block mt-0.5">✓ 99,1% (Foto & Documento Coincidem)</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                              <div className="space-y-1 bg-[#050506] border border-[#18181b] p-2.5 rounded-md">
+                                <span className="text-[#71717a] block">Face match</span>
+                                <span className="text-[#10b981] font-bold block mt-0.5">Documento + selfie anexados</span>
                               </div>
-                              <div className="space-y-1 bg-[#050506] border border-[#18181b] p-2.5 rounded">
-                                <span className="text-[#71717a] block">Extração de OCR (Identidade)</span>
-                                <span className="text-white font-bold block mt-0.5">{wizardName || "Maria Souza"}</span>
+                              <div className="space-y-1 bg-[#050506] border border-[#18181b] p-2.5 rounded-md">
+                                <span className="text-[#71717a] block">Nome cadastrado</span>
+                                <span className="text-white font-bold block mt-0.5">
+                                  {wizardName.trim() || currentUser?.name || "Preencha o nome no passo 1"}
+                                </span>
                               </div>
                             </div>
-                            <p className="text-[10px] text-[#71717a] leading-tight">
-                              As imagens e metadados foram analisados com sucesso por segurança criptográfica. O resultado preliminar positivo foi anexado à ficha e enviado ao Moderador para liberação final.
+                            <p className="text-[10px] text-[#71717a] leading-relaxed">
+                              Sem OCR real neste MVP — o nome acima é o que você digitou. A homologação final é do admin.
                             </p>
                           </div>
                         )}
                       </div>
 
-                      {/* HOMOLOGAÇÃO DE CALIBRAÇÃO TÉCNICA (CUBO BENCHMARK) */}
-                      <div className="border-t border-[#18181b] pt-4 space-y-4">
+                      <div className="border-t border-[#18181b] pt-6 space-y-4">
                         <div className="space-y-1">
-                          <label className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Prova de Calibração Física (Cubo Calibrado 20mm)</label>
-                          <p className="text-xs text-[#71717a] leading-tight">
-                            Faça o download e imprima o cubo de teste oficial da plataforma. Use um paquímetro para medir com precisão as faces X, Y e Z e insira os milímetros reais medidos abaixo (Tolerância máxima: ±0.05mm).
+                          <label className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">Calibração (cubo 20 mm)</label>
+                          <p className="text-xs text-[#71717a] leading-relaxed">
+                            Imprima o cubo de teste, meça com paquímetro (X/Y/Z) e anexe a foto. Tolerância: ±0,05 mm.
                           </p>
                         </div>
 
                         <div className="grid grid-cols-3 gap-3">
                           <div className="space-y-1.5">
-                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo X (mm)</span>
+                            <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo X (mm)</span>
                             <input 
                               type="number" step="0.01" value={calibX} 
                               onChange={(e) => setCalibX(parseFloat(e.target.value) || 20.00)}
-                              className="w-full bg-[#050506] border border-[#18181b] rounded p-2 text-xs text-white mono-text focus:outline-none focus:border-[#d44d00]" 
+                              className="wizard-input" 
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo Y (mm)</span>
+                            <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo Y (mm)</span>
                             <input 
                               type="number" step="0.01" value={calibY} 
                               onChange={(e) => setCalibY(parseFloat(e.target.value) || 20.00)}
-                              className="w-full bg-[#050506] border border-[#18181b] rounded p-2 text-xs text-white mono-text focus:outline-none focus:border-[#d44d00]" 
+                              className="wizard-input" 
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo Z (mm)</span>
+                            <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">Eixo Z (mm)</span>
                             <input 
                               type="number" step="0.01" value={calibZ} 
                               onChange={(e) => setCalibZ(parseFloat(e.target.value) || 20.00)}
-                              className="w-full bg-[#050506] border border-[#18181b] rounded p-2 text-xs text-white mono-text focus:outline-none focus:border-[#d44d00]" 
+                              className="wizard-input" 
                             />
                           </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Foto da Medição (Cubo sendo medido com Paquímetro)</span>
+                        <div className={`space-y-1.5 rounded-md p-2 ${wizardErrors.calibPhoto ? "ring-2 ring-red-500/50 border border-red-500 bg-red-500/5" : ""}`}>
+                          <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">Foto da medição (paquímetro)</span>
                           <div className="flex items-center gap-2">
-                            <label className="px-3 py-2 bg-[#050506] border border-[#18181b] rounded text-xs text-[#a1a1aa] hover:border-[#d44d00] cursor-pointer transition">
-                              📷 Anexar Foto da Medição
+                            <label className={`wizard-file-btn ${
+                              wizardErrors.calibPhoto ? "border-red-500 text-red-500" : ""
+                            }`}>
+                              Anexar foto
                               <input 
                                 type="file" accept="image/*" className="hidden" 
                                 onChange={(e) => {
-                                  if (e.target.files?.[0]) setCalibImageName(e.target.files[0].name);
+                                  if (e.target.files?.[0]) {
+                                    setCalibImageName(e.target.files[0].name);
+                                    setWizardErrors(prev => { const n = { ...prev }; delete n.calibPhoto; return n; });
+                                  }
                                 }} 
                               />
                             </label>
-                            <span className="text-xs text-white truncate max-w-[200px]">{calibImageName || "Nenhum arquivo"}</span>
+                            <span className={`text-xs truncate max-w-[200px] ${calibImageName ? "text-[#10b981]" : "text-[#71717a]"}`}>
+                              {calibImageName || "Nenhum arquivo"}
+                            </span>
                           </div>
+                          {wizardErrors.calibPhoto && <p className="text-[10px] text-red-400 font-bold">{wizardErrors.calibPhoto}</p>}
                         </div>
                       </div>
 
-                      <div className="flex gap-4">
-                        <button onClick={() => setWizardStep(4)} className="flex-1 py-2.5 border border-[#18181b] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
+                      {Object.keys(wizardErrors).length > 0 && (
+                        <div
+                          ref={wizardErrorBannerRef}
+                          className="border border-red-500/40 bg-red-500/10 p-4 rounded-md space-y-2"
+                          role="alert"
+                        >
+                          <p className="text-xs font-bold text-red-400 uppercase tracking-wider mono-text">
+                            Falta preencher para concluir
+                          </p>
+                          <ul className="text-xs text-red-300 space-y-1 list-disc pl-4">
+                            {Object.values(wizardErrors).map((msg) => (
+                              <li key={msg}>{msg}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        <button type="button" onClick={() => setWizardStep(4)} className={btnBack}>
                           Voltar
                         </button>
-                        <button onClick={handleRegisterMaker} className="flex-1 py-2.5 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer">
-                          Concluir Cadastro & Solicitar Homologação
+                        <button
+                          type="button"
+                          onClick={() => void handleRegisterMaker()}
+                          className={btnAccent}
+                        >
+                          Solicitar homologação
                         </button>
                       </div>
                     </div>
                   )}
                 </div>
+                </>
+                  );
+                })()}
               </div>
             ) : (
               // 2. SE O MAKER JÁ TEM CADASTRO
               <div className="space-y-8">
                 
                 {/* Cabeçalho do Maker Cadastrado com status Sandbox */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#09090b] border border-[#18181b] p-6 rounded">
+                <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-6 rounded-2xl border ${
+                  theme === "light"
+                    ? "bg-white border-[#ebebef] shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+                    : "bg-[#09090b] border-[#18181b]"
+                }`}>
                   <div>
-                    <h2 className="text-lg font-bold text-white mono-text">{makerProfile.name}</h2>
-                    <p className="text-xs text-[#71717a] mt-1">CEP de Atuação: <span className="text-[#a1a1aa]">{makerProfile.zipCode}</span></p>
+                    <h2 className={`text-lg font-semibold tracking-tight ${theme === "light" ? "text-[#111]" : "text-white mono-text"}`}>{makerProfile.name}</h2>
+                    <p className={`text-xs mt-1 ${theme === "light" ? "text-[#8a8a93]" : "text-[#71717a]"}`}>
+                      CEP de atuação: <span className={theme === "light" ? "text-[#5c5c66] font-medium" : "text-[#a1a1aa]"}>{makerProfile.zipCode || "—"}</span>
+                    </p>
                   </div>
                   
                   {/* Status de Aprovação do Admin */}
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <span className="text-xs uppercase tracking-widest text-[#71717a] block mono-text">Avaliação da Rede</span>
-                      <span className="text-sm font-bold text-white mono-text">★ {makerProfile.rating} / 5.0</span>
+                      <span className={`text-[11px] tracking-wide block ${theme === "light" ? "text-[#8a8a93] font-medium" : "text-xs uppercase tracking-widest text-[#71717a] mono-text"}`}>Avaliação da rede</span>
+                      <span className={`text-sm font-semibold inline-flex items-center gap-1 ${theme === "light" ? "text-[#111]" : "text-white mono-text"}`}>
+                        <Icon name="star" size={16} filled className="text-amber-500" /> {makerProfile.rating} / 5.0
+                      </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs uppercase tracking-widest text-[#71717a] block mono-text">Status de Cadastro</span>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded border uppercase mono-text ${
+                      <span className={`text-[11px] tracking-wide block ${theme === "light" ? "text-[#8a8a93] font-medium" : "text-xs uppercase tracking-widest text-[#71717a] mono-text"}`}>Status de cadastro</span>
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
                         makerProfile.isBanned ? "border-red-500/30 text-red-500 bg-red-500/5 animate-pulse" :
-                        makerProfile.makerStatus === "HOMOLOGATED" ? "border-green-500/30 text-green-500 bg-green-500/5" :
-                        makerProfile.makerStatus === "SANDBOX" ? "border-blue-500/30 text-blue-500 bg-blue-500/5" :
-                        "border-yellow-500/30 text-yellow-500 bg-yellow-500/5"
+                        makerProfile.makerStatus === "HOMOLOGATED" ? "border-green-500/30 text-green-600 bg-green-500/5" :
+                        makerProfile.makerStatus === "SANDBOX" ? "border-blue-500/30 text-blue-600 bg-blue-500/5" :
+                        "border-yellow-500/30 text-yellow-600 bg-yellow-500/5"
                       }`}>
-                        {makerProfile.isBanned ? "BANIDO" : 
-                         makerProfile.makerStatus === "HOMOLOGATED" ? "HOMOLOGADO" : 
-                         makerProfile.makerStatus === "SANDBOX" ? "SANDBOX (EXPERIÊNCIA)" : 
-                         "Aguardando Auditoria"}
+                        {makerProfile.isBanned ? "Banido" : 
+                         makerProfile.makerStatus === "HOMOLOGATED" ? "Homologado" : 
+                         makerProfile.makerStatus === "SANDBOX" ? "Sandbox" : 
+                         "Aguardando auditoria"}
                       </span>
                     </div>
                   </div>
@@ -3952,8 +4714,8 @@ export default function Home() {
                 {/* ALERTA DE BANIDO POR PENALIDADES */}
                 {makerProfile.isBanned ? (
                   <div className="border border-red-500/30 bg-red-950/20 p-8 rounded text-center space-y-4">
-                    <div className="w-12 h-12 rounded bg-red-500/10 text-red-500 flex items-center justify-center mx-auto border border-red-500/20 text-2xl font-bold">
-                      ⚠️
+                    <div className="w-12 h-12 rounded bg-red-500/10 text-red-500 flex items-center justify-center mx-auto border border-red-500/20">
+                      <Icon name="warning" size={28} />
                     </div>
                     <div>
                       <h3 className="text-lg font-extrabold text-red-500 uppercase tracking-wider mono-text">Colaborador Suspenso e Banido</h3>
@@ -3970,8 +4732,8 @@ export default function Home() {
                   </div>
                 ) : makerProfile.makerStatus === "PENDING_APPROVAL" ? (
                   <div className="border border-yellow-500/30 bg-yellow-950/20 p-8 rounded text-center space-y-4">
-                    <div className="w-12 h-12 rounded bg-yellow-500/10 text-yellow-500 flex items-center justify-center mx-auto border border-yellow-500/20 text-2xl font-bold animate-pulse">
-                      ⏳
+                    <div className="w-12 h-12 rounded bg-yellow-500/10 text-yellow-500 flex items-center justify-center mx-auto border border-yellow-500/20 animate-pulse">
+                      <Icon name="hourglass_empty" size={28} />
                     </div>
                     <div>
                       <h3 className="text-lg font-extrabold text-yellow-500 uppercase tracking-wider mono-text">Cadastro em Auditoria de Segurança</h3>
@@ -3993,146 +4755,201 @@ export default function Home() {
                       </div>
                     </div>
                     <p className="text-xs text-[#71717a]">
-                      💡 Dica rápida: Clique em <strong>Admin</strong> no menu superior para auditar e aprovar esta solicitação manualmente!
+                      Próximo passo: entre como <strong className="text-white">Admin</strong> e aprove a homologação — ou use o atalho de teste (só UI local) abaixo.
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!makerProfile) return;
+                        const name = makerProfile.name || currentUser?.name;
+                        if (!name) {
+                          alert("Sessão sem nome de maker. Faça login de novo.");
+                          return;
+                        }
+                        // Atalho MVP: só estado local (POST /api/admin exige adminToken — D009)
+                        setMakerProfile({
+                          ...makerProfile,
+                          name,
+                          isApproved: true,
+                          makerStatus: "SANDBOX",
+                        });
+                        alert("Homologação de teste (local): você entrou em Sandbox e já pode aceitar jobs.");
+                      }}
+                      className="px-4 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
+                    >
+                      Aprovar meu cadastro (teste)
+                    </button>
                   </div>
                 ) : (
                   // MAKER ATIVO (HOMOLOGADO OU SANDBOX)
                   <div className="space-y-6">
-                    {/* Faixa de Sandbox */}
+                    {(() => {
+                      const completedCount = orders.filter(
+                        (o) => o.makerName === makerProfile.name && o.status === "COMPLETED"
+                      ).length;
+                      return (
+                    <>
+                    {/* Faixa de Sandbox — mais calma */}
                     {makerProfile.makerStatus === "SANDBOX" && (
-                      <div className="border border-blue-500/20 bg-blue-500/5 p-4 rounded text-xs text-[#60a5fa] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                      <div className={`px-4 py-3 rounded-xl text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border ${
+                        theme === "light"
+                          ? "border-blue-200 bg-blue-50/80"
+                          : "border-blue-500/25 bg-blue-500/[0.07]"
+                      }`}>
                         <div>
-                          <strong className="block text-white">⚠️ Período de Sandbox Ativo (Fase de Experiência)</strong>
-                          <span className="text-xs text-[#a1a1aa] mt-0.5 block">
-                            Como novo parceiro credenciado, você está em período probatório de 3 entregas e está limitado a aceitar apenas <strong>1 job por vez</strong>.
+                          <strong className={`block text-[11px] tracking-wide ${theme === "light" ? "text-[#111] font-semibold" : "text-white uppercase tracking-wider"}`}>Sandbox — experiência</strong>
+                          <span className={`mt-0.5 block ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#5c5c66]"}`}>
+                            Até 1 job por vez · meta de 3 entregas para sair do período probatório
                           </span>
                         </div>
-                        <div className="bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded mono-text text-xs text-white font-bold">
-                          0 de 3 Entregas Concluídas
+                        <div className={`px-3 py-1.5 rounded-full text-[11px] font-semibold whitespace-nowrap ${
+                          theme === "light"
+                            ? "bg-white border border-blue-200 text-blue-700"
+                            : "bg-blue-500/15 border border-blue-500/25 mono-text text-white font-bold"
+                        }`}>
+                          {completedCount} / 3 entregas
                         </div>
                       </div>
                     )}
+
+                    <div className="space-y-1">
+                      <h2 className={`text-sm font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>
+                        Fila de trabalho
+                      </h2>
+                      <p className={`text-xs ${theme === "dark" ? "text-[#71717a]" : "text-[#52525b]"}`}>
+                        Aceite um job → produza → marque despacho → confirme entrega e pagamento.
+                      </p>
+                    </div>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
-                    {/* RADAR DE SERVIÇOS: NOTIFICAÇÃO PUSH DE TRABALHOS PRÓXIMOS */}
-                    <div className="lg:col-span-8 space-y-6">
+                    {/* RADAR */}
+                    <div className="lg:col-span-8 space-y-5">
                       
-                      {/* Push Alerta Geral */}
                       {activeJobOffer ? (
-                        <div className="border-2 border-[#d44d00] bg-[#d44d00]/5 p-6 rounded space-y-4 animate-pulse relative overflow-hidden">
-                          {/* Efeito de laser minimalista rodando */}
-                          <div className="absolute top-0 left-0 w-full h-1 bg-[#d44d00]"></div>
+                        <div className="border border-[#d44d00]/50 bg-[#d44d00]/[0.06] p-5 rounded-lg space-y-4 relative">
+                          <div className="absolute top-0 left-0 w-full h-0.5 bg-[#d44d00]" />
                           
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <span className="text-xs uppercase tracking-widest text-[#d44d00] font-bold mono-text block">TRABALHO DIRECIONADO DISPONÍVEL (RADAR CEP)</span>
-                              <h3 className="text-base font-bold text-white mono-text mt-1">{activeJobOffer.filename}</h3>
-                              <p className="text-xs text-[#a1a1aa] mt-1">Material exigido: <span className="text-white font-bold">{activeJobOffer.material}</span> | Peso: {activeJobOffer.weightG}g</p>
+                          <div className="flex justify-between items-start gap-4">
+                            <div className="min-w-0">
+                              <span className="text-[10px] uppercase tracking-widest text-[#d44d00] font-bold mono-text block">Oferta na fila</span>
+                              <h3 className={`text-base font-bold mt-1 truncate ${theme === "dark" ? "text-white" : "text-black"}`}>{activeJobOffer.filename}</h3>
+                              <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>
+                                {activeJobOffer.material} · {activeJobOffer.weightG}g · CEP {activeJobOffer.zipCode}
+                              </p>
                             </div>
-                            
-                            {/* Cronômetro de Aceite */}
-                            <div className="text-right">
-                              <span className="text-[8px] uppercase tracking-widest text-[#71717a] block mono-text">Timer de Aceite</span>
-                              <span className="text-2xl font-bold text-red-500 mono-text">{offerTimer}s</span>
+                            <div className="text-right shrink-0">
+                              <span className="text-[9px] uppercase tracking-widest text-[#71717a] block mono-text">Aceitar em</span>
+                              <span className={`text-2xl font-bold mono-text tabular-nums ${offerTimer <= 10 ? "text-red-500 animate-pulse" : "text-[#d44d00]"}`}>
+                                {offerTimer}s
+                              </span>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-4 border-t border-[#18181b] pt-4 text-xs">
+                          <div className={`grid grid-cols-3 gap-3 border-t pt-4 text-xs ${theme === "dark" ? "border-[#18181b]" : "border-[#e4e4e7]"}`}>
                             <div>
-                              <span className="text-xs text-[#71717a] uppercase block">Tempo de Impressão</span>
-                              <span className="font-bold text-white">{activeJobOffer.timeFormatted}</span>
+                              <span className="text-[10px] text-[#71717a] uppercase block">Tempo</span>
+                              <span className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>{activeJobOffer.timeFormatted}</span>
                             </div>
                             <div>
-                              <span className="text-xs text-[#71717a] uppercase block">Seu Ganho Líquido</span>
+                              <span className="text-[10px] text-[#71717a] uppercase block">Seu ganho</span>
                               <span className="font-bold text-[#10b981]">R$ {(activeJobOffer.makerPayout || activeJobOffer.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
                             </div>
                             <div>
-                              <span className="text-xs text-[#71717a] uppercase block">Taxa da Plataforma</span>
-                              <span className="font-bold text-red-400">R$ {(activeJobOffer.platformFee || activeJobOffer.totalPrice * 0.05).toFixed(2).replace(".", ",")}</span>
+                              <span className="text-[10px] text-[#71717a] uppercase block">Taxa</span>
+                              <span className={`font-bold ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>R$ {(activeJobOffer.platformFee || activeJobOffer.totalPrice * 0.05).toFixed(2).replace(".", ",")}</span>
                             </div>
                           </div>
 
-                          <div className="flex gap-4 pt-2">
+                          <div className="flex gap-3 pt-1">
                             <button
+                              type="button"
                               onClick={acceptJob}
-                              className="flex-1 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded transition cursor-pointer text-center"
+                              className="flex-1 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white font-bold text-xs uppercase tracking-wider rounded-md transition cursor-pointer text-center"
                             >
-                              Aceitar Ordem de Serviço
+                              Aceitar job
                             </button>
                             <button
+                              type="button"
                               onClick={rejectJob}
-                              className="py-3 px-6 border border-[#18181b] text-[#a1a1aa] hover:text-white text-xs font-semibold uppercase rounded transition cursor-pointer"
+                              className={`py-3 px-5 border text-xs font-semibold uppercase rounded-md transition cursor-pointer ${
+                                theme === "dark"
+                                  ? "border-[#27272a] text-[#a1a1aa] hover:text-white"
+                                  : "border-[#d4d4d8] text-[#52525b] hover:text-black"
+                              }`}
                             >
-                              Rejeitar
+                              Recusar
                             </button>
                           </div>
                         </div>
                       ) : (
-                        /* RADAR GERAL DESCENTRALIZADO (LEI DA OFERTA E DA PROCURA) */
-                        <div className="technical-panel rounded overflow-hidden space-y-4">
-                          <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b] flex justify-between items-center">
-                            <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Radar Geral de Demandas</h3>
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-[#10b981] animate-ping"></span>
-                              <span className="text-xs text-[#a1a1aa] font-bold uppercase tracking-wider mono-text">Buscando...</span>
+                        <div className={`rounded-lg overflow-hidden border ${theme === "dark" ? "border-[#18181b] bg-[#09090b]/60" : "border-[#e4e4e7] bg-white"}`}>
+                          <div className={`px-5 py-3.5 border-b flex justify-between items-center ${theme === "dark" ? "border-[#18181b] bg-[#09090b]" : "border-[#e4e4e7] bg-[#fafafa]"}`}>
+                            <h3 className={`text-xs font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>
+                              Demandas disponíveis
+                            </h3>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => refreshOrdersFromApi()}
+                                className="text-[10px] uppercase tracking-wider font-bold text-[#d44d00] hover:opacity-80 transition cursor-pointer"
+                              >
+                                Atualizar
+                              </button>
+                              <span className="flex items-center gap-1.5 text-[10px] text-[#10b981] font-bold uppercase tracking-wider mono-text">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#10b981]" />
+                                Online
+                              </span>
                             </div>
                           </div>
 
-                          <div className="divide-y divide-[#18181b] text-xs">
+                          <div className={`divide-y text-xs ${theme === "dark" ? "divide-[#18181b]" : "divide-[#e4e4e7]"}`}>
                             {orders.filter(o => o.status === "WAITING_MAKER").length === 0 ? (
                               <div className="p-10 text-center text-[#71717a] space-y-2">
-                                <div className="w-8 h-8 rounded-full border border-dashed border-[#18181b] flex items-center justify-center mx-auto">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#71717a]"></span>
-                                </div>
-                                <h4 className="font-bold text-white uppercase text-xs tracking-wider mono-text">Sem pedidos pendentes no radar</h4>
-                                <p className="text-xs text-[#71717a] max-w-xs mx-auto leading-relaxed">
-                                  {makerProfile.makerStatus === "HOMOLOGATED" || makerProfile.makerStatus === "SANDBOX"
-                                    ? "Você está online. Novas ordens de serviço geradas por clientes locais aparecerão no seu radar instantaneamente."
-                                    : "Aguarde a aprovação e homologação técnica de sua conta pelo administrador para acessar o radar."}
+                                <h4 className={`font-bold uppercase text-xs tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>
+                                  Sem pedidos na fila
+                                </h4>
+                                <p className="text-xs max-w-xs mx-auto leading-relaxed">
+                                  Quando houver seed ou cliente com STL, as ofertas aparecem aqui.
                                 </p>
                               </div>
                             ) : (
                               orders.filter(o => o.status === "WAITING_MAKER").map((ord) => (
-                                <div key={ord.id} className="p-5 bg-[#09090b]/10 hover:bg-[#09090b]/20 transition flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                                  <div className="space-y-1.5">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-bold text-white mono-text">OFERTA #{ord.id}</span>
-                                      <span className="text-[8px] bg-[#d44d00]/15 text-[#d44d00] border border-[#d44d00]/20 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider mono-text">Aguardando Impressão</span>
+                                <div key={ord.id} className={`p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition ${
+                                  theme === "dark" ? "hover:bg-white/[0.02]" : "hover:bg-[#f4f4f5]"
+                                }`}>
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className={`font-bold mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>{ord.filename}</span>
+                                      <span className="text-[8px] bg-[#d44d00]/15 text-[#d44d00] border border-[#d44d00]/20 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider mono-text">Fila</span>
+                                      {ord.catalogId ? (
+                                        <span className="text-[8px] bg-[#18181b]/5 text-[#52525b] border border-[#e4e4e7] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider mono-text">
+                                          Catálogo
+                                        </span>
+                                      ) : null}
                                     </div>
-                                    <p className="text-xs text-[#a1a1aa]">Peça: <span className="text-white">{ord.filename}</span> | CEP: {ord.zipCode}</p>
-                                    <div className="text-xs text-[#71717a] mono-text flex gap-4">
-                                      <span>Peso: {ord.weightG}g</span>
-                                      <span>Material: {ord.material}</span>
-                                      <span>Infill: {ord.infill || 20}%</span>
-                                    </div>
+                                    <p className="text-xs text-[#71717a]">{ord.material} · {ord.weightG}g · CEP {ord.zipCode}</p>
+                                    {getCuratedStlUrl(ord.catalogId) ? (
+                                      <a
+                                        href={getCuratedStlUrl(ord.catalogId)!}
+                                        download={ord.filename}
+                                        className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-[#d44d00] hover:underline mono-text"
+                                      >
+                                        Baixar STL
+                                      </a>
+                                    ) : null}
                                   </div>
-
-                                  <div className="sm:text-right space-y-2">
+                                  <div className="sm:text-right space-y-2 shrink-0">
                                     <div>
-                                      <span className="text-[8px] text-[#71717a] block uppercase tracking-wider mono-text">Seu Ganho Líquido</span>
+                                      <span className="text-[8px] text-[#71717a] block uppercase tracking-wider mono-text">Ganho</span>
                                       <span className="text-sm font-extrabold text-[#10b981] mono-text">R$ {(ord.makerPayout || ord.totalPrice * 0.95).toFixed(2).replace(".", ",")}</span>
-                                      <span className="text-xs text-[#71717a] block">Taxa Intermediação: R$ {(ord.platformFee || ord.totalPrice * 0.05).toFixed(2).replace(".", ",")}</span>
                                     </div>
                                     <button
-                                      onClick={() => {
-                                        if (makerProfile.makerStatus === "PENDING_APPROVAL") {
-                                          alert("Sua conta ainda está em análise! Aguarde aprovação técnica antes de fabricar.");
-                                          return;
-                                        }
-                                        // Aceita o pedido do radar
-                                        setOrders(prev => prev.map(o => {
-                                          if (o.id === ord.id) {
-                                            return { ...o, status: "PRINTING", makerName: makerProfile.name, progress: 15 };
-                                          }
-                                          return o;
-                                        }));
-                                        alert(`Você assumiu a fabricação da Ordem de Serviço #${ord.id}! Verifique a aba 'Seus Trabalhos Alocados' para acompanhar.`);
-                                      }}
-                                      className="px-4 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded transition cursor-pointer"
+                                      type="button"
+                                      onClick={() => void claimOrder(ord.id)}
+                                      className="px-4 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer"
                                     >
-                                      Aceitar Serviço
+                                      Aceitar
                                     </button>
                                   </div>
                                 </div>
@@ -4142,90 +4959,148 @@ export default function Home() {
                         </div>
                       )}
 
-                      {/* Lista de Jobs Ativos do Maker */}
-                      <div className="technical-panel rounded overflow-hidden">
-                        <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b] flex justify-between items-center">
-                          <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Seus Trabalhos Alocados</h3>
-                          <span className="text-xs text-[#71717a] mono-text">ESCALA FAB MAKERS</span>
+                      {/* Em produção */}
+                      <div className={`rounded-lg overflow-hidden border ${theme === "dark" ? "border-[#18181b] bg-[#09090b]/60" : "border-[#e4e4e7] bg-white"}`}>
+                        <div className={`px-5 py-3.5 border-b flex justify-between items-center ${theme === "dark" ? "border-[#18181b] bg-[#09090b]" : "border-[#e4e4e7] bg-[#fafafa]"}`}>
+                          <h3 className={`text-xs font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>
+                            Em produção
+                          </h3>
+                          <span className="text-[10px] text-[#71717a] mono-text">imprimir → despachar → pagar</span>
                         </div>
-                        <div className="divide-y divide-[#18181b] text-xs">
-                          {orders.filter(o => o.makerName === makerProfile.name).map((ord) => (
-                            <div key={ord.id} className="p-6 flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-[#09090b]/20">
+                        <div className={`divide-y text-xs ${theme === "dark" ? "divide-[#18181b]" : "divide-[#e4e4e7]"}`}>
+                          {orders.filter(o => o.makerName === makerProfile.name).length === 0 ? (
+                            <div className="p-8 text-center text-[#71717a]">
+                              Nenhum job alocado. Aceite um da fila acima.
+                            </div>
+                          ) : (
+                          orders.filter(o => o.makerName === makerProfile.name).map((ord) => (
+                            <div key={ord.id} className={`p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 ${
+                              theme === "dark" ? "bg-[#09090b]/20" : "bg-[#fafafa]/80"
+                            }`}>
                               <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-white mono-text">JOB #{ord.id}</span>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className={`font-bold ${theme === "dark" ? "text-white" : "text-black"}`}>{ord.filename}</span>
                                   <span className={`text-[8px] font-bold px-2 py-0.5 rounded border uppercase mono-text ${
-                                    ord.status === "PRINTING" ? "border-[#d44d00]/30 text-[#d44d00]" : "border-zinc-700 text-[#a1a1aa]"
+                                    ord.status === "PRINTING" ? "border-[#d44d00]/30 text-[#d44d00]" :
+                                    ord.status === "SHIPPED" ? "border-blue-500/30 text-blue-400" :
+                                    ord.status === "COMPLETED" ? "border-green-500/30 text-[#10b981]" :
+                                    "border-zinc-700 text-[#a1a1aa]"
                                   }`}>
-                                    {ord.status === "PRINTING" ? "Imprimindo" : "Despachado"}
+                                    {ord.status === "PRINTING" ? "Imprimindo" :
+                                     ord.status === "SHIPPED" ? "Despachado" :
+                                     ord.status === "COMPLETED" ? "Pago" : ord.status}
                                   </span>
                                 </div>
-                                <div className="text-xs text-[#71717a]">Peça: <span className="text-white">{ord.filename}</span></div>
-                                <div className="text-xs text-[#71717a] mono-text">Volume: {ord.weightG}g | Material: {ord.material}</div>
+                                <div className="text-xs text-[#71717a]">{ord.weightG}g · {ord.material}</div>
+                                {ord.status === "PRINTING" && (
+                                  <div className={`text-xs font-bold pt-1 ${theme === "dark" ? "text-white" : "text-black"}`}>Progresso: {ord.progress}%</div>
+                                )}
+                                {ord.status === "COMPLETED" && (
+                                  <div className="text-xs text-[#10b981] font-bold pt-1">
+                                    Liberado: R$ {(ord.makerPayout || ord.totalPrice * 0.95).toFixed(2).replace(".", ",")}
+                                  </div>
+                                )}
                               </div>
-                              <div className="sm:text-right space-y-2">
-                                {ord.status === "PRINTING" ? (
+                              <div className="sm:text-right space-y-2 flex flex-col sm:items-end">
+                                {ord.status === "PRINTING" && (
                                   <>
-                                    <div className="text-xs font-bold text-white">Progresso: {ord.progress}%</div>
                                     <button
+                                      type="button"
+                                      onClick={() => void advanceOrder(ord.id)}
+                                      className="px-3 py-1.5 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer"
+                                    >
+                                      Marcar despachado
+                                    </button>
+                                    <button
+                                      type="button"
                                       onClick={() => cancelActiveJob(ord.id)}
                                       className="text-xs text-red-400 hover:text-red-300 font-bold uppercase tracking-wider border border-red-500/20 bg-red-500/5 px-2.5 py-1 rounded transition cursor-pointer"
                                     >
-                                      Desistir do Job (Penalidade)
+                                      Desistir (penalidade)
                                     </button>
                                   </>
-                                ) : (
-                                  <span className="text-xs text-[#10b981] font-bold uppercase tracking-wider">Despachado ao cliente</span>
+                                )}
+                                {ord.status === "SHIPPED" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => void advanceOrder(ord.id)}
+                                    className="px-3 py-1.5 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer"
+                                  >
+                                    Confirmar entrega / pagar
+                                  </button>
+                                )}
+                                {ord.status === "COMPLETED" && (
+                                  <span className="text-xs text-[#10b981] font-bold uppercase tracking-wider">Ciclo fechado</span>
                                 )}
                               </div>
                             </div>
-                          ))}
+                          ))
+                          )}
                         </div>
                       </div>
                     </div>
 
                     {/* Especificações do Maker Cadastrado */}
                     <div className="lg:col-span-4 space-y-6">
-                      <div className="technical-panel p-6 rounded-lg space-y-4">
-                        <h3 className="text-xs font-bold text-white uppercase tracking-widest mono-text">Especificações do Maker</h3>
+                      <div className={`p-6 rounded-2xl space-y-4 border ${
+                        theme === "light"
+                          ? "bg-white border-[#ebebef] shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+                          : "technical-panel"
+                      }`}>
+                        <h3 className={`text-sm font-semibold tracking-tight ${theme === "light" ? "text-[#111]" : "text-xs font-bold text-white uppercase tracking-widest mono-text"}`}>
+                          Especificações do maker
+                        </h3>
                         
-                        <div className="border border-[#18181b] p-3 rounded space-y-2 bg-[#050506]">
-                          <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Impressoras Cadastradas</span>
+                        <div className={`p-3.5 rounded-xl space-y-2 border ${
+                          theme === "light" ? "border-[#ebebef] bg-[#fafafa]" : "border-[#18181b] bg-[#050506]"
+                        }`}>
+                          <span className={`block ${theme === "light" ? "text-[12px] font-medium text-[#8a8a93]" : "text-[8px] uppercase tracking-wider text-[#71717a] mono-text"}`}>Impressoras cadastradas</span>
                           {makerProfile.machines.map(m => (
-                            <div key={m.id} className="text-xs font-bold text-white flex justify-between">
+                            <div key={m.id} className={`text-sm font-medium flex justify-between ${theme === "light" ? "text-[#111]" : "text-xs font-bold text-white"}`}>
                               <span>{m.brand} {m.model}</span>
-                              <span className="text-[#a1a1aa] font-normal">{m.nozzle}</span>
+                              <span className={`font-normal ${theme === "light" ? "text-[#8a8a93]" : "text-[#a1a1aa]"}`}>{m.nozzle}</span>
                             </div>
                           ))}
                         </div>
 
-                        <div className="border border-[#18181b] p-3 rounded space-y-2 bg-[#050506]">
-                          <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Estoque de Filamento</span>
+                        <div className={`p-3.5 rounded-xl space-y-2 border ${
+                          theme === "light" ? "border-[#ebebef] bg-[#fafafa]" : "border-[#18181b] bg-[#050506]"
+                        }`}>
+                          <span className={`block ${theme === "light" ? "text-[12px] font-medium text-[#8a8a93]" : "text-[8px] uppercase tracking-wider text-[#71717a] mono-text"}`}>Estoque de filamento</span>
                           {makerProfile.filaments.map(f => (
-                            <div key={f.id} className="text-xs font-bold text-white flex justify-between">
+                            <div key={f.id} className={`text-sm font-medium flex justify-between ${theme === "light" ? "text-[#111]" : "text-xs font-bold text-white"}`}>
                               <span>{f.type} ({f.color})</span>
-                              <span className="text-[#a1a1aa] font-normal">{f.weightG}g</span>
+                              <span className={`font-normal ${theme === "light" ? "text-[#8a8a93]" : "text-[#a1a1aa]"}`}>{f.weightG}g</span>
                             </div>
                           ))}
                         </div>
 
-                        <div className="border border-[#18181b] p-3 rounded space-y-2 bg-[#050506]">
-                          <span className="text-[8px] uppercase tracking-wider text-[#71717a] mono-text block">Disponibilidade Declarada</span>
-                          <p className="text-xs font-bold text-white uppercase tracking-widest text-xs mono-text">Dias: {makerProfile.availability.days.join(", ")}</p>
-                          <p className="text-xs text-[#a1a1aa] mt-1 leading-normal">Turnos: {makerProfile.availability.shifts.join(", ")}</p>
+                        <div className={`p-3.5 rounded-xl space-y-2 border ${
+                          theme === "light" ? "border-[#ebebef] bg-[#fafafa]" : "border-[#18181b] bg-[#050506]"
+                        }`}>
+                          <span className={`block ${theme === "light" ? "text-[12px] font-medium text-[#8a8a93]" : "text-[8px] uppercase tracking-wider text-[#71717a] mono-text"}`}>Disponibilidade declarada</span>
+                          <p className={`text-sm font-medium ${theme === "light" ? "text-[#111]" : "text-xs font-bold uppercase tracking-widest mono-text text-white"}`}>
+                            Dias: {makerProfile.availability.days.join(", ")}
+                          </p>
+                          <p className={`text-xs mt-1 leading-normal ${theme === "light" ? "text-[#8a8a93]" : "text-[#71717a]"}`}>
+                            Turnos: {makerProfile.availability.shifts.join(", ")}
+                          </p>
                         </div>
                       </div>
                     </div>
+                    </div>
+                    </>
+                      );
+                    })()}
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
       {/* TAB 3.5: PAINEL DO DESIGNER (LOGADO) */}
-      {activeTab === "designer" && (
+      {SHOW_LATER_UI && activeTab === "designer" && (
         <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
           <div className="border-b border-[#18181b] pb-4 flex justify-between items-center">
             <div>
@@ -4360,7 +5235,9 @@ export default function Home() {
           {/* STATUS: AGUARDANDO MODERAÇÃO */}
           {designerStatus === "PENDING_APPROVAL" && (
             <div className="max-w-2xl mx-auto p-12 text-center border border-dashed border-blue-500/30 bg-blue-500/5 rounded-xl space-y-4">
-              <span className="text-4xl block animate-pulse">⏳</span>
+              <span className="block animate-pulse text-[#d44d00]">
+                <Icon name="hourglass_empty" size={40} />
+              </span>
               <h3 className="text-sm font-bold text-white uppercase tracking-wider mono-text">Perfil em Análise Regulatória</h3>
               <p className="text-xs text-[#a1a1aa] leading-relaxed">
                 Nossa equipe de moderadores está avaliando seu portfólio, cursos declarados e conformidade de propriedade intelectual. Você receberá uma notificação em até 24 horas. Para testes rápidos locais, você pode logar como Moderador para aprovar este cadastro!
@@ -4489,7 +5366,7 @@ export default function Home() {
       )}
 
       {/* TAB 3.7: PAINEL DO MODERADOR */}
-      {activeTab === "moderator" && (
+      {SHOW_LATER_UI && activeTab === "moderator" && (
         <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
           <div className="border-b border-[#18181b] pb-4">
             <h2 className="text-xl font-bold text-white uppercase tracking-tight mono-text">Espaço de Moderação & Governança</h2>
@@ -4554,7 +5431,9 @@ export default function Home() {
                 <div className="space-y-3">
                   <div className="p-3 border border-[#18181b] rounded bg-red-500/5 text-xs space-y-2">
                     <div className="flex justify-between items-center text-red-400 font-bold">
-                      <span>⚠️ DENÚNCIA ATIVA</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Icon name="warning" size={14} /> DENÚNCIA ATIVA
+                      </span>
                       <span>Chaveiro Brasil Copa</span>
                     </div>
                     <p className="text-[10px] text-[#71717a]">Denunciante: Agência de Propriedade Intelectual (Marca de Símbolos Oficiais).</p>
@@ -4577,51 +5456,144 @@ export default function Home() {
         </div>
       )}
 
-        {/* TAB 4: PAINEL ADMINISTRATIVO (CONTROLE, HOMOLOGAÇÕES E MÉTRICAS DE ESCALA) */}
-        {activeTab === "admin" && (
-          <div className="max-w-7xl mx-auto px-6 py-12 space-y-10">
+        {/* TAB 4: PAINEL ADMINISTRATIVO — exige role ADMIN */}
+        {activeTab === "admin" && currentUser?.role !== "ADMIN" && (
+          <div className="max-w-lg mx-auto px-6 py-20 text-center space-y-5">
+            <div className={`rounded-2xl border p-8 space-y-4 ${
+              theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#ebebef] bg-white"
+            }`}>
+              <Icon name="admin_panel_settings" size={36} className="text-[#d44d00] mx-auto" />
+              <h2 className={`text-xl font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-[#111]"}`}>
+                Acesso restrito
+              </h2>
+              <p className={`text-sm ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#5c5c66]"}`}>
+                O painel de orquestração é só para administradores da rede.
+                {currentUser
+                  ? ` Sua sessão atual (${currentUser.role}) não tem permissão.`
+                  : " Entre com uma conta admin para continuar."}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                {!currentUser || currentUser.role !== "ADMIN" ? (
+                  <button
+                    type="button"
+                    onClick={openAdminLogin}
+                    className="px-6 py-3 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded-full transition cursor-pointer"
+                  >
+                    Entrar como admin
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => goTo("home", "maker")}
+                  className={`px-6 py-3 text-xs font-bold uppercase tracking-wider rounded-full border transition cursor-pointer ${
+                    theme === "dark"
+                      ? "border-white/15 text-white hover:bg-white/5"
+                      : "border-black/10 text-[#111] hover:bg-black/5"
+                  }`}
+                >
+                  Voltar ao início
+                </button>
+              </div>
+              <p className="text-[10px] text-[#71717a] mono-text pt-2">MVP: admin@fabmakers.com.br / admin123</p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "admin" && currentUser?.role === "ADMIN" && (
+          <div className="admin-shell max-w-7xl mx-auto px-6 py-12 space-y-10">
             
-            <div className="border-b border-[#18181b] pb-4">
-              <h2 className="text-xl font-bold text-white uppercase tracking-tight mono-text">Painel de Orquestração da Plataforma</h2>
-              <p className="text-xs text-[#a1a1aa] mt-1">Supervisão técnica, homologações de qualidade e controle de banimento de makers.</p>
+            <div className={`border-b pb-4 ${theme === "dark" ? "border-[#18181b]" : "border-[#e4e4e7]"}`}>
+              <h2 className={`text-xl font-bold tracking-tight ${theme === "dark" ? "text-white uppercase mono-text" : "text-[#111]"}`}>
+                Painel de orquestração
+              </h2>
+              <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#5c5c66]"}`}>
+                Homologações, funil H5 e controle da rede de fabs.
+              </p>
             </div>
 
             {/* Métricas de Escala */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="technical-panel p-5 rounded">
+              <div className={`rounded-lg border p-5 ${theme === "dark" ? "technical-panel" : "bg-white border-[#ebebef]"}`}>
                 <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Faturamento Bruto</span>
-                <span className="text-2xl font-bold text-white block mt-1 mono-text">R$ {orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0).toFixed(2).replace(".", ",")}</span>
+                <span className={`text-2xl font-bold block mt-1 mono-text ${theme === "dark" ? "text-white" : "text-[#111]"}`}>R$ {orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + curr.totalPrice, 0).toFixed(2).replace(".", ",")}</span>
               </div>
-              <div className="technical-panel p-5 rounded">
+              <div className={`rounded-lg border p-5 ${theme === "dark" ? "technical-panel" : "bg-white border-[#ebebef]"}`}>
                 <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Comissão Plataforma</span>
                 <span className="text-2xl font-bold text-[#d44d00] block mt-1 mono-text">R$ {orders.filter(o => o.status !== "CANCELLED").reduce((acc, curr) => acc + (curr.platformFee || curr.totalPrice * 0.05), 0).toFixed(2).replace(".", ",")}</span>
               </div>
-              <div className="technical-panel p-5 rounded">
+              <div className={`rounded-lg border p-5 ${theme === "dark" ? "technical-panel" : "bg-white border-[#ebebef]"}`}>
                 <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Makers Ativos no Grid</span>
-                <span className="text-2xl font-bold text-white block mt-1 mono-text">{systemMakers.filter(m => m.isApproved && !m.isBanned).length}</span>
+                <span className={`text-2xl font-bold block mt-1 mono-text ${theme === "dark" ? "text-white" : "text-[#111]"}`}>{systemMakers.filter(m => m.isApproved && !m.isBanned).length}</span>
               </div>
-              <div className="technical-panel p-5 rounded">
+              <div className={`rounded-lg border p-5 ${theme === "dark" ? "technical-panel" : "bg-white border-[#ebebef]"}`}>
                 <span className="text-xs uppercase tracking-wider text-[#71717a] mono-text block">Material Extrudado</span>
                 <span className="text-2xl font-bold text-[#10b981] block mt-1 mono-text">{orders.filter(o => o.status === "COMPLETED").reduce((acc, curr) => acc + curr.weightG, 0).toFixed(1)}g</span>
               </div>
+            </div>
+
+            {/* Funil H5 — cadastro → homologado */}
+            <div className={`rounded-lg border p-5 space-y-4 ${
+              theme === "dark" ? "border-[#18181b] bg-[#09090b]/40" : "border-[#e4e4e7] bg-white"
+            }`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className={`text-xs font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>
+                    Funil H5 — cadastro → homologado
+                  </h3>
+                  <p className={`text-xs mt-1 ${theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]"}`}>
+                    Aposta: onboarding pesado aumenta confiança mais do que reduz conversão.
+                  </p>
+                </div>
+                {h5Funnel && (
+                  <span className="text-xs font-bold text-[#d44d00] mono-text">
+                    Conversão {h5Funnel.conversionPct}%
+                  </span>
+                )}
+              </div>
+              {h5Funnel ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+                  {[
+                    { label: "Início", value: h5Funnel.started },
+                    { label: "Unverified", value: h5Funnel.counts.UNVERIFIED ?? 0 },
+                    { label: "Pendente", value: h5Funnel.counts.PENDING_APPROVAL ?? 0 },
+                    { label: "Sandbox", value: h5Funnel.counts.SANDBOX ?? 0 },
+                    { label: "Homologado", value: h5Funnel.homologated },
+                    { label: "Banidos", value: h5Funnel.counts.BANNED ?? 0 },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      className={`rounded-lg border p-3 ${
+                        theme === "dark" ? "border-[#18181b] bg-[#050506]" : "border-[#e4e4e7] bg-[#fafafa]"
+                      }`}
+                    >
+                      <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">{s.label}</span>
+                      <span className={`text-xl font-bold mono-text mt-1 block ${theme === "dark" ? "text-white" : "text-black"}`}>
+                        {s.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-[#71717a] mono-text">Carregando funil…</p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
               
               {/* Lado Esquerdo: Fila de Homologação de Makers Pendentes */}
               <div className="lg:col-span-6 space-y-6">
-                <div className="technical-panel rounded overflow-hidden">
-                  <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b] flex justify-between items-center">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Homologações de Qualidade Pendentes</h3>
+                <div className={`rounded-lg overflow-hidden border ${theme === "dark" ? "technical-panel border-[#18181b]" : "bg-white border-[#ebebef]"}`}>
+                  <div className={`px-6 py-4 border-b flex justify-between items-center ${theme === "dark" ? "border-[#18181b] bg-[#09090b]" : "border-[#ebebef] bg-[#fafafa]"}`}>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-[#111]"}`}>Homologações pendentes</h3>
                     <span className="text-[8px] bg-[#d44d00]/15 text-[#d44d00] px-2 py-0.5 rounded font-bold tracking-widest">BENCHMARK 3D</span>
                   </div>
 
-                  <div className="divide-y divide-[#18181b] text-xs">
+                  <div className={`divide-y text-xs ${theme === "dark" ? "divide-[#18181b]" : "divide-[#ebebef]"}`}>
                     {homologations.map((req) => (
                       <div key={req.id} className="p-4 space-y-3">
                         <div className="flex justify-between items-center">
                           <div>
-                            <span className="font-bold text-white block">{req.name}</span>
+                            <span className={`font-bold block ${theme === "dark" ? "text-white" : "text-[#111]"}`}>{req.name}</span>
                             <span className="text-xs text-[#71717a] mono-text">CEP: {req.zipCode} | Impressora: {req.machineModel}</span>
                           </div>
                           
@@ -4638,95 +5610,102 @@ export default function Home() {
                           const devZ = Math.abs(20 - req.calibZ);
                           const maxDeviation = Math.max(devX, devY, devZ);
                           const isWithinTolerance = maxDeviation <= 0.05;
+                          const nest = theme === "dark" ? "bg-[#050506] border-[#18181b]" : "bg-[#fafafa] border-[#e4e4e7]";
+                          const cell = theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-white border-[#e4e4e7]";
+                          const ink = theme === "dark" ? "text-white" : "text-[#111]";
+                          const muted = theme === "dark" ? "text-[#a1a1aa]" : "text-[#52525b]";
 
                           return (
-                            <div className="space-y-4 pt-2 border-t border-[#18181b]">
+                            <div className={`space-y-4 pt-2 border-t ${theme === "dark" ? "border-[#18181b]" : "border-[#ebebef]"}`}>
                               {/* Dados Dimensionais */}
-                              <div className="bg-[#050506] p-4 rounded border border-[#18181b] space-y-3">
+                              <div className={`p-4 rounded border space-y-3 ${nest}`}>
                                 <span className="text-xs text-[#71717a] font-bold uppercase tracking-wider block mono-text">
-                                  1. Calibração Dimensional (Cubo 20mm)
+                                  1. Calibração dimensional (cubo 20mm)
                                 </span>
                                 <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                                  <div className="bg-[#09090b] border border-[#18181b] p-2 rounded">
+                                  <div className={`border p-2 rounded ${cell}`}>
                                     <span className="text-[#71717a] block">Eixo X</span>
-                                    <strong className="text-white block mt-0.5">{req.calibX.toFixed(2)} mm</strong>
+                                    <strong className={`${ink} block mt-0.5`}>{req.calibX.toFixed(2)} mm</strong>
                                     <span className={`text-[8px] block mt-0.5 ${devX <= 0.05 ? "text-green-500" : "text-red-500"}`}>
                                       Δ: {req.calibX - 20 >= 0 ? `+${(req.calibX - 20).toFixed(2)}` : (req.calibX - 20).toFixed(2)}
                                     </span>
                                   </div>
-                                  <div className="bg-[#09090b] border border-[#18181b] p-2 rounded">
+                                  <div className={`border p-2 rounded ${cell}`}>
                                     <span className="text-[#71717a] block">Eixo Y</span>
-                                    <strong className="text-white block mt-0.5">{req.calibY.toFixed(2)} mm</strong>
+                                    <strong className={`${ink} block mt-0.5`}>{req.calibY.toFixed(2)} mm</strong>
                                     <span className={`text-[8px] block mt-0.5 ${devY <= 0.05 ? "text-green-500" : "text-red-500"}`}>
                                       Δ: {req.calibY - 20 >= 0 ? `+${(req.calibY - 20).toFixed(2)}` : (req.calibY - 20).toFixed(2)}
                                     </span>
                                   </div>
-                                  <div className="bg-[#09090b] border border-[#18181b] p-2 rounded">
+                                  <div className={`border p-2 rounded ${cell}`}>
                                     <span className="text-[#71717a] block">Eixo Z</span>
-                                    <strong className="text-white block mt-0.5">{req.calibZ.toFixed(2)} mm</strong>
+                                    <strong className={`${ink} block mt-0.5`}>{req.calibZ.toFixed(2)} mm</strong>
                                     <span className={`text-[8px] block mt-0.5 ${devZ <= 0.05 ? "text-green-500" : "text-red-500"}`}>
                                       Δ: {req.calibZ - 20 >= 0 ? `+${(req.calibZ - 20).toFixed(2)}` : (req.calibZ - 20).toFixed(2)}
                                     </span>
                                   </div>
                                 </div>
-                                <div className="flex justify-between items-center text-xs border-t border-[#18181b]/50 pt-2">
-                                  <span className="text-[#71717a]">Desvio Máximo Encontrado:</span>
+                                <div className={`flex justify-between items-center text-xs border-t pt-2 ${theme === "dark" ? "border-[#18181b]/50" : "border-[#ebebef]"}`}>
+                                  <span className="text-[#71717a]">Desvio máximo:</span>
                                   <span className={`font-bold ${isWithinTolerance ? "text-green-500" : "text-red-500"}`}>
-                                    {maxDeviation.toFixed(3)} mm ({isWithinTolerance ? "Dentro da Tolerância ±0.05mm" : "Fora da Tolerância"})
+                                    {maxDeviation.toFixed(3)} mm ({isWithinTolerance ? "Dentro ±0.05mm" : "Fora da tolerância"})
                                   </span>
                                 </div>
                               </div>
 
                               {/* Documentos Anexados */}
-                              <div className="bg-[#050506] p-4 rounded border border-[#18181b] space-y-3 text-xs">
+                              <div className={`p-4 rounded border space-y-3 text-xs ${nest}`}>
                                 <span className="text-xs text-[#71717a] font-bold uppercase tracking-wider block mono-text">
-                                  2. Documentos e Comprovantes (KYC)
+                                  2. Documentos KYC
                                 </span>
                                 <div className="grid grid-cols-3 gap-2">
                                   <a 
                                     href="#" 
                                     onClick={(e) => { e.preventDefault(); alert(`Visualizando documento simulado: ${req.documentUrl}`); }}
-                                    className="bg-[#09090b] hover:bg-[#18181b] border border-[#18181b] p-2 rounded text-center block text-[#a1a1aa] transition"
+                                    className={`border p-2 rounded text-center block transition ${cell} ${muted} hover:border-[#d44d00]/40`}
                                   >
-                                    📄 RG/CNH
+                                    <Icon name="badge" className="text-[18px] mb-0.5" />
+                                    <span className="block text-[10px] font-semibold">RG/CNH</span>
                                     <span className="text-[8px] text-[#71717a] block truncate mt-0.5">{req.documentUrl}</span>
                                   </a>
                                   <a 
                                     href="#" 
                                     onClick={(e) => { e.preventDefault(); alert(`Visualizando selfie simulada: ${req.selfieUrl}`); }}
-                                    className="bg-[#09090b] hover:bg-[#18181b] border border-[#18181b] p-2 rounded text-center block text-[#a1a1aa] transition"
+                                    className={`border p-2 rounded text-center block transition ${cell} ${muted} hover:border-[#d44d00]/40`}
                                   >
-                                    📸 Selfie KYC
+                                    <Icon name="photo_camera" className="text-[18px] mb-0.5" />
+                                    <span className="block text-[10px] font-semibold">Selfie KYC</span>
                                     <span className="text-[8px] text-[#71717a] block truncate mt-0.5">{req.selfieUrl}</span>
                                   </a>
                                   <a 
                                     href="#" 
                                     onClick={(e) => { e.preventDefault(); alert(`Visualizando foto do paquímetro simulada: ${req.benchmarkImageUrl}`); }}
-                                    className="bg-[#09090b] hover:bg-[#18181b] border border-[#18181b] p-2 rounded text-center block text-[#a1a1aa] transition"
+                                    className={`border p-2 rounded text-center block transition ${cell} ${muted} hover:border-[#d44d00]/40`}
                                   >
-                                    📏 Paquímetro
+                                    <Icon name="straighten" className="text-[18px] mb-0.5" />
+                                    <span className="block text-[10px] font-semibold">Paquímetro</span>
                                     <span className="text-[8px] text-[#71717a] block truncate mt-0.5">{req.benchmarkImageUrl}</span>
                                   </a>
                                 </div>
                               </div>
 
                               {/* Diagnóstico de Fraude por IA (Onboarding KYC) */}
-                              <div className="bg-[#050506] p-4 rounded border border-[#18181b] space-y-3 text-xs">
+                              <div className={`p-4 rounded border space-y-3 text-xs ${nest}`}>
                                 <span className="text-xs text-[#10b981] font-bold uppercase tracking-wider block mono-text">
-                                  3. Diagnóstico de Fraude (KYC-AI v1.0)
+                                  3. Diagnóstico KYC
                                 </span>
                                 <div className="space-y-2">
-                                  <div className="flex justify-between items-center bg-[#09090b] border border-[#18181b] p-2 rounded">
-                                    <span className="text-[#71717a]">Análise de Biometria Facial:</span>
-                                    <span className="text-green-500 font-bold">✓ PASSOU (99.1% Match)</span>
+                                  <div className={`flex justify-between items-center border p-2 rounded ${cell}`}>
+                                    <span className="text-[#71717a]">Biometria facial</span>
+                                    <span className="text-green-600 font-bold inline-flex items-center gap-1"><Icon name="check_circle" size={14} /> 99.1%</span>
                                   </div>
-                                  <div className="flex justify-between items-center bg-[#09090b] border border-[#18181b] p-2 rounded">
-                                    <span className="text-[#71717a]">Consistência da Selfie KYC:</span>
-                                    <span className="text-green-500 font-bold">✓ PASSOU (Liveness Ativo)</span>
+                                  <div className={`flex justify-between items-center border p-2 rounded ${cell}`}>
+                                    <span className="text-[#71717a]">Liveness selfie</span>
+                                    <span className="text-green-600 font-bold inline-flex items-center gap-1"><Icon name="check_circle" size={14} /> OK</span>
                                   </div>
-                                  <div className="flex justify-between items-center bg-[#09090b] border border-[#18181b] p-2 rounded">
-                                    <span className="text-[#71717a]">Conformidade do Documento (OCR):</span>
-                                    <span className="text-green-500 font-bold">✓ PASSOU (CPF Válido)</span>
+                                  <div className={`flex justify-between items-center border p-2 rounded ${cell}`}>
+                                    <span className="text-[#71717a]">Documento OCR</span>
+                                    <span className="text-green-600 font-bold inline-flex items-center gap-1"><Icon name="check_circle" size={14} /> CPF válido</span>
                                   </div>
                                 </div>
                               </div>
@@ -4735,15 +5714,15 @@ export default function Home() {
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => approveMakerRequest(req.id, req.name)}
-                                  className="flex-grow py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                  className="flex-grow py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-full uppercase tracking-wider transition cursor-pointer inline-flex items-center justify-center gap-1"
                                 >
-                                  ✅ Aprovar e Homologar
+                                  <Icon name="verified" size={16} /> Aprovar
                                 </button>
                                 <button
                                   onClick={() => rejectMakerRequest(req.id, req.name)}
-                                  className="px-4 py-2 border border-red-500/30 text-red-500 bg-red-500/5 hover:bg-red-500/10 text-xs font-bold rounded uppercase tracking-wider transition cursor-pointer"
+                                  className="px-4 py-2 border border-red-500/30 text-red-500 bg-red-500/5 hover:bg-red-500/10 text-xs font-bold rounded-full uppercase tracking-wider transition cursor-pointer"
                                 >
-                                  ❌ Rejeitar
+                                  Rejeitar
                                 </button>
                               </div>
                             </div>
@@ -4757,27 +5736,29 @@ export default function Home() {
 
               {/* Lado Direito: Controle de Makers e Auditoria Geral */}
               <div className="lg:col-span-6 space-y-6">
-                <div className="technical-panel rounded overflow-hidden">
-                  <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b]">
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Controle da Rede de Colaboradores</h3>
+                <div className={`rounded-lg overflow-hidden border ${theme === "dark" ? "technical-panel border-[#18181b]" : "bg-white border-[#ebebef]"}`}>
+                  <div className={`px-6 py-4 border-b ${theme === "dark" ? "border-[#18181b] bg-[#09090b]" : "border-[#ebebef] bg-[#fafafa]"}`}>
+                    <h3 className={`text-xs font-bold uppercase tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-[#111]"}`}>Controle da rede</h3>
                   </div>
 
-                  <div className="divide-y divide-[#18181b] text-xs">
+                  <div className={`divide-y text-xs ${theme === "dark" ? "divide-[#18181b]" : "divide-[#ebebef]"}`}>
                     {systemMakers.map((maker) => (
-                      <div key={maker.name} className="p-4 flex justify-between items-center">
+                      <div key={maker.id || `${maker.name}-${maker.zipCode}`} className="p-4 flex justify-between items-center">
                         <div>
-                          <span className="font-bold text-white block">{maker.name}</span>
-                          <span className="text-xs text-[#71717a] mono-text">Reputação: ★ {maker.rating} | Penalidades: {maker.penalties}/3</span>
+                          <span className={`font-bold block ${theme === "dark" ? "text-white" : "text-[#111]"}`}>{maker.name}</span>
+                          <span className="text-xs text-[#71717a] mono-text inline-flex items-center gap-1">
+                            Reputação: <Icon name="star" size={12} filled /> {maker.rating} | Penalidades: {maker.penalties}/3
+                          </span>
                         </div>
                         <button
                           onClick={() => toggleBanMaker(maker.name)}
-                          className={`px-3 py-1 text-xs font-bold rounded uppercase tracking-wider border transition ${
+                          className={`px-3 py-1 text-xs font-bold rounded-full uppercase tracking-wider border transition ${
                             maker.isBanned
-                              ? "border-green-500/30 text-green-500 bg-green-500/5 hover:bg-green-500/10"
+                              ? "border-green-500/30 text-green-600 bg-green-500/5 hover:bg-green-500/10"
                               : "border-red-500/30 text-red-500 bg-red-500/5 hover:bg-red-500/10"
                           }`}
                         >
-                          {maker.isBanned ? "Desbanir" : "Banir Parceiro"}
+                          {maker.isBanned ? "Desbanir" : "Banir"}
                         </button>
                       </div>
                     ))}
@@ -4787,7 +5768,8 @@ export default function Home() {
 
             </div>
 
-            {/* Seção ADM: Gerenciamento da Loja de Insumos (Dropshipping) */}
+            {/* Dropshipping — Park/Cut (SHOW_LATER_UI); não polir no Core */}
+            {SHOW_LATER_UI && (
             <div className="technical-panel rounded overflow-hidden">
               <div className="px-6 py-4 border-b border-[#18181b] bg-[#09090b] flex justify-between items-center">
                 <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">Gerenciamento da Loja de Insumos (Dropshipping)</h3>
@@ -4977,6 +5959,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
+            )}
 
           </div>
         )}
@@ -4984,57 +5967,69 @@ export default function Home() {
       </main>
 
       {/* FOOTER TÉCNICO - Minimalista */}
-      <footer className="border-t border-[#18181b] py-12 bg-[#050506]">
+      <footer className={`border-t py-12 transition-colors ${
+        theme === "light" ? "border-[#ebebef] bg-white" : "border-[#18181b] bg-[#050506]"
+      }`}>
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-3">
             <div className="flex items-center">
               <Image 
-                src={logoImg} 
+                src={logoMark} 
                 alt="FAB MAKERS" 
-                className="h-14 w-auto select-none" 
+                className={`h-12 w-auto select-none bg-transparent ${theme === "light" ? "invert" : ""}`}
               />
             </div>
-            <p className="text-xs text-[#71717a] leading-relaxed">
+            <p className={`text-xs leading-relaxed ${theme === "light" ? "text-[#6b6b73]" : "text-[#71717a]"}`}>
               Manufatura digital distribuída sob demanda no Brasil. A maior infraestrutura descentralizada de ativos de impressão.
             </p>
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text mb-3">Plataforma</h4>
-            <ul className="space-y-2 text-xs text-[#71717a]">
-              <li><button onClick={() => { if (currentUser?.role === "CLIENT") setActiveTab("client"); else { setLoginRole("CLIENT"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Cotação STL</button></li>
-              <li><button onClick={() => { if (currentUser?.role === "MAKER") setActiveTab("maker"); else { setLoginRole("MAKER"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Portal do Maker</button></li>
-              <li><button onClick={() => { if (currentUser?.role === "ADMIN") setActiveTab("admin"); else { setLoginRole("ADMIN"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className="hover:text-white transition cursor-pointer">Administração</button></li>
+            <h4 className={`text-xs font-bold uppercase tracking-wider mono-text mb-3 ${theme === "light" ? "text-[#111]" : "text-white"}`}>Plataforma</h4>
+            <ul className={`space-y-2 text-xs ${theme === "light" ? "text-[#6b6b73]" : "text-[#71717a]"}`}>
+              <li><button onClick={() => { if (currentUser?.role === "MAKER") goTo("maker"); else { setLoginRole("MAKER"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className={`transition cursor-pointer ${theme === "light" ? "hover:text-[#111]" : "hover:text-white"}`}>Portal da Fab</button></li>
+              <li><button onClick={() => { if (currentUser?.role === "CLIENT") goTo("client"); else { setLoginRole("CLIENT"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className={`transition cursor-pointer ${theme === "light" ? "hover:text-[#111]" : "hover:text-white"}`}>Seed demanda (STL)</button></li>
+              <li><button onClick={() => { if (currentUser?.role === "ADMIN") goTo("admin"); else { setLoginRole("ADMIN"); setLoginEmail(""); setLoginPassword(""); setLoginError(""); setShowLoginModal(true); } }} className={`transition cursor-pointer ${theme === "light" ? "hover:text-[#111]" : "hover:text-white"}`}>Administração</button></li>
             </ul>
           </div>
           <div>
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text mb-3">Políticas da Rede</h4>
-            <ul className="space-y-2 text-xs text-[#71717a]">
-              <li><span className="text-[#a1a1aa]">SLA de Resposta: Aceite em 30s</span></li>
-              <li><span className="text-[#a1a1aa]">Desistência: Penalidade de Nível</span></li>
-              <li><span className="text-[#a1a1aa]">Tolerância Dimensional: ±0.05mm</span></li>
+            <h4 className={`text-xs font-bold uppercase tracking-wider mono-text mb-3 ${theme === "light" ? "text-[#111]" : "text-white"}`}>Políticas da Rede</h4>
+            <ul className={`space-y-2 text-xs ${theme === "light" ? "text-[#6b6b73]" : "text-[#71717a]"}`}>
+              <li>SLA de Resposta: Aceite em 30s</li>
+              <li>Desistência: Penalidade de Nível</li>
+              <li>Tolerância Dimensional: ±0.05mm</li>
             </ul>
           </div>
           <div className="space-y-2">
-            <h4 className="text-xs font-bold text-white uppercase tracking-wider mono-text mb-3">Status do Grid</h4>
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/20 rounded text-xs font-bold tracking-wider uppercase">
+            <h4 className={`text-xs font-bold uppercase tracking-wider mono-text mb-3 ${theme === "light" ? "text-[#111]" : "text-white"}`}>Status do Grid</h4>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 bg-[#10b981]/15 text-[#10b981] border border-[#10b981]/20 rounded-full text-xs font-semibold tracking-wide">
               <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse"></span>
-              Grid Operacional: {systemMakers.filter(m => m.isApproved && !m.isBanned).length + 343} Online
+              Grid operacional: {systemMakers.filter(m => m.isApproved && !m.isBanned).length + 343} online
             </div>
-            <p className="text-xs text-[#71717a] mt-2 block">Latência média do Roteador: 85ms</p>
+            <p className={`text-xs mt-2 block ${theme === "light" ? "text-[#8a8a93]" : "text-[#71717a]"}`}>Latência média do roteador: 85ms</p>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-6 mt-12 pt-6 border-t border-[#18181b] flex flex-col sm:flex-row justify-between text-xs text-[#71717a] gap-4">
+        <div className={`max-w-7xl mx-auto px-6 mt-12 pt-6 border-t flex flex-col sm:flex-row justify-between text-xs gap-4 ${
+          theme === "light" ? "border-[#ebebef] text-[#8a8a93]" : "border-[#18181b] text-[#71717a]"
+        }`}>
           <p>&copy; {new Date().getFullYear()} FAB MAKERS. Todos os direitos reservados. Projeto Conceitual e Confidencial.</p>
         </div>
       </footer>
 
       {/* MODAL DE LOGIN MODULAR E SEGURO */}
       {showLoginModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#050506]/85 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-[#09090b] border border-[#18181b] rounded-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4 ${
+          theme === "dark" ? "bg-[#050506]/85" : "bg-[#111]/40"
+        }`}>
+          <div className={`w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 border ${
+            theme === "dark" ? "bg-[#09090b] border-[#18181b]" : "bg-white border-[#ebebef]"
+          }`}>
             {/* Header do Modal */}
-            <div className="px-6 py-4 border-b border-[#18181b] flex justify-between items-center">
-              <h3 className="text-xs font-bold text-white uppercase tracking-wider mono-text">
+            <div className={`px-6 py-4 border-b flex justify-between items-center ${
+              theme === "dark" ? "border-[#18181b]" : "border-[#ebebef]"
+            }`}>
+              <h3 className={`text-xs font-bold uppercase tracking-wider mono-text ${
+                theme === "dark" ? "text-white" : "text-[#111]"
+              }`}>
                 {isSignUp 
                   ? `Cadastrar ${loginRole === "MAKER" ? "Parceiro Maker" : "Cliente"}` 
                   : (loginRole === "ADMIN" ? "Gestão de Rede (Admin)" : loginRole === "MAKER" ? "Acesso do Fabricante (Maker)" : "Acesso do Cliente (STL)")
@@ -5050,9 +6045,11 @@ export default function Home() {
                   setSignupConfirmPassword("");
                   setLoginError("");
                 }}
-                className="text-[#71717a] hover:text-white transition text-sm cursor-pointer"
+                className={`transition cursor-pointer ${
+                  theme === "dark" ? "text-[#71717a] hover:text-white" : "text-[#71717a] hover:text-[#111]"
+                }`}
               >
-                ✕
+                <Icon name="close" size={18} />
               </button>
             </div>
 
@@ -5060,7 +6057,9 @@ export default function Home() {
             <form onSubmit={isSignUp ? handleSignUp : handleLogin} className="p-6 space-y-4">
               {loginError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-xs font-medium">
-                  ⚠️ {loginError}
+                  <span className="inline-flex items-center gap-1">
+                    <Icon name="warning" size={14} /> {loginError}
+                  </span>
                 </div>
               )}
 
@@ -5073,7 +6072,9 @@ export default function Home() {
                     placeholder="Seu Nome Completo"
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
-                    className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                    className={`w-full rounded-xl px-3 py-2.5 text-xs border focus:outline-none focus:border-[#d44d00] transition ${
+                      theme === "dark" ? "bg-[#050506] border-[#18181b] text-white" : "bg-[#fafafa] border-[#e4e4ea] text-[#111]"
+                    }`}
                   />
                 </div>
               )}
@@ -5086,7 +6087,9 @@ export default function Home() {
                   placeholder="exemplo@seuprovedor.com"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                  className={`w-full rounded-xl px-3 py-2.5 text-xs border focus:outline-none focus:border-[#d44d00] transition ${
+                    theme === "dark" ? "bg-[#050506] border-[#18181b] text-white" : "bg-[#fafafa] border-[#e4e4ea] text-[#111]"
+                  }`}
                 />
               </div>
 
@@ -5100,7 +6103,9 @@ export default function Home() {
                     placeholder="••••••••"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                    className={`w-full rounded-xl px-3 py-2.5 text-xs border focus:outline-none focus:border-[#d44d00] transition ${
+                      theme === "dark" ? "bg-[#050506] border-[#18181b] text-white" : "bg-[#fafafa] border-[#e4e4ea] text-[#111]"
+                    }`}
                   />
                 </div>
               ) : (
@@ -5110,6 +6115,9 @@ export default function Home() {
                     {!isSignUp && loginRole === "ADMIN" && (
                       <span className="text-xs text-[#71717a] lowercase italic">dica: admin123</span>
                     )}
+                    {!isSignUp && loginRole === "MAKER" && (
+                      <span className="text-xs text-[#71717a] lowercase italic">MVP: roda@ / 123</span>
+                    )}
                   </div>
                   <input
                     type="password"
@@ -5117,7 +6125,9 @@ export default function Home() {
                     placeholder="••••••••"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                    className={`w-full rounded-xl px-3 py-2.5 text-xs border focus:outline-none focus:border-[#d44d00] transition ${
+                      theme === "dark" ? "bg-[#050506] border-[#18181b] text-white" : "bg-[#fafafa] border-[#e4e4ea] text-[#111]"
+                    }`}
                   />
                 </div>
               )}
@@ -5131,7 +6141,9 @@ export default function Home() {
                     placeholder="••••••••"
                     value={signupConfirmPassword}
                     onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                    className="w-full bg-[#050506] border border-[#18181b] rounded px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#d44d00] transition"
+                    className={`w-full rounded-xl px-3 py-2.5 text-xs border focus:outline-none focus:border-[#d44d00] transition ${
+                      theme === "dark" ? "bg-[#050506] border-[#18181b] text-white" : "bg-[#fafafa] border-[#e4e4ea] text-[#111]"
+                    }`}
                   />
                 </div>
               )}
@@ -5176,12 +6188,9 @@ export default function Home() {
                 
                 <span 
                   onClick={() => {
-                    // Alterna o perfil dentro do próprio modal
                     setLoginRole(prev => 
-                      prev === "CLIENT" ? "MAKER" : 
-                      prev === "MAKER" ? "DESIGNER" : 
-                      prev === "DESIGNER" ? "MODERATOR" : 
-                      prev === "MODERATOR" ? "ADMIN" : "CLIENT"
+                      prev === "MAKER" ? "CLIENT" : 
+                      prev === "CLIENT" ? "ADMIN" : "MAKER"
                     );
                     setIsSignUp(false);
                     setLoginEmail("");
@@ -5192,7 +6201,7 @@ export default function Home() {
                   }}
                   className="hover:text-white transition cursor-pointer underline"
                 >
-                  Alternar tipo de perfil de acesso
+                  Alternar perfil (Fab / Seed / Admin)
                 </span>
               </div>
             </form>

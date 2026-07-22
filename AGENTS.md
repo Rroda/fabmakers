@@ -1,3 +1,13 @@
+<!-- BEGIN:fabmakers-brain -->
+# Cérebro de produto
+
+Antes de features, UI ou pivots: ler `PROJECT-MEMORY.md` e `docs/brain/README.md`.
+Skills: `.cursor/skills/` (`wedge-finder`, `concept-reconnect`, `product-council`, `product-ui`).
+Estratégia primeiro; código depois do wedge em `docs/brain/ROADMAP-NOW.md`.
+Foco: regra `.cursor/rules/fabmakers-focus.mdc` — orquestrar ROADMAP; frear desvios (3 confirmações).
+UI / páginas novas: regra `.cursor/rules/fabmakers-ui.mdc` — base visual [mistral.ai](https://mistral.ai/).
+<!-- END:fabmakers-brain -->
+
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 

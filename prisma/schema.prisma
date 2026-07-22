@@ -86,11 +86,12 @@ model Model3D {
 
 model Order {
   id            String    @id @default(uuid())
-  status        String    // "PENDING_QUOTATION", "PAID", "PRINTING", "SHIPPED", "DELIVERED", "COMPLETED"
+  status        String    // "WAITING_MAKER" | "PRINTING" | "SHIPPED" | "COMPLETED" | ...
   totalPrice    Float
   makerPrice    Float
   royaltyPaid   Float
   platformFee   Float
+  filename      String?   // STL/3MF da peça (seed) — não confundir com Model3D
   
   // Geolocalização e entrega
   shippingZip   String
@@ -104,6 +105,9 @@ model Order {
   
   modelId       String?
   model         Model3D?      @relation(fields: [modelId], references: [id])
+
+  /** Catálogo curado (D006) — id estável tipo fm-cable-clip; sem FK */
+  catalogId     String?
   
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt

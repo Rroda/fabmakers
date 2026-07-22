@@ -1,0 +1,50 @@
+---
+description: Base visual FabMakers — novas páginas e UI light seguem mistral.ai (minimalista editorial).
+alwaysApply: true
+---
+
+# FabMakers — UI / novas páginas
+
+Referência obrigatória de layout e atmosfera: **[mistral.ai](https://mistral.ai/)**.
+
+Aplicar ao criar **páginas novas**, redesenhar telas Core, wizard, portal maker e superfícies light. Não copiar marca/conteúdo da Mistral — copiar o **sistema visual** (hierarquia, whitespace, contraste suave).
+
+## O que pegar da referência
+
+- Fundo claro neutro (ex.: `#f5f5f7`), não cream quente + terracotta
+- Tipografia editorial: headline grande e calma; body `#5c5c66` / muted `#8a8a93`
+- Whitespace generoso; uma ideia por seção
+- Cards brancos, borda `#ebebef`, sombra leve (ou nenhuma)
+- Inputs claros: fundo branco/`#fafafa`, borda `#e4e4ea`, texto escuro — **nunca** blocos pretos no tema light
+- CTAs em pill/rounded-full: primário escuro ou laranja marca `#d44d00`; secundário outline legível
+- Header leve / translúcido no light
+- Accent FabMakers (`#d44d00`) com parcimônia — não roxo/glow/neon
+- **Ícones:** apenas [Material Symbols](https://fonts.google.com/icons) via componente `src/components/Icon.tsx` — sem emoji coloridos na UI
+- **Logo:** `logo-mark.png` (fundo transparente); light = invert do glifo; dark = glifo claro — sem quadrado de fundo
+
+## Tema light vs dark
+
+- **Padrão do produto:** light (`:root` / `.light`). Dark é secundário (`.dark`)
+- Preferência de produto para novas UIs Core: light primeiro (padrão Mistral-like)
+- Dark permanece suportado; tokens em `src/app/globals.css`
+- Qualquer componente novo no light **deve** usar tokens/`theme === "light"` — zero `bg-[#050506]` / `text-white` hardcoded sem variante light
+
+## Anti-padrões (proibidos em páginas novas)
+
+- Inputs/selects/file buttons pretos sobre fundo claro
+- Painéis `technical-panel` / `bg-[#09090b]` sem adaptação light
+- Dashboard denso com cards/stats no hero
+- Uppercase + mono em excesso no light (ok com moderação no dark técnico)
+- Copiar look “AI default”: purple gradient, cream+serif+terracotta, glow
+
+## Checklist antes de mergear UI nova
+
+1. Abrir em tema **light** e confirmar zero blocos pretos órfãos
+2. Contraste de “Logado como”, labels e Voltar/Continuar legíveis
+3. Alinhado ao wedge em `docs/brain/ROADMAP-NOW.md` (skill `product-ui`)
+4. Atualizar `PROJECT-MEMORY.md` se mudou padrão visual
+
+## Onde aprofundar
+
+- Skill: `.cursor/skills/product-ui/SKILL.md`
+- Tokens: `src/app/globals.css` (variáveis `--wizard-*`, `.light`)

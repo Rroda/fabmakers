@@ -13,11 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FabMakers - Manufatura Digital Compartilhada",
-  description: "A maior rede distribuída de impressão 3D e fabricação digital sob demanda do Brasil.",
+  title: "FabMakers — Fila de jobs para fabs homologadas",
+  description: "Rede brasileira de impressão 3D sob demanda. Cadastre sua fab, aceite trabalhos pagos e produza com QA.",
   icons: {
-    icon: "/logo.png",
-  }
+    icon: "/logo-mark.png",
+  },
 };
 
 export default function RootLayout({
@@ -27,9 +27,15 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      lang="pt-BR"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased light`}
     >
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap"
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

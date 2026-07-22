@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
       });
       makerProfileData = {
         id: profile.id,
+        name: user.name,
         city: profile.city,
         state: profile.state,
         rating: profile.rating,

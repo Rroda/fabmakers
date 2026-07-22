@@ -1,0 +1,19 @@
+---
+description: Cérebro de produto FabMakers — ler memória e brain antes de decisões ou UI
+alwaysApply: true
+---
+
+# FabMakers Brain
+
+No início de sessões de produto, estratégia, UI ou features:
+
+1. Ler `PROJECT-MEMORY.md`
+2. Ler `docs/brain/README.md` e os arquivos do brain relevantes ao pedido
+3. Escolher skill em `.cursor/skills/` quando couber:
+   - conceito amplo / estagnação → `wedge-finder`
+   - features soltas → `concept-reconnect`
+   - decisão difícil → `product-council`
+   - interface → `product-ui` (só com wedge definido) + regra `fabmakers-ui.mdc` (base [mistral.ai](https://mistral.ai/))
+
+Não misturar estratégia profunda com refactor grande no mesmo passo.
+Não expandir personas (Designer/API/App) sem wedge em `ROADMAP-NOW.md`.

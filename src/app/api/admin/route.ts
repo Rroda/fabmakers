@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 // GET /api/admin - Retorna a fila de homologações pendentes
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const denied = requireAdmin(req);
+  if (denied) return denied;
+
   try {
     const { prisma } = await import("@/lib/db");
 
     const pendingMakers = await prisma.makerProfile.findMany({
       where: { makerStatus: "PENDING_APPROVAL" },
-      include: { user: true }
+      include: { user: true },
     });
 
-    const formattedRequests = pendingMakers.map(p => ({
+    const formattedRequests = pendingMakers.map((p) => ({
       id: p.id,
       name: p.user.name,
       zipCode: p.city,
@@ -24,7 +28,7 @@ export async function GET() {
       calibX: p.calibX || 20.0,
       calibY: p.calibY || 20.0,
       calibZ: p.calibZ || 20.0,
-      createdAt: p.user.updatedAt.toLocaleDateString("pt-BR")
+      createdAt: p.user.updatedAt.toLocaleDateString("pt-BR"),
     }));
 
     return NextResponse.json({ success: true, homologations: formattedRequests });
@@ -37,6 +41,9 @@ export async function GET() {
 
 // POST /api/admin - Executa ação de aprovação, rejeição ou banimento
 export async function POST(req: NextRequest) {
+  const denied = requireAdmin(req);
+  if (denied) return denied;
+
   try {
     const { prisma } = await import("@/lib/db");
 
@@ -53,13 +60,25 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "APPROVE") {
-      await prisma.makerProfile.update({ where: { userId: user.id }, data: { isApproved: true, makerStatus: "SANDBOX" } });
+      await prisma.makerProfile.update({
+        where: { userId: user.id },
+        data: { isApproved: true, makerStatus: "SANDBOX" },
+      });
     } else if (action === "REJECT") {
-      await prisma.makerProfile.update({ where: { userId: user.id }, data: { isApproved: false, makerStatus: "UNVERIFIED" } });
+      await prisma.makerProfile.update({
+        where: { userId: user.id },
+        data: { isApproved: false, makerStatus: "UNVERIFIED" },
+      });
     } else if (action === "BAN") {
-      await prisma.makerProfile.update({ where: { userId: user.id }, data: { isBanned: true, makerStatus: "BANNED", rating: 3.0, penaltiesCount: 3 } });
+      await prisma.makerProfile.update({
+        where: { userId: user.id },
+        data: { isBanned: true, makerStatus: "BANNED", rating: 3.0, penaltiesCount: 3 },
+      });
     } else if (action === "UNBAN") {
-      await prisma.makerProfile.update({ where: { userId: user.id }, data: { isBanned: false, makerStatus: "SANDBOX", rating: 5.0, penaltiesCount: 0 } });
+      await prisma.makerProfile.update({
+        where: { userId: user.id },
+        data: { isBanned: false, makerStatus: "SANDBOX", rating: 5.0, penaltiesCount: 0 },
+      });
     }
 
     return NextResponse.json({ success: true });

@@ -1,0 +1,86 @@
+solid case_pi_fm
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 95.000 0.000 0.000
+      vertex 95.000 65.000 0.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 95.000 65.000 0.000
+      vertex 0.000 65.000 0.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 35.000
+      vertex 95.000 65.000 35.000
+      vertex 95.000 0.000 35.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 35.000
+      vertex 0.000 65.000 35.000
+      vertex 95.000 65.000 35.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 95.000 0.000 35.000
+      vertex 95.000 0.000 0.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 0.000 0.000 35.000
+      vertex 95.000 0.000 35.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 65.000 0.000
+      vertex 95.000 65.000 0.000
+      vertex 95.000 65.000 35.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 65.000 0.000
+      vertex 95.000 65.000 35.000
+      vertex 0.000 65.000 35.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 0.000 65.000 0.000
+      vertex 0.000 65.000 35.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 0.000 0.000 0.000
+      vertex 0.000 65.000 35.000
+      vertex 0.000 0.000 35.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 95.000 0.000 0.000
+      vertex 95.000 0.000 35.000
+      vertex 95.000 65.000 35.000
+    endloop
+  endfacet
+  facet normal 0 0 0
+    outer loop
+      vertex 95.000 0.000 0.000
+      vertex 95.000 65.000 35.000
+      vertex 95.000 65.000 0.000
+    endloop
+  endfacet
+endsolid case_pi_fm

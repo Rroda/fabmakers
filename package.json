@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "e2e:catalog-job": "node scripts/e2e-catalog-job.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
     "@prisma/adapter-libsql": "^7.8.0",
     "next": "16.2.9",
+    "nodemailer": "^9.0.3",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
@@ -19,6 +21,7 @@
     "@prisma/client": "^7.8.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

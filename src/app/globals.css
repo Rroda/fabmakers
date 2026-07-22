@@ -1,7 +1,30 @@
 @import "tailwindcss";
 
-:root {
-  /* Padrão: Tema Escuro (Dark Mode) */
+/* Padrão do produto: tema claro (ref. mistral.ai). Escuro = secundário via .dark */
+:root,
+.light {
+  --background: #f5f5f7;
+  --foreground: #111111;
+  --accent-primary: #d44d00;
+  --accent-secondary: #ebebef;
+  --success: #0d9f6e;
+  --zinc-900: #ffffff;
+  --zinc-800: #ebebef;
+  --zinc-700: #e0e0e6;
+  --zinc-600: #a1a1aa;
+  --zinc-400: #6b6b73;
+  --glow-color: 212, 77, 0;
+  --glow-opacity: 0.06;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --wizard-input-bg: #ffffff;
+  --wizard-input-border: #e4e4ea;
+  --wizard-input-text: #111111;
+  --wizard-nest-bg: #fafafa;
+  --wizard-muted: #6b6b73;
+}
+
+.dark {
   --background: #050506;
   --foreground: #f4f4f5;
   --accent-primary: #d44d00;
@@ -16,24 +39,11 @@
   --glow-opacity: 0.15;
   --glass-bg: rgba(9, 9, 11, 0.4);
   --glass-border: rgba(255, 255, 255, 0.08);
-}
-
-/* Tema Claro (Light Mode) */
-.light {
-  --background: #fafafa;
-  --foreground: #18181b;
-  --accent-primary: #d44d00;
-  --accent-secondary: #e4e4e7;
-  --success: #10b981;
-  --zinc-900: #ffffff;
-  --zinc-800: #e4e4e7;
-  --zinc-700: #d4d4d8;
-  --zinc-600: #a1a1aa;
-  --zinc-400: #71717a;
-  --glow-color: 212, 77, 0;
-  --glow-opacity: 0.05;
-  --glass-bg: rgba(255, 255, 255, 0.4);
-  --glass-border: rgba(0, 0, 0, 0.06);
+  --wizard-input-bg: #050506;
+  --wizard-input-border: #27272a;
+  --wizard-input-text: #f4f4f5;
+  --wizard-nest-bg: #09090b;
+  --wizard-muted: #71717a;
 }
 
 @theme inline {
@@ -82,6 +92,115 @@ body {
 
 .mono-text {
   font-family: var(--font-geist-mono), monospace;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined", sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  display: inline-block;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "liga";
+}
+
+/* Logo mark: glifo branco + fundo transparente; no light inverte só o glifo */
+.logo-mark {
+  height: 2.75rem;
+  width: auto;
+  object-fit: contain;
+  background: transparent !important;
+}
+.light .logo-mark {
+  filter: invert(1);
+}
+.dark .logo-mark {
+  filter: none;
+}
+
+/* Wizard — campos e ninhos adaptam ao tema (light = Mistral-like) */
+.wizard-input {
+  width: 100%;
+  background: var(--wizard-input-bg);
+  border: 1px solid var(--wizard-input-border);
+  color: var(--wizard-input-text);
+  border-radius: 0.875rem;
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.wizard-input::placeholder {
+  color: var(--wizard-muted);
+  opacity: 0.85;
+}
+.wizard-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(212, 77, 0, 0.12);
+}
+.wizard-input:disabled,
+.wizard-input[disabled] {
+  opacity: 0.72;
+  cursor: not-allowed;
+  background: var(--wizard-nest-bg);
+}
+.wizard-input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+.wizard-nest {
+  background: var(--wizard-nest-bg);
+  border: 1px solid var(--wizard-input-border);
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+.wizard-select {
+  background: var(--wizard-input-bg);
+  border: 1px solid var(--wizard-input-border);
+  color: var(--wizard-input-text);
+  border-radius: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.8125rem;
+  width: 100%;
+}
+.wizard-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+.wizard-file-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.9rem;
+  background: var(--wizard-input-bg);
+  border: 1px solid var(--wizard-input-border);
+  color: var(--foreground);
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.wizard-file-btn:hover {
+  border-color: var(--accent-primary);
+}
+.wizard-spec {
+  background: #09090b;
+  border: 1px solid #18181b;
+  color: #a1a1aa;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  font-size: 0.75rem;
+}
+.light .wizard-spec {
+  background: #fafafa;
+  border: 1px solid #ebebef;
+  color: #6b6b73;
 }
 
 /* Custom scrollbar para visual técnico */
@@ -142,5 +261,8 @@ body {
   animation: dash 4s linear infinite;
 }
 
-
-
+/* Admin Core (light) — reforço Mistral-like */
+.light .admin-shell .technical-panel {
+  background: #ffffff;
+  border-color: #ebebef;
+}

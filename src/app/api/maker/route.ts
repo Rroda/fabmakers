@@ -10,8 +10,9 @@ export async function GET() {
     const profiles = await prisma.makerProfile.findMany({ include: { user: true } });
 
     const formattedMakers = profiles.map(p => ({
+      id: p.id,
       name: p.user.name,
-      zipCode: p.user.verificationToken || p.city,
+      zipCode: p.city,
       rating: p.rating,
       penalties: p.penaltiesCount,
       isBanned: p.isBanned,
@@ -55,10 +56,10 @@ export async function POST(req: NextRequest) {
     let user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
       user = await prisma.user.create({
-        data: { name, email, passwordHash: "dummy-hash", role: "MAKER", verificationToken: zipCode }
+        data: { name, email, passwordHash: "dummy-hash", role: "MAKER" }
       });
     } else {
-      user = await prisma.user.update({ where: { email }, data: { name, verificationToken: zipCode } });
+      user = await prisma.user.update({ where: { email }, data: { name } });
     }
 
     let profile = await prisma.makerProfile.findUnique({ where: { userId: user.id } });
