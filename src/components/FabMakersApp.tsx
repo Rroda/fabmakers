@@ -558,7 +558,9 @@ export default function FabMakersApp() {
 
   // --- LÓGICA DE PERSISTÊNCIA EM BANCO DE DADOS REAL ---
   const refreshOrdersFromApi = () => {
-    fetch("/api/orders")
+    const headers = orderAuthHeaders();
+    if (!Object.keys(headers).length) return;
+    fetch("/api/orders", { headers })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.orders) {
@@ -1815,6 +1817,7 @@ export default function FabMakersApp() {
           });
           setClientSubTab("upload");
           goTo("client");
+          refreshOrdersFromApi();
         } else if (data.user.role === "MAKER") {
           goTo("maker");
           if (data.user.profile) {
@@ -1842,6 +1845,7 @@ export default function FabMakersApp() {
             adminToken: null,
             clientToken: null,
           });
+          refreshOrdersFromApi();
         } else if (data.user.role === "ADMIN") {
           saveSession(data.user, null, {
             adminToken: data.adminToken || null,
@@ -1849,6 +1853,7 @@ export default function FabMakersApp() {
             clientToken: null,
           });
           goTo("admin");
+          refreshOrdersFromApi();
         } else if (data.user.role === "DESIGNER") {
           setActiveTab("designer");
         } else if (data.user.role === "MODERATOR") {

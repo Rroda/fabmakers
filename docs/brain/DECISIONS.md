@@ -135,3 +135,10 @@
 - **Fora:** OAuth; auth em GET listagem geral (ainda aberta no MVP).
 - **Smoke:** POST sem token → 401; e2e com makerToken → PASS.
 - **Data:** 2026-07-22
+
+## D020 — Auth GET listagem de pedidos
+
+- **Decisão:** Todo `GET /api/orders` exige Bearer maker|admin|client. Sem filter: CLIENT só vê os próprios; MAKER/ADMIN veem a lista. `filter=queue|mine` continua só MAKER.
+- **Por quê:** fecha residual D019 — pedidos não são públicos.
+- **Smoke:** GET sem token → 401; e2e PASS.
+- **Data:** 2026-07-22

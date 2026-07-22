@@ -8,8 +8,8 @@
 - **Status:** active
 - **Última sessão:** 2026-07-22
 - **Modo:** autonomia
-- **Foco:** D019 — POST seed autenticado. Core + SMTP ok.
-- **Próximo:** L1–L3 só com freio de foco.
+- **Foco:** D020 — GET orders autenticado. Core Supply-first fechado.
+- **Próximo:** L1–L3 só com freio de foco (3 confirmações).
 
 ## Deploy
 - Prod: https://fabmakers.com.br

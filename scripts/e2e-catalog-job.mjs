@@ -46,13 +46,15 @@ console.log(`E2E catalog→job @ ${BASE}`);
   assert(patch.status === 401, `PATCH esperado 401, veio ${patch.status}`);
   const queueNoAuth = await fetch(`${BASE}/api/orders?filter=queue`);
   assert(queueNoAuth.status === 401, `GET queue esperado 401, veio ${queueNoAuth.status}`);
+  const listNoAuth = await fetch(`${BASE}/api/orders`);
+  assert(listNoAuth.status === 401, `GET orders esperado 401, veio ${listNoAuth.status}`);
   const postNoAuth = await fetch(`${BASE}/api/orders`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filename: "x.stl", status: "WAITING_MAKER", totalPrice: 1 }),
   });
   assert(postNoAuth.status === 401, `POST esperado 401, veio ${postNoAuth.status}`);
-  console.log("0) PATCH + GET queue + POST sem token → 401");
+  console.log("0) PATCH + GET queue + GET list + POST sem token → 401");
 }
 
 const login = await req("/api/auth/login", {

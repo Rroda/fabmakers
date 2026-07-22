@@ -45,23 +45,28 @@ function progressFor(status: string): number {
   }
 }
 
-// GET /api/orders — lista pedidos (fila + alocados)
-// D015: filter=queue | mine exigem makerToken; listagem geral (sem filter) fica aberta no MVP.
+// GET /api/orders — lista pedidos (D015 queue/mine = maker; D020 toda listagem exige token)
 // D019: POST exige maker|admin|client token.
 export async function GET(req: NextRequest) {
   try {
+    const { requireOrderWriter } = await import("@/lib/orderAuth");
+    const access = requireOrderWriter(req);
+    if (!access.ok) return access.response;
+
     const { prisma } = await import("@/lib/db");
     const filter = req.nextUrl.searchParams.get("filter"); // queue | mine | all
     const makerNameParam = req.nextUrl.searchParams.get("makerName");
 
     let makerDisplayName: string | null = null;
     if (filter === "queue" || filter === "mine") {
-      const { requireMaker } = await import("@/lib/makerAuth");
-      const auth = requireMaker(req);
-      if (!auth.ok) return auth.response;
-
+      if (access.role !== "MAKER") {
+        return NextResponse.json(
+          { success: false, error: "Fila/mine só para maker autenticado." },
+          { status: 403 }
+        );
+      }
       const makerUser = await prisma.user.findFirst({
-        where: { email: auth.email, role: "MAKER" },
+        where: { email: access.email, role: "MAKER" },
         include: { makerProfile: true },
       });
       if (!makerUser?.makerProfile) {
@@ -94,6 +99,7 @@ export async function GET(req: NextRequest) {
         material: o.shippingAddress || "PLA",
         zipCode: o.shippingZip,
         makerName: o.maker?.user.name || null,
+        clientEmail: o.client?.email || null,
         makerPayout: Math.max(0, o.totalPrice - o.platformFee),
         platformFee: o.platformFee,
         catalogId: o.catalogId || null,
@@ -111,6 +117,8 @@ export async function GET(req: NextRequest) {
     } else if (filter === "mine") {
       const name = makerDisplayName || makerNameParam;
       formattedOrders = formattedOrders.filter((o) => o.makerName === name);
+    } else if (access.role === "CLIENT") {
+      formattedOrders = formattedOrders.filter((o) => o.clientEmail === access.email);
     }
 
     return NextResponse.json({ success: true, orders: formattedOrders });

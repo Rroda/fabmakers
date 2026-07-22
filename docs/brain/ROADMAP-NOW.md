@@ -108,7 +108,8 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 27. ~~SMTP real Zoho em prod (D018)~~
 28. ~~Wizard copy alinhada a SMTP real~~ (bypass só emergência)
 29. ~~Auth POST seed orders (D019)~~
-30. *(Backlog Later — só com freio)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
+30. ~~Auth GET listagem orders (D020)~~
+31. *(Backlog Later — só com freio)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
 
 ## Candidatos descartados (esta rodada)
 
