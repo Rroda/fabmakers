@@ -4,7 +4,7 @@
 Antes de features, UI ou pivots: ler `PROJECT-MEMORY.md` e `docs/brain/README.md`.
 Skills: `.cursor/skills/` (`wedge-finder`, `concept-reconnect`, `product-council`, `product-ui`).
 Estratégia primeiro; código depois do wedge em `docs/brain/ROADMAP-NOW.md`.
-Foco: regra `.cursor/rules/fabmakers-focus.mdc` — orquestrar ROADMAP; frear desvios (3 confirmações).
+Foco: regra `.cursor/rules/fabmakers-focus.mdc` — **sempre pode seguir** o ROADMAP; não pedir permissão a cada passo; humano só em secrets/risco/bloqueio. Freio (3 confirmações) só para desvio **fora** do ROADMAP.
 UI / páginas novas: regra `.cursor/rules/fabmakers-ui.mdc` — base visual [mistral.ai](https://mistral.ai/).
 <!-- END:fabmakers-brain -->
 

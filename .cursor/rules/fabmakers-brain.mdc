@@ -16,4 +16,4 @@ No início de sessões de produto, estratégia, UI ou features:
    - interface → `product-ui` (só com wedge definido) + regra `fabmakers-ui.mdc` (base [mistral.ai](https://mistral.ai/))
 
 Não misturar estratégia profunda com refactor grande no mesmo passo.
-Não expandir personas (Designer/API/App) sem wedge em `ROADMAP-NOW.md`.
+Seguir `ROADMAP-NOW.md` com autonomia (ver `fabmakers-focus.mdc`): **sempre pode seguir**; não perguntar permissão a cada passo.

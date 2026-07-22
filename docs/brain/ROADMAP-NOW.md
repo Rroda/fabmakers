@@ -10,7 +10,7 @@
 - **Autonomia:** orquestrar ROADMAP sem menus “A ou B”; humano só em secrets/risco/pivot
 - **Prod:** https://fabmakers.com.br
 - **D014:** backlog L1–L3
-- **Autonomia:** orquestrar ROADMAP; acionar humano em secrets/aprovação
+- **Autonomia:** **sempre pode seguir** o ROADMAP (permissão founder 2026-07-22). Sem menus A/B. Humano só em secrets/risco/bloqueio. Freio 3x só para desvio fora do plano.
 - **Foco:** regra `fabmakers-focus.mdc`
 
 ## Wedge ativo

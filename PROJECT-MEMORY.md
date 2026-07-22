@@ -2,11 +2,17 @@
 
 > Ler no início; atualizar ao encerrar. Brain: `docs/brain/`. Foco: `.cursor/rules/fabmakers-focus.mdc`.
 
+## Autonomia (permanente)
+- **Sempre pode seguir** — permissão explícita do founder (2026-07-22).
+- Não perguntar “posso continuar?” / “A ou B?”.
+- Só acionar humano: secrets · risco alto · bloqueio sem caminho.
+- Detalhe: `.cursor/rules/fabmakers-focus.mdc`
+
 ## Status atual
 - **Status:** active
 - **Última sessão:** 2026-07-22
 - **Modo:** autonomia total
-- **Foco:** Core + L1 + L2 + L3 MVPs entregues. ROADMAP pós-wedge em teste.
+- **Foco:** Core + L1 + L2 + L3 MVPs entregues. Próximo = polish / hipóteses abertas no ROADMAP.
 - **Prod:** https://fabmakers.com.br
 
 ## Contas
