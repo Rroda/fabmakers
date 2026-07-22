@@ -4026,7 +4026,7 @@ export default function FabMakersApp() {
                           </span>
                         </div>
                         <p className={`text-sm ${bodyCls}`}>
-                          Enviamos um código de 6 dígitos. Sem SMTP no ambiente, o código aparece aqui (modo console).
+                          Enviaremos um código de 6 dígitos para o e-mail da sessão. Confira a caixa de entrada (e o spam).
                         </p>
 
                         {!emailVerified ? (
@@ -4059,6 +4059,9 @@ export default function FabMakersApp() {
                                     setRealGeneratedCode("");
                                     setEmailVerificationCode("");
                                   }
+                                  if (data.mode === "smtp") {
+                                    alert("Código enviado. Verifique seu e-mail.");
+                                  }
                                   setWizardErrors((prev) => {
                                     const n = { ...prev };
                                     delete n.email;
@@ -4080,12 +4083,12 @@ export default function FabMakersApp() {
                               <div className="space-y-2">
                                 {realGeneratedCode ? (
                                   <div className={`rounded-xl p-4 text-center ${isLight ? "bg-white border border-[#ebebef]" : "bg-[#18181b] border border-[#d44d00]/40"}`}>
-                                    <span className={`text-[11px] block mb-1 ${isLight ? "text-[#8a8a93]" : "text-[#71717a] uppercase"}`}>Código (modo console)</span>
+                                    <span className={`text-[11px] block mb-1 ${isLight ? "text-[#8a8a93]" : "text-[#71717a] uppercase"}`}>Código (dev local — sem SMTP)</span>
                                     <span className="text-xl font-semibold text-[#d44d00] tracking-[0.25em]">{realGeneratedCode}</span>
                                   </div>
                                 ) : (
                                   <p className={`text-xs ${isLight ? "text-[#5c5c66]" : "text-[#a1a1aa]"}`}>
-                                    Verifique sua caixa de entrada e digite o código abaixo.
+                                    Código enviado por e-mail. Digite-o abaixo (válido por 15 minutos).
                                   </p>
                                 )}
                                 <div className="flex gap-2">
@@ -4144,7 +4147,7 @@ export default function FabMakersApp() {
 
                             <details className={`pt-2 ${isLight ? "border-t border-[#ebebef]" : "border-t border-[#18181b]"}`}>
                               <summary className={`text-[12px] cursor-pointer select-none py-2 ${isLight ? "text-[#8a8a93]" : "text-[#71717a] uppercase tracking-wider mono-text"}`}>
-                                MVP — confirmar e-mail da sessão (sem código)
+                                Emergência — pular verificação (só demo)
                               </summary>
                               <button
                                 type="button"
@@ -4159,7 +4162,7 @@ export default function FabMakersApp() {
                                 }}
                                 className={`${btnBack} mt-2 w-full`}
                               >
-                                Confirmar e-mail da sessão
+                                Confirmar e-mail sem código
                               </button>
                             </details>
                           </div>

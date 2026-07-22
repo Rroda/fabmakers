@@ -8,8 +8,8 @@
 - **Status:** active
 - **Última sessão:** 2026-07-22
 - **Modo:** autonomia
-- **Foco:** SMTP real ligado em prod (D018). Core Supply-first ok.
-- **Próximo:** L1–L3 só com freio de foco · polish se pedir.
+- **Foco:** Core + SMTP fechados. Wizard copy alinhada ao e-mail real.
+- **Próximo:** L1–L3 só com freio · ou fechar POST seed aberto (D015 residual).
 
 ## Deploy
 - Prod: https://fabmakers.com.br

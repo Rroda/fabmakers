@@ -38,7 +38,7 @@
 ## Dívida explícita (UX / infra)
 
 - ~~Layout do **wizard maker** (onboarding)~~ — redesign Layer A 2026-07-21
-- **E-mail de ativação com código (SMTP real)** — **código pronto (D013)**; preencher `SMTP_*` no deploy. Bypass MVP ainda disponível no wizard.
+- ~~E-mail de ativação com código (SMTP real)~~ — D013 + D018 (Zoho em prod). Bypass demo ainda em `<details>`.
 - Prioridade após Core: seed de demanda no radar + polish visual (parcialmente feito).
 - ~~Dois SQLite locais~~ — unificado em `prisma/dev.db` (D010)
 
@@ -46,7 +46,7 @@
 
 - **Core:** onboarding/KYC/calibração → homologação admin → fila/aceite de job → status → pagamento
 - **Support:** auth, quote (seed), **catálogo curado (D006)**, cliente mínimo, PrinterModel, CEP/geo
-- **Deploy debt:** SMTP_* no ambiente (código D013 pronto)
+- **Deploy:** SMTP Zoho em prod (D018)
 - **Later (no plano — não executar enquanto Core/deploy não estiver estável):** ver seção abaixo
 - **Park:** scrape MakerWorld como catálogo comercial (D002/D006)
 
@@ -95,18 +95,19 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 14. ~~Polish admin light (Core)~~ 
 15. ~~Gate auth `/admin` (D008)~~ 
 16. ~~Auth servidor nas APIs admin (D009)~~ 
-17. SMTP real — só no deploy
+17. ~~SMTP real — só no deploy~~ (D018)
 18. ~~Job real E2E: catálogo → fila → aceite → QA → pagamento (D010)~~ 
 19. ~~Auth maker em claim/advance (D011)~~ 
 20. ~~Gate `/maker` + conta MVP roda@ (D012)~~ 
 21. ~~Pipeline e-mail verify (D013)~~ — SMTP_* no deploy
 22. ~~Auth GET queue/mine (D015)~~ — POST seed ainda aberto
 23. ~~STLs demo catálogo (D016)~~
-24. SMTP_* — **adiado** (ligar quando o usuário pedir / no deploy)
+24. ~~SMTP_* em prod (D018)~~
 25. ~~Build produção TypeScript OK~~ (MakerProfile.id + key rede)
 26. ~~Frota/estoque demo maker MVP (D017)~~
 27. ~~SMTP real Zoho em prod (D018)~~
-28. *(Backlog Later — só após Core/deploy)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
+28. ~~Wizard copy alinhada a SMTP real~~ (bypass só emergência)
+29. *(Backlog Later — só com freio)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
 
 ## Candidatos descartados (esta rodada)
 
