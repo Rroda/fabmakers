@@ -1,4 +1,4 @@
-/** Sessão client-side (Layer B) — adminToken (D009) + makerToken (D011). */
+/** Sessão client-side (Layer B) — adminToken (D009) + makerToken (D011) + clientToken (D019). */
 
 export type SessionUser = {
   name: string;
@@ -12,6 +12,7 @@ export type StoredSession = {
   makerProfile?: unknown;
   adminToken?: string | null;
   makerToken?: string | null;
+  clientToken?: string | null;
 };
 
 const KEY = "fm_session_v1";
@@ -32,7 +33,11 @@ export function loadSession(): StoredSession | null {
 export function saveSession(
   user: SessionUser | null,
   makerProfile?: unknown,
-  tokens?: { adminToken?: string | null; makerToken?: string | null }
+  tokens?: {
+    adminToken?: string | null;
+    makerToken?: string | null;
+    clientToken?: string | null;
+  }
 ) {
   if (typeof window === "undefined") return;
   if (!user) {
@@ -49,6 +54,8 @@ export function saveSession(
         tokens?.adminToken !== undefined ? tokens.adminToken : prev?.adminToken ?? null,
       makerToken:
         tokens?.makerToken !== undefined ? tokens.makerToken : prev?.makerToken ?? null,
+      clientToken:
+        tokens?.clientToken !== undefined ? tokens.clientToken : prev?.clientToken ?? null,
     } satisfies StoredSession)
   );
 }
@@ -61,6 +68,10 @@ export function getMakerToken(): string | null {
   return loadSession()?.makerToken || null;
 }
 
+export function getClientToken(): string | null {
+  return loadSession()?.clientToken || null;
+}
+
 export function adminAuthHeaders(): HeadersInit {
   const token = getAdminToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -68,5 +79,11 @@ export function adminAuthHeaders(): HeadersInit {
 
 export function makerAuthHeaders(): HeadersInit {
   const token = getMakerToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+/** Headers para POST /api/orders (D019): maker → admin → client. */
+export function orderAuthHeaders(): HeadersInit {
+  const token = getMakerToken() || getAdminToken() || getClientToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }

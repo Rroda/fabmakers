@@ -242,7 +242,8 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        user: { name: user.name, email: user.email, role: "CLIENT" }
+        user: { name: user.name, email: user.email, role: "CLIENT" },
+        clientToken: (await import("@/lib/clientAuth")).issueClientToken(cleanEmail),
       });
     }
 

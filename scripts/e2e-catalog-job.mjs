@@ -1,6 +1,6 @@
 /**
- * E2E Supply-first (D006 + D010–D015):
- * catálogo → fila → login maker → claim → SHIPPED → COMPLETED + payout.
+ * E2E Supply-first (D006 + D010–D015 + D019):
+ * catálogo → fila (auth) → claim → SHIPPED → COMPLETED + payout.
  * Uso: node scripts/e2e-catalog-job.mjs  [BASE_URL]
  */
 const BASE = process.argv[2] || process.env.BASE_URL || "http://localhost:3000";
@@ -36,7 +36,7 @@ const MAKER_PASSWORD = "123";
 
 console.log(`E2E catalog→job @ ${BASE}`);
 
-// 0) PATCH / queue sem token → 401
+// 0) PATCH / queue / POST sem token → 401
 {
   const patch = await fetch(`${BASE}/api/orders`, {
     method: "PATCH",
@@ -46,7 +46,13 @@ console.log(`E2E catalog→job @ ${BASE}`);
   assert(patch.status === 401, `PATCH esperado 401, veio ${patch.status}`);
   const queueNoAuth = await fetch(`${BASE}/api/orders?filter=queue`);
   assert(queueNoAuth.status === 401, `GET queue esperado 401, veio ${queueNoAuth.status}`);
-  console.log("0) PATCH + GET queue sem token → 401");
+  const postNoAuth = await fetch(`${BASE}/api/orders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ filename: "x.stl", status: "WAITING_MAKER", totalPrice: 1 }),
+  });
+  assert(postNoAuth.status === 401, `POST esperado 401, veio ${postNoAuth.status}`);
+  console.log("0) PATCH + GET queue + POST sem token → 401");
 }
 
 const login = await req("/api/auth/login", {
@@ -77,6 +83,7 @@ console.log(`2) quote ok — R$ ${quote.pricing.totalPrice} · ${quote.filename}
 const orderId = `e2e-${Date.now()}`;
 const created = await req("/api/orders", {
   method: "POST",
+  headers: auth,
   body: JSON.stringify({
     id: orderId,
     filename: quote.filename,

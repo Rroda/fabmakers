@@ -46,7 +46,8 @@ function progressFor(status: string): number {
 }
 
 // GET /api/orders — lista pedidos (fila + alocados)
-// D015: filter=queue | mine exigem makerToken; listagem geral (sem filter) fica aberta no MVP (seed/UI).
+// D015: filter=queue | mine exigem makerToken; listagem geral (sem filter) fica aberta no MVP.
+// D019: POST exige maker|admin|client token.
 export async function GET(req: NextRequest) {
   try {
     const { prisma } = await import("@/lib/db");
@@ -120,9 +121,13 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/orders — cria pedido (seed) na fila WAITING_MAKER
+// POST /api/orders — cria pedido (seed) na fila WAITING_MAKER (D019: requer token)
 export async function POST(req: NextRequest) {
   try {
+    const { requireOrderWriter } = await import("@/lib/orderAuth");
+    const writer = requireOrderWriter(req);
+    if (!writer.ok) return writer.response;
+
     const { prisma } = await import("@/lib/db");
 
     const data = await req.json();
@@ -139,12 +144,16 @@ export async function POST(req: NextRequest) {
       catalogId,
     } = data;
 
-    let client = await prisma.user.findFirst({ where: { role: "CLIENT" } });
+    let client =
+      writer.role === "CLIENT"
+        ? await prisma.user.findFirst({ where: { email: writer.email, role: "CLIENT" } })
+        : await prisma.user.findFirst({ where: { role: "CLIENT" } });
     if (!client) {
       client = await prisma.user.create({
         data: {
-          name: "Cliente Geral",
-          email: "cliente@fabmakers.com.br",
+          name: writer.role === "CLIENT" ? writer.email.split("@")[0] : "Cliente Geral",
+          email:
+            writer.role === "CLIENT" ? writer.email : "cliente@fabmakers.com.br",
           passwordHash: "dummy-hash",
           role: "CLIENT",
         },

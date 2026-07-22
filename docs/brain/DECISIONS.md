@@ -127,3 +127,11 @@
 - **Por quê:** dívida D013; verify-email deixa de ser console em prod.
 - **Smoke:** `POST /api/auth/verify-email` → `mode: "smtp"`, HTTP 200.
 - **Data:** 2026-07-22
+
+## D019 — Auth POST criar pedido (seed)
+
+- **Decisão:** `POST /api/orders` exige Bearer `makerToken` | `adminToken` | `clientToken`. Login CLIENT emite `clientToken`. UI usa `orderAuthHeaders()`.
+- **Por quê:** fecha residual D015 — fila não pode receber seed anônimo em prod.
+- **Fora:** OAuth; auth em GET listagem geral (ainda aberta no MVP).
+- **Smoke:** POST sem token → 401; e2e com makerToken → PASS.
+- **Data:** 2026-07-22

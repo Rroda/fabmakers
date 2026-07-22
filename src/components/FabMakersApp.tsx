@@ -15,7 +15,7 @@ import {
   type AppTab,
   type HomeMode,
 } from "@/lib/appRoutes";
-import { loadSession, saveSession, adminAuthHeaders, makerAuthHeaders, getMakerToken } from "@/lib/session";
+import { loadSession, saveSession, adminAuthHeaders, makerAuthHeaders, orderAuthHeaders, getMakerToken } from "@/lib/session";
 
 // Interface para dados do fatiador STL
 interface QuoteData {
@@ -1064,6 +1064,12 @@ export default function FabMakersApp() {
       alert("Para confirmar o seu pedido e rotear a manufatura para os fabricantes locais, por favor faça login ou cadastre-se na plataforma.");
       return;
     }
+    if (!Object.keys(orderAuthHeaders()).length) {
+      setLoginRole(currentUser.role === "MAKER" ? "MAKER" : currentUser.role === "ADMIN" ? "ADMIN" : "CLIENT");
+      setShowLoginModal(true);
+      alert("Sessão sem token de pedido. Faça login novamente.");
+      return;
+    }
     if (!quote) return;
     if (!clientZip || clientZip.replace(/\D/g, "").length !== 8) {
       alert("Por favor, informe um CEP válido para cotação de frete e roteamento.");
@@ -1098,7 +1104,7 @@ export default function FabMakersApp() {
     // Persistência real no banco de dados
     fetch("/api/orders", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...orderAuthHeaders() },
       body: JSON.stringify(newOrder)
     }).catch(err => console.error("Erro ao salvar ordem no banco:", err));
 
@@ -1402,6 +1408,10 @@ export default function FabMakersApp() {
   const seedCatalogDemand = async () => {
     const model = CURATED_CATALOG.find((m) => m.id === "fm-cable-clip") || CURATED_CATALOG[0];
     if (!model) return;
+    if (!Object.keys(orderAuthHeaders()).length) {
+      alert("Faça login (maker/admin/cliente) para gerar demanda.");
+      return;
+    }
     try {
       const quoteRes = await fetch("/api/quote", {
         method: "POST",
@@ -1433,7 +1443,7 @@ export default function FabMakersApp() {
       };
       const createRes = await fetch("/api/orders", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...orderAuthHeaders() },
         body: JSON.stringify(orderBody),
       });
       const created = await createRes.json();
@@ -1798,6 +1808,11 @@ export default function FabMakersApp() {
         setLoginPassword("");
         
         if (data.user.role === "CLIENT") {
+          saveSession(data.user, null, {
+            clientToken: data.clientToken || null,
+            makerToken: null,
+            adminToken: null,
+          });
           setClientSubTab("upload");
           goTo("client");
         } else if (data.user.role === "MAKER") {
@@ -1825,9 +1840,14 @@ export default function FabMakersApp() {
           saveSession(data.user, data.user.profile || null, {
             makerToken: data.makerToken || null,
             adminToken: null,
+            clientToken: null,
           });
         } else if (data.user.role === "ADMIN") {
-          saveSession(data.user, null, { adminToken: data.adminToken || null, makerToken: null });
+          saveSession(data.user, null, {
+            adminToken: data.adminToken || null,
+            makerToken: null,
+            clientToken: null,
+          });
           goTo("admin");
         } else if (data.user.role === "DESIGNER") {
           setActiveTab("designer");

@@ -100,14 +100,15 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 19. ~~Auth maker em claim/advance (D011)~~ 
 20. ~~Gate `/maker` + conta MVP roda@ (D012)~~ 
 21. ~~Pipeline e-mail verify (D013)~~ — SMTP_* no deploy
-22. ~~Auth GET queue/mine (D015)~~ — POST seed ainda aberto
+22. ~~Auth GET queue/mine (D015)~~
 23. ~~STLs demo catálogo (D016)~~
 24. ~~SMTP_* em prod (D018)~~
 25. ~~Build produção TypeScript OK~~ (MakerProfile.id + key rede)
 26. ~~Frota/estoque demo maker MVP (D017)~~
 27. ~~SMTP real Zoho em prod (D018)~~
 28. ~~Wizard copy alinhada a SMTP real~~ (bypass só emergência)
-29. *(Backlog Later — só com freio)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
+29. ~~Auth POST seed orders (D019)~~
+30. *(Backlog Later — só com freio)* L1 Designers · L2 Técnicos/H7 · L3 Dropshipping
 
 ## Candidatos descartados (esta rodada)
 
