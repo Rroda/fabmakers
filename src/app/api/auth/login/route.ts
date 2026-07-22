@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
                   rating: 5,
                   isApproved: true,
                   isBanned: false,
-                  makerStatus: "APPROVED",
+                  makerStatus: "HOMOLOGATED",
                   machines: "[]",
                   materials: "[]",
                   availability: '{"days":["seg","ter","qua","qui","sex"],"shifts":["tarde","noite"]}',
@@ -73,14 +73,14 @@ export async function POST(req: NextRequest) {
             },
             include: { makerProfile: true },
           });
-        } else if (mvp.makerProfile && (!mvp.makerProfile.isApproved || mvp.passwordHash !== "123")) {
+        } else if (mvp.makerProfile && (!mvp.makerProfile.isApproved || mvp.passwordHash !== "123" || mvp.makerProfile.makerStatus === "APPROVED" || mvp.makerProfile.makerStatus === "UNVERIFIED" || mvp.makerProfile.makerStatus === "PENDING_APPROVAL")) {
           await prisma.user.update({
             where: { id: mvp.id },
             data: { passwordHash: "123" },
           });
           await prisma.makerProfile.update({
             where: { id: mvp.makerProfile.id },
-            data: { isApproved: true, isBanned: false, makerStatus: "APPROVED" },
+            data: { isApproved: true, isBanned: false, makerStatus: "HOMOLOGATED" },
           });
           mvp = await prisma.user.findFirst({
             where: { id: mvp.id },
@@ -95,21 +95,25 @@ export async function POST(req: NextRequest) {
               name: mvp.name,
               email: mvp.email,
               role: "MAKER",
-              makerStatus: mvp.makerProfile.makerStatus || "APPROVED",
+              makerStatus: mvp.makerProfile.makerStatus || "HOMOLOGATED",
               profile: {
                 id: mvp.makerProfile.id,
                 name: mvp.name,
                 city: mvp.makerProfile.city,
                 state: mvp.makerProfile.state,
+                zipCode: mvp.makerProfile.city,
                 rating: mvp.makerProfile.rating,
                 isApproved: mvp.makerProfile.isApproved,
                 isBanned: mvp.makerProfile.isBanned,
                 makerStatus: mvp.makerProfile.makerStatus,
                 machines: JSON.parse(mvp.makerProfile.machines || "[]"),
                 filaments: JSON.parse(mvp.makerProfile.materials || "[]"),
-                availability: JSON.parse(
-                  mvp.makerProfile.availability || '{"days":[], "shifts":[]}'
-                ),
+                availability: {
+                  days: [],
+                  shifts: [],
+                  months: [],
+                  ...JSON.parse(mvp.makerProfile.availability || '{"days":[],"shifts":[]}'),
+                },
                 kycDocumentUrl: mvp.makerProfile.kycDocumentUrl,
                 kycSelfieUrl: mvp.makerProfile.kycSelfieUrl,
                 calibX: mvp.makerProfile.calibX,

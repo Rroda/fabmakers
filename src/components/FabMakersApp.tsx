@@ -4698,13 +4698,13 @@ export default function FabMakersApp() {
                       <span className={`text-[11px] tracking-wide block ${theme === "light" ? "text-[#8a8a93] font-medium" : "text-xs uppercase tracking-widest text-[#71717a] mono-text"}`}>Status de cadastro</span>
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
                         makerProfile.isBanned ? "border-red-500/30 text-red-500 bg-red-500/5 animate-pulse" :
-                        makerProfile.makerStatus === "HOMOLOGATED" ? "border-green-500/30 text-green-600 bg-green-500/5" :
+                        makerProfile.makerStatus === "HOMOLOGATED" || makerProfile.makerStatus === "APPROVED" || makerProfile.isApproved ? "border-green-500/30 text-green-600 bg-green-500/5" :
                         makerProfile.makerStatus === "SANDBOX" ? "border-blue-500/30 text-blue-600 bg-blue-500/5" :
                         "border-yellow-500/30 text-yellow-600 bg-yellow-500/5"
                       }`}>
                         {makerProfile.isBanned ? "Banido" : 
-                         makerProfile.makerStatus === "HOMOLOGATED" ? "Homologado" : 
                          makerProfile.makerStatus === "SANDBOX" ? "Sandbox" : 
+                         (makerProfile.makerStatus === "HOMOLOGATED" || makerProfile.makerStatus === "APPROVED" || makerProfile.isApproved) ? "Homologado" : 
                          "Aguardando auditoria"}
                       </span>
                     </div>
