@@ -1,12 +1,5 @@
-import dns from "node:dns";
+import dns from "node:dns/promises";
 import nodemailer from "nodemailer";
-
-// Vercel/serverless: evita getaddrinfo EBUSY / preferência IPv6 em hosts Zoho BR
-try {
-  dns.setDefaultResultOrder("ipv4first");
-} catch {
-  /* ignore older runtimes */
-}
 
 export type MailPayload = {
   to: string;
@@ -33,15 +26,19 @@ export async function sendMail(payload: MailPayload): Promise<MailResult> {
   }
 
   try {
+    const host = String(process.env.SMTP_HOST);
     const port = Number(process.env.SMTP_PORT || "587");
     const secure = process.env.SMTP_SECURE === "true" || port === 465;
+    // Resolve IPv4 explícito — evita EBUSY/IPv6 em serverless (Zoho BR)
+    const { address } = await dns.lookup(host, { family: 4 });
+
     const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
+      host: address,
       port,
       secure,
-      family: 4,
       connectionTimeout: 20_000,
       greetingTimeout: 20_000,
+      tls: { servername: host },
       auth: {
         user: process.env.SMTP_USER,
         // Zoho app passwords às vezes vêm com espaços na UI
