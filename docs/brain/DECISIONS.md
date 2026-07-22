@@ -120,3 +120,10 @@
 - **Por quê:** perfil “Especificações do maker” vazio quebrava o demo Supply-first mesmo com fila ok.
 - **Smoke prod:** login → machines `Bambu Lab P1S`, filaments PLA/PETG.
 - **Data:** 2026-07-22
+
+## D018 — SMTP real Zoho em produção
+
+- **Decisão:** Envs `SMTP_*` na Vercel; host `smtp.zoho.com` (não `smtppro` / não `.com.br`); user `contato@fabmakers.com.br` + senha de app; `mail.ts` resolve IPv4 explícito.
+- **Por quê:** dívida D013; verify-email deixa de ser console em prod.
+- **Smoke:** `POST /api/auth/verify-email` → `mode: "smtp"`, HTTP 200.
+- **Data:** 2026-07-22

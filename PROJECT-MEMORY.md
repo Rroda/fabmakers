@@ -8,13 +8,13 @@
 - **Status:** active
 - **Última sessão:** 2026-07-22
 - **Modo:** autonomia
-- **Foco:** Core Supply-first em prod. D017: frota/estoque demo no login `roda@` (P1S + PLA/PETG).
-- **Próximo:** SMTP (quando pedir) · ou L1–L3 (com freio de foco).
+- **Foco:** SMTP real ligado em prod (D018). Core Supply-first ok.
+- **Próximo:** L1–L3 só com freio de foco · polish se pedir.
 
 ## Deploy
 - Prod: https://fabmakers.com.br
 - Contas: admin@ / admin123 · roda@ / 123
-- SMTP: adiado
+- SMTP: Zoho `contato@` → `smtp.zoho.com:587` (envs na Vercel)
 
 ## Quando me acionar
-- SMTP / abrir L1–L3 / incidente
+- Abrir L1–L3 / incidente / trocar senha de app Zoho
