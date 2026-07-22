@@ -110,9 +110,9 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 28. ~~Wizard copy alinhada a SMTP real~~ (bypass só emergência)
 29. ~~Auth POST seed orders (D019)~~
 30. ~~Auth GET listagem orders (D020)~~
-31. ~~**L1 Designers (D021)**~~ — MVP: publish + royalty → fila (e2e PASS)
-32. **L3 Dropshipping como canal de demanda (D022)** — em curso
-33. *(Depois)* L2 Técnicos/H7
+31. ~~**L1 Designers (D021)**~~ — MVP PASS
+32. ~~**L3 canal de demanda (D022)**~~ — MVP PASS
+33. **L2 Técnicos / H7 (D023)** — próximo
 
 ## Candidatos descartados (esta rodada)
 
