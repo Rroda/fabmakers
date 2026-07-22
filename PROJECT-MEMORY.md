@@ -7,25 +7,20 @@
 ## Status atual
 - **Status:** active
 - **Última sessão:** 2026-07-22
-- **Modo:** autonomia — seguir ROADMAP; acionar humano só para secrets/aprovação/wedge.
-- **Foco:** Core estável. Build produção OK (fix tipo MakerProfile.id). SMTP adiado.
-- **Próximo:** deploy quando pedir · ou commit · L1–L3 depois.
+- **Modo:** autonomia
+- **Foco:** **Produção no ar** — https://fabmakers.com.br (deploy OK). SMTP ainda adiado.
+- **Próximo:** smoke humano no domínio · schema Turso se faltar `catalogId` · L1–L3 depois.
 
-## O que já foi feito
-- D004–D016 + backlog Later L1–L3 (doc)
-- Contas MVP: admin@ / admin123 · roda@ / 123
-- `public/catalog/*.stl` + link na fila maker
+## Deploy
+- Prod: https://fabmakers.com.br
+- Inspect: https://vercel.com/rrodas-projects/fabmakers/A18tXH97amy2VpjMfFVRv6tq4YUQ
+- Commit: `35c5d84` (pushed master)
+- Env já na Vercel: TURSO_* · DATABASE_URL
+- SMTP: adiado
 
-## Próximos passos
-- [x] D015–D016
-- [ ] SMTP_* — **adiado** (ligar só no deploy, quando pedir)
-- [ ] Later L1–L3 — só após Core/deploy
+## Contas MVP
+- admin@fabmakers.com.br / admin123
+- roda@fabmakers.com.br / 123
 
 ## Quando me acionar
-- Quiser ligar SMTP / deploy
-- Mudança de wedge / abrir L1–L3
-- Commit/PR
-
-## Relacionados
-- **TEKNA** — peer (D005)
-- **AI-BRAIN** — só leitura
+- SMTP / L1–L3 / domínio DNS se algo quebrar
