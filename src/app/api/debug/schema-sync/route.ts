@@ -3,18 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/debug/schema-sync
- * Alinha colunas Order no Turso (filename, catalogId) — one-shot pós-deploy.
- * Header: x-migrate-secret = ADMIN_API_SECRET | fabmakers-migrate-once
+ * POST /api/debug/schema-sync — só com ADMIN_API_SECRET (sem fallback público em prod).
  */
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-migrate-secret") || "";
-  const expected =
-    process.env.ADMIN_API_SECRET ||
-    process.env.ADMIN_API_KEY ||
-    "fabmakers-migrate-once";
-  if (secret !== expected && secret !== "fabmakers-migrate-once") {
-    return NextResponse.json({ success: false, error: "Não autorizado." }, { status: 401 });
+  const expected = process.env.ADMIN_API_SECRET || process.env.ADMIN_API_KEY || "";
+
+  if (!expected || secret !== expected) {
+    return NextResponse.json(
+      { success: false, error: "Não autorizado. Defina ADMIN_API_SECRET e envie x-migrate-secret." },
+      { status: 401 }
+    );
   }
 
   try {
@@ -32,7 +31,6 @@ export async function POST(req: NextRequest) {
         results.push(`ok: ${sql}`);
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
-        // coluna já existe
         if (/duplicate column|already exists/i.test(msg)) {
           results.push(`skip: ${sql}`);
         } else {
@@ -41,7 +39,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Smoke: listar 1 pedido (ou vazio)
     const count = await prisma.order.count();
     return NextResponse.json({ success: true, results, orderCount: count });
   } catch (error: unknown) {

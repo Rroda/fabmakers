@@ -5,10 +5,9 @@
 - **Wedge escolhido?** Sim — **Supply-first** (D004)
 - **TEKNA:** peer apenas (D005) — sem papel especial
 - **Foco técnico recente:** Onboarding maker + APIs + cotação/orders
-- **Próximo movimento:** SMTP **adiado** (usuário). Core estável. Polish pré-prod ou deploy sem e-mail real.
-- **SMTP:** parked até pedido explícito / deploy
-- **D016:** `public/catalog/*.stl` + download na fila
-- **D015:** GET `filter=queue|mine` + makerToken
+- **Próximo movimento:** Core **validado em prod** (usuário). README operacional. SMTP adiado. L1–L3 backlog.
+- **SMTP:** parked até pedido explícito
+- **Prod:** https://fabmakers.com.br
 - **D014:** backlog L1–L3
 - **Autonomia:** orquestrar ROADMAP; acionar humano em secrets/aprovação
 - **Foco:** regra `fabmakers-focus.mdc`
