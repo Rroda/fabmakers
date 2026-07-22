@@ -1368,26 +1368,96 @@ export default function FabMakersApp() {
       current.status === "PRINTING" ? "SHIPPED" : current.status === "SHIPPED" ? "COMPLETED" : null;
     if (!next) return;
 
+    const data = await persistOrderAction("advance", orderId, makerProfile?.name);
+    if (!data.success) {
+      alert(data.error || "Não foi possível avançar o job.");
+      refreshOrdersFromApi();
+      return;
+    }
+
     setOrders((prev) =>
       prev.map((o) =>
         o.id === orderId
           ? {
               ...o,
-              status: next,
-              progress: next === "SHIPPED" ? 90 : 100,
+              status: (data.order?.status as SimulatedOrder["status"]) || next,
+              progress: data.order?.progress ?? (next === "SHIPPED" ? 90 : 100),
+              makerPayout: data.order?.makerPayout ?? o.makerPayout,
             }
           : o
       )
     );
 
-    const data = await persistOrderAction("advance", orderId, makerProfile?.name);
     if (next === "COMPLETED") {
-      const payout = current.makerPayout ?? current.totalPrice * 0.95;
+      const payout = data.order?.makerPayout ?? current.makerPayout ?? current.totalPrice * 0.95;
       alert(
         data?.order?.payoutReleased !== false
-          ? `Entrega confirmada. Pagamento liberado: R$ ${payout.toFixed(2).replace(".", ",")} (job #${orderId}).`
+          ? `Entrega confirmada. Pagamento liberado: R$ ${Number(payout).toFixed(2).replace(".", ",")} (job #${orderId}).`
           : `Job #${orderId} marcado como concluído.`
       );
+    }
+  };
+
+  /** Seed Support: coloca um job do catálogo curado na fila (D006) — útil quando a fila está vazia. */
+  const seedCatalogDemand = async () => {
+    const model = CURATED_CATALOG.find((m) => m.id === "fm-cable-clip") || CURATED_CATALOG[0];
+    if (!model) return;
+    try {
+      const quoteRes = await fetch("/api/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          catalogId: model.id,
+          material: model.defaultMaterial,
+          infill: 20,
+        }),
+      });
+      const quoteData = await quoteRes.json();
+      if (!quoteRes.ok || !quoteData?.pricing) {
+        alert(quoteData.error || "Falha ao cotar demanda demo.");
+        return;
+      }
+      const id = `seed-${Date.now()}`;
+      const orderBody = {
+        id,
+        filename: quoteData.filename || model.filename,
+        status: "WAITING_MAKER",
+        totalPrice: quoteData.pricing.totalPrice,
+        weightG: quoteData.metrics?.weightG ?? 10,
+        timeFormatted: quoteData.metrics?.timeFormatted ?? "1h",
+        material: model.defaultMaterial,
+        zipCode: makerProfile?.zipCode || "01310-100",
+        catalogId: model.id,
+        makerPayout: quoteData.pricing.makerPayout,
+        platformFee: quoteData.pricing.platformFee,
+      };
+      const createRes = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderBody),
+      });
+      const created = await createRes.json();
+      if (!created.success) {
+        alert(created.error || "Falha ao criar demanda na fila.");
+        return;
+      }
+      setOrders((prev) => [
+        {
+          ...orderBody,
+          status: "WAITING_MAKER" as const,
+          progress: 0,
+          createdAt:
+            new Date().toLocaleDateString("pt-BR") +
+            " " +
+            new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        },
+        ...prev,
+      ]);
+      refreshOrdersFromApi();
+      alert(`Demanda demo #${id} entrou na fila. Aceite o job para produzir.`);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao gerar demanda demo.");
     }
   };
 
@@ -4905,13 +4975,20 @@ export default function FabMakersApp() {
 
                           <div className={`divide-y text-xs ${theme === "dark" ? "divide-[#18181b]" : "divide-[#e4e4e7]"}`}>
                             {orders.filter(o => o.status === "WAITING_MAKER").length === 0 ? (
-                              <div className="p-10 text-center text-[#71717a] space-y-2">
+                              <div className="p-10 text-center text-[#71717a] space-y-4">
                                 <h4 className={`font-bold uppercase text-xs tracking-wider mono-text ${theme === "dark" ? "text-white" : "text-black"}`}>
                                   Sem pedidos na fila
                                 </h4>
                                 <p className="text-xs max-w-xs mx-auto leading-relaxed">
                                   Quando houver seed ou cliente com STL, as ofertas aparecem aqui.
                                 </p>
+                                <button
+                                  type="button"
+                                  onClick={() => void seedCatalogDemand()}
+                                  className="px-4 py-2 bg-[#d44d00] hover:bg-[#b04000] text-white text-xs font-bold uppercase tracking-wider rounded-md transition cursor-pointer"
+                                >
+                                  Gerar demanda demo
+                                </button>
                               </div>
                             ) : (
                               orders.filter(o => o.status === "WAITING_MAKER").map((ord) => (
@@ -4968,12 +5045,12 @@ export default function FabMakersApp() {
                           <span className="text-[10px] text-[#71717a] mono-text">imprimir → despachar → pagar</span>
                         </div>
                         <div className={`divide-y text-xs ${theme === "dark" ? "divide-[#18181b]" : "divide-[#e4e4e7]"}`}>
-                          {orders.filter(o => o.makerName === makerProfile.name).length === 0 ? (
+                          {orders.filter(o => o.makerName === makerProfile.name && (o.status === "PRINTING" || o.status === "SHIPPED")).length === 0 ? (
                             <div className="p-8 text-center text-[#71717a]">
                               Nenhum job alocado. Aceite um da fila acima.
                             </div>
                           ) : (
-                          orders.filter(o => o.makerName === makerProfile.name).map((ord) => (
+                          orders.filter(o => o.makerName === makerProfile.name && (o.status === "PRINTING" || o.status === "SHIPPED")).map((ord) => (
                             <div key={ord.id} className={`p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 ${
                               theme === "dark" ? "bg-[#09090b]/20" : "bg-[#fafafa]/80"
                             }`}>
@@ -4992,6 +5069,15 @@ export default function FabMakersApp() {
                                   </span>
                                 </div>
                                 <div className="text-xs text-[#71717a]">{ord.weightG}g · {ord.material}</div>
+                                {getCuratedStlUrl(ord.catalogId) ? (
+                                  <a
+                                    href={getCuratedStlUrl(ord.catalogId)!}
+                                    download={ord.filename}
+                                    className="inline-flex text-[10px] font-semibold uppercase tracking-wider text-[#d44d00] hover:underline mono-text"
+                                  >
+                                    Baixar STL
+                                  </a>
+                                ) : null}
                                 {ord.status === "PRINTING" && (
                                   <div className={`text-xs font-bold pt-1 ${theme === "dark" ? "text-white" : "text-black"}`}>Progresso: {ord.progress}%</div>
                                 )}
