@@ -147,5 +147,13 @@
 
 - **Decisão:** Com Core estável, executar **L1** (persona Designer: publicar `Model3D` com licença OK + royalty no pedido). Manter home maker-first; `SHOW_L1_DESIGNER` separado de MakerWorld/Shopee/AI (`SHOW_LATER_UI` continua false).
 - **Por quê:** ordem do ROADMAP pós-Core; usuário confirmou autonomia para seguir sem micro-menus.
-- **Fora:** L2/L3 neste passo; scrape MakerWorld; DRM/G-code stream.
+- **Fora:** scrape MakerWorld; DRM/G-code stream.
+- **Smoke:** `e2e:designer-job` PASS em prod.
+- **Data:** 2026-07-22
+
+## D022 — L3 Dropshipping = canal de demanda (não hero)
+
+- **Decisão:** Após L1, abrir L3 como **origem de pedidos** para a fila (`POST /api/channels/fulfillment`), não como pitch/afiliado. UI Shopee continua `SHOW_LATER_UI=false`.
+- **Por quê:** reforça Supply-first (mais jobs na fila) sem diluir a frase do produto.
+- **Fora:** clonar loja; afiliado hero; L2 neste passo.
 - **Data:** 2026-07-22

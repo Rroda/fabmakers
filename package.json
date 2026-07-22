@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "e2e:catalog-job": "node scripts/e2e-catalog-job.mjs",
-    "e2e:designer-job": "node scripts/e2e-designer-job.mjs"
+    "e2e:designer-job": "node scripts/e2e-designer-job.mjs",
+    "e2e:channel-job": "node scripts/e2e-channel-job.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",
