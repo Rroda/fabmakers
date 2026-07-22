@@ -462,6 +462,9 @@ export default function FabMakersApp() {
     conversionPct: number;
     counts: Record<string, number>;
   } | null>(null);
+  const [h5Recent, setH5Recent] = useState<
+    Array<{ name: string; email: string; status: string; isApproved: boolean }>
+  >([]);
 
   // --- ESTADOS DO FATIADOR STL (Aba Cliente) ---
   const [file, setFile] = useState<File | null>(null);
@@ -723,6 +726,7 @@ export default function FabMakersApp() {
       .then((r) => r.json())
       .then((data) => {
         if (data.success && data.funnel) setH5Funnel(data.funnel);
+        if (data.success && Array.isArray(data.recent)) setH5Recent(data.recent);
       })
       .catch((err) => console.error("Erro ao carregar funil H5:", err));
     fetch("/api/admin", { headers })
@@ -5792,27 +5796,48 @@ export default function FabMakersApp() {
                 )}
               </div>
               {h5Funnel ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
-                  {[
-                    { label: "Início", value: h5Funnel.started },
-                    { label: "Unverified", value: h5Funnel.counts.UNVERIFIED ?? 0 },
-                    { label: "Pendente", value: h5Funnel.counts.PENDING_APPROVAL ?? 0 },
-                    { label: "Sandbox", value: h5Funnel.counts.SANDBOX ?? 0 },
-                    { label: "Homologado", value: h5Funnel.homologated },
-                    { label: "Banidos", value: h5Funnel.counts.BANNED ?? 0 },
-                  ].map((s) => (
-                    <div
-                      key={s.label}
-                      className={`rounded-lg border p-3 ${
-                        theme === "dark" ? "border-[#18181b] bg-[#050506]" : "border-[#e4e4e7] bg-[#fafafa]"
-                      }`}
-                    >
-                      <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">{s.label}</span>
-                      <span className={`text-xl font-bold mono-text mt-1 block ${theme === "dark" ? "text-white" : "text-black"}`}>
-                        {s.value}
-                      </span>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+                    {[
+                      { label: "Início", value: h5Funnel.started },
+                      { label: "Unverified", value: h5Funnel.counts.UNVERIFIED ?? 0 },
+                      { label: "Pendente", value: h5Funnel.counts.PENDING_APPROVAL ?? 0 },
+                      { label: "Sandbox", value: h5Funnel.counts.SANDBOX ?? 0 },
+                      { label: "Homologado", value: h5Funnel.homologated },
+                      { label: "Banidos", value: h5Funnel.counts.BANNED ?? 0 },
+                    ].map((s) => (
+                      <div
+                        key={s.label}
+                        className={`rounded-lg border p-3 ${
+                          theme === "dark" ? "border-[#18181b] bg-[#050506]" : "border-[#e4e4e7] bg-[#fafafa]"
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase tracking-wider text-[#71717a] mono-text block">{s.label}</span>
+                        <span className={`text-xl font-bold mono-text mt-1 block ${theme === "dark" ? "text-white" : "text-black"}`}>
+                          {s.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {h5Recent.length > 0 && (
+                    <div className={`rounded-lg border overflow-hidden ${theme === "dark" ? "border-[#18181b]" : "border-[#e4e4e7]"}`}>
+                      <div className={`px-4 py-2 text-[10px] uppercase tracking-wider font-bold mono-text ${theme === "dark" ? "bg-[#050506] text-[#71717a]" : "bg-[#fafafa] text-[#8a8a93]"}`}>
+                        Makers recentes
+                      </div>
+                      <ul className={`divide-y text-xs ${theme === "dark" ? "divide-[#18181b]" : "divide-[#ebebef]"}`}>
+                        {h5Recent.slice(0, 6).map((m) => (
+                          <li key={m.email} className="px-4 py-2 flex justify-between gap-2">
+                            <span className={theme === "dark" ? "text-white" : "text-[#111]"}>
+                              {m.name} <span className="text-[#71717a] mono-text">· {m.email}</span>
+                            </span>
+                            <span className="text-[#d44d00] mono-text uppercase text-[10px] font-bold shrink-0">
+                              {m.status === "APPROVED" || m.isApproved ? "HOMOLOGATED" : m.status}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  ))}
+                  )}
                 </div>
               ) : (
                 <p className="text-xs text-[#71717a] mono-text">Carregando funil…</p>

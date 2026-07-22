@@ -10,7 +10,9 @@
     "e2e:catalog-job": "node scripts/e2e-catalog-job.mjs",
     "e2e:designer-job": "node scripts/e2e-designer-job.mjs",
     "e2e:channel-job": "node scripts/e2e-channel-job.mjs",
-    "e2e:tech-job": "node scripts/e2e-tech-job.mjs"
+    "e2e:tech-job": "node scripts/e2e-tech-job.mjs",
+    "e2e:h5-funnel": "node scripts/e2e-h5-funnel.mjs",
+    "e2e:all": "node scripts/e2e-all.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.17.4",

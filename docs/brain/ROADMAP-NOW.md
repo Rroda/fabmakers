@@ -113,7 +113,7 @@ Trilhas **prometidas** para depois do Supply-first estável. Não competem com o
 31. ~~**L1 Designers (D021)**~~ — MVP PASS
 32. ~~**L3 canal de demanda (D022)**~~ — MVP PASS
 33. ~~**L2 Técnicos / H7 (D023)**~~ — MVP PASS
-34. Polish / hipóteses abertas (H5 funil, etc.) conforme necessidade
+34. ~~Polish H5 funil + e2e:all (D024)~~
 
 ## Candidatos descartados (esta rodada)
 

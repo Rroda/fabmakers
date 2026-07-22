@@ -35,9 +35,14 @@ export async function GET(req: NextRequest) {
     };
 
     for (const p of profiles) {
-      const key = (p.makerStatus || "UNVERIFIED") as keyof typeof counts;
-      if (key in counts && key !== "OTHER") counts[key] += 1;
-      else counts.OTHER += 1;
+      let key = (p.makerStatus || "UNVERIFIED") as string;
+      // Legado: APPROVED conta como homologado no funil
+      if (key === "APPROVED") key = "HOMOLOGATED";
+      if (key in counts && key !== "OTHER") {
+        counts[key as keyof typeof counts] += 1;
+      } else {
+        counts.OTHER += 1;
+      }
     }
 
     const started = profiles.length;

@@ -12,7 +12,7 @@
 - **Status:** active
 - **Última sessão:** 2026-07-22
 - **Modo:** autonomia total
-- **Foco:** Core + L1 + L2 + L3 MVPs entregues. Próximo = polish / hipóteses abertas no ROADMAP.
+- **Foco:** Core + L1–L3 + H5 polish (D024). Suite `e2e:all`.
 - **Prod:** https://fabmakers.com.br
 
 ## Contas
@@ -21,8 +21,6 @@
 
 ## Scripts de teste
 ```bash
-npm run e2e:catalog-job -- https://fabmakers.com.br
-npm run e2e:designer-job -- https://fabmakers.com.br
-npm run e2e:channel-job -- https://fabmakers.com.br
-npm run e2e:tech-job -- https://fabmakers.com.br
+npm run e2e:all -- https://fabmakers.com.br
 ```
+(ou individual: catalog-job · designer-job · channel-job · tech-job · h5-funnel)

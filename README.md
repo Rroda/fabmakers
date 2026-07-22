@@ -8,9 +8,7 @@ Produção: https://fabmakers.com.br
 
 ## Wedge atual
 
-Persona principal = **Maker / fab**. L1 Designers ativo (publicar modelo + royalty). L2/L3 depois.
-
-Fora do foco agora: técnicos/manutenção (L2), dropshipping (L3), scrape MakerWorld.
+Persona principal = **Maker / fab**. L1–L3 MVPs ativos (designer, tech, canal). Scrape MakerWorld fora.
 
 Detalhes: `docs/brain/ROADMAP-NOW.md` · `PROJECT-MEMORY.md`
 
@@ -41,7 +39,7 @@ SQLite: `prisma/dev.db`. Produção usa Turso (`TURSO_DATABASE_URL` + `TURSO_AUT
 SMTP (prod): `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` / `SMTP_PORT` / `SMTP_FROM` na Vercel. Sem isso, verify-email fica em modo console.
 
 ```bash
-npm run e2e:catalog-job   # catálogo → fila → claim → COMPLETED
+npm run e2e:all -- https://fabmakers.com.br   # regressão completa
 npm run build
 ```
 
