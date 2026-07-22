@@ -54,3 +54,8 @@ next-env.d.ts
 .env.local
 .env.*.local
 !.env.example
+
+# senhas / credenciais locais (NUNCA commit)
+SECRETS.local.md
+CREDENCIAIS.local.md
+*.secrets.md

@@ -15,6 +15,7 @@
 - Prod: https://fabmakers.com.br
 - Contas: admin@ / admin123 · roda@ / 123
 - SMTP: Zoho `contato@` → `smtp.zoho.com:587` (envs na Vercel)
+- Senhas locais: `SECRETS.local.md` (gitignored — não commit)
 
 ## Quando me acionar
 - Abrir L1–L3 / incidente / trocar senha de app Zoho
